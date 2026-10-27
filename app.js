@@ -2701,7 +2701,9 @@
       });
       actions.appendChild(mailBtn);
       if (ISSUES_URL || SUPPORT_EMAIL) {
-        var ghBtn = el('button', 'btn btn-ghost btn-sm btn-plain', 'OPEN AN ISSUE');
+        // the tracker is on a private repository, so this button only helps
+        // the person who runs the site — the code is the way for everyone else
+        var ghBtn = el('button', 'btn btn-ghost btn-sm btn-plain', 'OPEN AN ISSUE (the maintainer)');
         ghBtn.type = 'button';
         ghBtn.addEventListener('click', function () {
           reportToTracker(bhReportText(rep) + '\n\n--- diagnostics ---\n' + diagnostics(),

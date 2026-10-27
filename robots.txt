@@ -1,2 +1,5 @@
+# DeadShop is a private test build. It stays out of the search engines.
+# The site still works for anyone who has the link — this only says "do not
+# list me". Remove this file when the site goes public on purpose.
 User-agent: *
-Allow: /
+Disallow: /
