@@ -1251,3 +1251,132 @@ body.acc-crimson{--teal:#F87171;--teal-d:#991B1B}
   color:var(--ink-2);flex:none;padding:3px 8px;border:1px solid var(--line);border-radius:8px;
   background:var(--soft)}
 .set-meta.ok{color:var(--green-d);border-color:var(--green-d)}
+
+/* ==================================================================
+   THE CLOUD — the account, the board, the subscription, the ads
+   and the daily limit. Everything here is optional: without a server
+   the slots simply stay empty.
+   ================================================================== */
+
+/* a plain paragraph of quiet text — used all over the cloud screens */
+.note{font-size:13px;color:var(--ink-2);font-weight:700;line-height:1.55;
+  margin:8px 0;text-align:left}
+
+/* ------------------------------- the ad slot --------------------- */
+.ad-slot{margin:14px 0}
+.ad-slot:empty{display:none}
+.ad-banner{
+  display:flex;align-items:center;justify-content:center;gap:8px;position:relative;
+  background:var(--soft);border:2px solid var(--line);border-radius:12px;
+  padding:10px;min-height:56px;text-decoration:none;color:var(--ink)
+}
+.ad-banner img{max-width:100%;max-height:120px;object-fit:contain;border-radius:6px;display:block}
+.ad-text{font-family:var(--font-ui);font-size:13px;color:var(--ink-2);
+  text-align:center;padding:6px 10px;line-height:1.4}
+.ad-label{
+  position:absolute;top:5px;right:7px;font-size:9px;font-weight:800;letter-spacing:1px;
+  text-transform:uppercase;color:var(--ink-2);opacity:.65;pointer-events:none
+}
+
+/* -------------------------------- the limit ---------------------- */
+.chip-limit{
+  color:var(--teal-d);font-family:var(--font-ui);font-size:13px;gap:4px;
+  border:1px solid var(--line);border-radius:999px;padding:2px 9px;background:var(--card)
+}
+.chip-limit.sub{color:var(--green-d);border-color:var(--green)}
+.chip-limit-l{font-size:9.5px;letter-spacing:.6px;text-transform:uppercase;opacity:.75}
+.limit-card{width:min(400px,92vw)}
+.limit-body{display:flex;flex-direction:column;gap:4px}
+.limit-note{font-size:14px;line-height:1.5;margin:0 0 6px}
+.limit-note b{font-family:var(--font-ui)}
+.limit-actions{display:flex;flex-direction:column;gap:2px;margin-top:6px}
+
+/* ------------------------------- the board ----------------------- */
+.board-head{
+  background:var(--card);border:2px solid var(--line);border-radius:var(--r);
+  padding:14px;margin:12px 0;box-shadow:var(--shadow);border-top-color:var(--teal-d)
+}
+.board-head h2{font-family:var(--font-ui);font-size:16px;margin:0 0 8px}
+.board-mine{
+  background:var(--soft);border-radius:12px;padding:10px 12px;
+  display:flex;flex-direction:column;gap:2px
+}
+.board-mine-n{font-family:var(--font-ui);font-size:14px;color:var(--ink)}
+.board-mine-s{font-size:12px;color:var(--ink-2);font-weight:700}
+.board-mine-r{font-size:12px;color:var(--amber-d);font-weight:800;letter-spacing:.4px}
+.board-list{
+  background:var(--card);border:2px solid var(--line);border-radius:var(--r);
+  padding:6px 14px;box-shadow:var(--shadow);margin-bottom:12px
+}
+.board-row{
+  display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)
+}
+.board-row:first-child{border-top:0}
+.board-place{
+  font-family:var(--font-ui);font-size:13px;color:var(--ink-2);width:22px;flex:none;
+  text-align:right
+}
+.board-name{font-family:var(--font-ui);font-size:14px;color:var(--ink);flex:1;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.board-xp{font-family:var(--font-ui);font-size:12.5px;color:var(--green-d);flex:none}
+.board-lessons{font-size:11.5px;color:var(--ink-2);font-weight:700;flex:none;
+  min-width:74px;text-align:right}
+.board-actions{display:flex;flex-direction:column;margin:0 0 4px}
+
+/* ---------------------------- the subscription -------------------- */
+.sub-status{
+  background:var(--card);border:2px solid var(--line);border-radius:var(--r);
+  padding:14px;margin:12px 0;box-shadow:var(--shadow)
+}
+.sub-on{font-family:var(--font-ui);font-size:16px;color:var(--green-d)}
+.sub-off{font-family:var(--font-ui);font-size:16px;color:var(--ink-2)}
+.sub-until{font-size:12.5px;color:var(--ink-2);font-weight:700;margin-top:4px;line-height:1.5}
+.sub-perks{list-style:none;margin:0 0 12px;padding:0}
+.sub-perks li{
+  background:var(--card);border:2px solid var(--line);border-radius:12px;
+  padding:10px 12px;margin-bottom:8px;font-family:var(--font-ui);font-size:14px;
+  color:var(--ink);display:flex;flex-direction:column;gap:2px
+}
+.sub-perk-note{font-family:var(--font-body);font-size:12px;color:var(--ink-2);font-weight:700}
+.sub-price{
+  display:flex;align-items:baseline;gap:8px;justify-content:center;
+  background:var(--soft);border-radius:12px;padding:12px;margin-bottom:12px
+}
+.sub-price-n{font-family:var(--font-ui);font-size:22px;color:var(--ink)}
+.sub-price-m{font-size:12px;color:var(--ink-2);font-weight:800;text-transform:uppercase;
+  letter-spacing:.6px}
+.sub-actions{display:flex;flex-direction:column;gap:2px}
+.sub-steps{margin:16px 0 4px}
+.sub-step{display:flex;gap:10px;align-items:flex-start;padding:8px 0}
+.sub-step-n{
+  font-family:var(--font-ui);font-size:12px;color:var(--card);background:var(--ink-2);
+  width:22px;height:22px;border-radius:50%;flex:none;display:flex;align-items:center;
+  justify-content:center;margin-top:1px
+}
+.sub-step-b{flex:1;min-width:0}
+.sub-step-t{font-family:var(--font-ui);font-size:13.5px;color:var(--ink)}
+.sub-step-d{font-size:12px;color:var(--ink-2);font-weight:700;line-height:1.5}
+
+/* ------------------------------ the account ----------------------- */
+.cloud-box{margin-bottom:4px}
+.cloud-mail{font-family:var(--font-ui);font-size:14px;color:var(--ink);
+  background:var(--card);border:2px solid var(--line);border-radius:12px;padding:9px 12px}
+.set-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.set-row .set-actions{justify-content:flex-start;margin-top:2px}
+
+/* --------------------------- the owner's desk -------------------- */
+.owner-h{
+  font-family:var(--font-ui);font-size:13px;color:var(--ink-2);letter-spacing:.6px;
+  text-transform:uppercase;margin:16px 0 4px
+}
+.owner-out{margin-top:6px}
+.owner-row{
+  background:var(--card);border:2px solid var(--line);border-radius:12px;
+  padding:11px 12px;margin-bottom:8px
+}
+.owner-row-b{display:flex;flex-direction:column;gap:3px}
+.owner-row-t{font-family:var(--font-ui);font-size:13.5px;color:var(--ink);word-break:break-word}
+.owner-row-m{font-size:11.5px;color:var(--ink-2);font-weight:700;word-break:break-word}
+.owner-row-c{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;
+  color:var(--teal-d);word-break:break-all}
+.owner-acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px}

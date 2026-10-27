@@ -1,7 +1,7 @@
 /* DeadShop service worker — offline shell + runtime cache for item icons.
    Only registers in a secure context (https:// or localhost); on a plain-http
    LAN address the browser refuses it, so the app must degrade gracefully. */
-var CACHE = 'deadshop-v11';
+var CACHE = 'deadshop-v12';
 var SHELL = [
   './',
   './index.html',
@@ -9,10 +9,12 @@ var SHELL = [
   './app.js',
   './core.js',
   './auth.js',
+  './api.js',
   './manifest.webmanifest',
   './data/data.js',
   './data/shop_stats.js',
   './data/updates.js',
+  './data/config.js',
   './assets/icon.svg',
   './assets/owl.svg',
   './assets/flame.svg',
@@ -57,6 +59,12 @@ self.addEventListener('fetch', function (e) {
   var url;
   try { url = new URL(req.url); } catch (err) { return; }
   if (url.origin !== self.location.origin) return;
+
+  /* The API is never cached. The board, the account, the ad slots and the
+     daily limit change every minute — a cached answer would show yesterday's
+     state, and a cached "you may start a lesson" would be a hole in the
+     limit. These requests go straight to the network. */
+  if (url.pathname.indexOf('/api/') === 0) return;
 
   var key = shellPath(url.pathname);
   var isShell = SHELL.indexOf(key) >= 0;

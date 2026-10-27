@@ -125,6 +125,10 @@
     xp: 0, streak: 0, lastDay: null, dailyDay: null, mastery: {}, right: 0, wrong: 0,
     lessons: 0, unitsDone: [], unlocked: {}, seen: {}, onboarded: false, paused: null,
     display: '', avatar: '', todayCount: 0, todayDay: null, history: {},
+    // how many lessons were started today — the free plan allows five
+    todayLessons: 0, lessonDay: null,
+    // the name on the leaderboard is opt-in
+    board: false,
     souls: 0, soulsEarned: 0, soulsLedger: [], cosmetics: [], equipped: {},
     gate: null,
     bughunt: { reports: [], inbox: [], grants: [] },
@@ -181,6 +185,717 @@
     if (ht) ht.classList.toggle('on', !!S.settings.haptics);
     if (mt) mt.classList.toggle('on', !!S.settings.motion);
   }
+
+  // --------------------------------------------------------------- the cloud
+  /* Everything that needs the server: the account that follows you between
+     devices, the leaderboard, the bug reports that reach the person who runs
+     the site, the ad slots, the daily limit and the subscription.
+
+     All of it is optional. The site is fully playable without a server —
+     that is what the static copy on GitHub Pages is. When there is no
+     server, every function here quietly does nothing.
+  */
+  var cloud = {
+    ready: false,
+    ads: [],
+    limit: 5,
+    sub: false,
+    subUntil: 0,
+    subUrl: '',
+    board: [],
+    rank: 0,
+    serverUser: null,
+    ownerKey: '',
+    priceRub: 199,
+    priceUsd: 3
+  };
+  try { cloud.ownerKey = localStorage.getItem('deadshop-owner-key-v1') || ''; } catch (e) { }
+
+  function cloudApplyConfig(cfg) {
+    if (!cfg) return;
+    if (cfg.dailyLimit) cloud.limit = cfg.dailyLimit;
+    if (cfg.ads) cloud.ads = cfg.ads;
+    if (cfg.subscription) {
+      if (cfg.subscription.priceRub) cloud.priceRub = cfg.subscription.priceRub;
+      if (cfg.subscription.priceUsd) cloud.priceUsd = cfg.subscription.priceUsd;
+      if (cfg.subscription.url) cloud.subUrl = cfg.subscription.url;
+    }
+  }
+
+  function cloudStart() {
+    if (!window.DSCLOUD) return;
+    // the bridge tells us when the account changes, so the profile and the
+    // limit chip never fall behind what the server knows
+    if (window.DSCLOUD.onChange) {
+      window.DSCLOUD.onChange(function () {
+        cloud.ready = !!(window.DSCLOUD && window.DSCLOUD.available);
+        var u = window.DSCLOUD.user;
+        cloud.serverUser = u || null;
+        if (u) {
+          cloud.sub = !!(u.subscription && u.subscription.active);
+          cloud.subUntil = (u.subscription && u.subscription.until) || 0;
+        } else {
+          cloud.sub = false;
+          cloud.subUntil = 0;
+        }
+        renderCloudAccount();
+        renderLimitChip();
+      });
+    }
+    DSCLOUD.init(function (up) {
+      cloud.ready = !!up;
+      if (!up) {
+        renderCloudAccount();
+        renderLimitChip();
+        return;
+      }
+      cloudApplyConfig(DSCLOUD.config);
+      var u = DSCLOUD.user;
+      if (u) {
+        cloud.serverUser = u;
+        cloud.sub = !!(u.subscription && u.subscription.active);
+        cloud.subUntil = (u.subscription && u.subscription.until) || 0;
+        if (typeof u.name === 'string' && u.name) { S.display = u.name; save(); }
+        S.board = !!u.public;
+      }
+      DSCLOUD.leaderboard().then(function (r) {
+        if (r) { cloud.board = r.players || []; cloudRank(); }
+        renderFriends();
+      });
+      renderAds();
+      renderSub();
+      renderProfile();
+      renderCloudAccount();
+      renderLimitChip();
+    });
+  }
+
+  function cloudRank() {
+    cloud.rank = 0;
+    if (!cloud.serverUser) return;
+    var me = cloud.serverUser;
+    var list = cloud.board || [];
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].name === me.name && list[i].xp === me.xp) { cloud.rank = i + 1; break; }
+    }
+  }
+
+  // ------------------------------------------------------------ the ads
+  function renderAds() {
+    var slots = $$('.ad-slot');
+    if (!slots.length) return;
+    var subscriber = cloud.sub;
+    slots.forEach(function (box) {
+      box.innerHTML = '';
+      if (subscriber) { box.style.display = 'none'; return; }
+      var ad = null;
+      for (var i = 0; i < cloud.ads.length; i++) {
+        if (!cloud.ads[i].slot || cloud.ads[i].slot === box.dataset.slot) { ad = cloud.ads[i]; break; }
+      }
+      if (!ad) { box.style.display = 'none'; return; }
+      box.style.display = '';
+      var link = el('a', 'ad-banner');
+      link.href = ad.url || '#';
+      link.target = '_blank';
+      link.rel = 'noopener sponsored nofollow';
+      if (ad.image) {
+        var img = document.createElement('img');
+        img.src = ad.image;
+        img.alt = ad.alt || ad.title || '';
+        img.loading = 'lazy';
+        link.appendChild(img);
+      } else {
+        link.appendChild(el('span', 'ad-text', ad.title || ''));
+      }
+      link.appendChild(el('span', 'ad-label', 'ad'));
+      box.appendChild(link);
+    });
+  }
+
+  // ------------------------------------------------------------ the limit
+  function lessonsToday() {
+    if (cloud.serverUser && cloud.serverUser.daily) return cloud.serverUser.daily.used || 0;
+    if (S.lessonDay !== today()) { S.lessonDay = today(); S.todayLessons = 0; }
+    return S.todayLessons || 0;
+  }
+
+  function limitLeft() {
+    if (cloud.sub) return 999;          // a subscriber is not stopped
+    return Math.max(0, cloud.limit - lessonsToday());
+  }
+
+  function countLocalLesson() {
+    if (S.lessonDay !== today()) { S.lessonDay = today(); S.todayLessons = 0; }
+    S.todayLessons = (S.todayLessons || 0) + 1;
+    save();
+  }
+
+  /* Every lesson-like session goes through here. A registered player is
+     counted by the server (which cannot be edited away); a guest is counted
+     here. The exam is not a lesson — it gives nothing, so it is not
+     counted. */
+  function gateLesson(kind, go) {
+    renderLimitChip();
+    if (cloud.sub) { go(); return; }
+    if (DSCLOUD.available && DSCLOUD.getToken()) {
+      DSCLOUD.lessonStart(kind).then(function (r) {
+        if (!r) { countLocalLesson(); go(); return; }
+        if (r.allowed === false) { showLimitScreen(r); return; }
+        if (cloud.serverUser) cloud.serverUser.daily = { used: r.used, limit: r.limit };
+        go();
+      });
+      return;
+    }
+    if (lessonsToday() >= cloud.limit) { showLimitScreen({ used: lessonsToday(), limit: cloud.limit }); return; }
+    countLocalLesson();
+    go();
+  }
+
+  function showLimitScreen(info) {
+    setText('#limit-used', String(info && info.used ? info.used : lessonsToday()));
+    setText('#limit-cap', String(info && info.limit ? info.limit : cloud.limit));
+    var m = $('#limit-modal');
+    if (m) m.classList.add('on');
+    renderSub();
+    renderLimitChip();
+  }
+
+  /* The number of lessons that are left today, written where the player can
+     see it before they start — a limit that only announces itself by
+     blocking is a limit that feels like a bug. */
+  function renderLimitChip() {
+    var chip = $('#limit-chip');
+    if (!chip) return;
+    var left = limitLeft();
+    if (cloud.sub) {
+      chip.hidden = false;
+      setText('#limit-left', '∞');
+      chip.title = 'Rejuvenator — no daily limit';
+      chip.classList.add('sub');
+    } else {
+      chip.hidden = false;
+      setText('#limit-left', String(left));
+      chip.title = left + ' of ' + cloud.limit + ' lessons left today';
+      chip.classList.remove('sub');
+    }
+  }
+
+  // ------------------------------------------------------------ the account
+  /* The account is optional. The site is fully playable without one — the
+     server only adds a second place where the progress is kept, a name on
+     the board, and the subscription. */
+  function renderCloudAccount() {
+    var state = $('#cloud-state');
+    var form = $('#cloud-form');
+    var signed = $('#cloud-signed');
+    if (!state) return;
+    state.innerHTML = '';
+    if (!cloud.ready) {
+      state.appendChild(el('div', 'note',
+        'This copy runs on its own — there is no server behind it, so there is ' +
+        'no account, no board and no ads. Everything else works the same.'));
+      if (form) form.hidden = true;
+      if (signed) signed.hidden = true;
+      return;
+    }
+    var u = cloud.serverUser;
+    if (!u) {
+      state.appendChild(el('div', 'note',
+        'Make an account and the progress follows you to every device, your ' +
+        'name can go on the board, and Rejuvenator lifts the daily limit.'));
+      if (form) form.hidden = false;
+      if (signed) signed.hidden = true;
+      return;
+    }
+    state.appendChild(el('div', 'cloud-mail', u.email || 'signed in'));
+    state.appendChild(el('div', 'note',
+      'Signed in. The progress is on the server as well as on this device — ' +
+      'a new device only needs the e-mail and the password.'));
+    if (form) form.hidden = true;
+    if (!signed) return;
+    signed.hidden = false;
+    signed.innerHTML = '';
+
+    var box = el('div', 'settings');
+    var nameRow = el('div', 'set-row set-row-col');
+    nameRow.appendChild(el('div', 'set-label', 'Name on the board'));
+    var input = el('input', 'set-input');
+    input.type = 'text';
+    input.maxLength = 20;
+    input.id = 'cloud-board-name';
+    input.value = u.name || '';
+    input.setAttribute('placeholder', 'How should the board call you?');
+    nameRow.appendChild(input);
+    box.appendChild(nameRow);
+
+    var pubRow = el('div', 'set-row');
+    pubRow.appendChild(el('div', 'set-label', 'Put me on the board'));
+    var t = el('button', 'toggle' + (u.public ? ' on' : ''));
+    t.id = 'cloud-public';
+    t.setAttribute('role', 'switch');
+    t.setAttribute('aria-checked', u.public ? 'true' : 'false');
+    t.appendChild(el('span', ''));
+    pubRow.appendChild(t);
+    box.appendChild(pubRow);
+    signed.appendChild(box);
+
+    var acts = el('div', 'set-actions');
+    var saveBtn = el('button', 'btn btn-blue btn-sm', 'SAVE NAME');
+    saveBtn.type = 'button';
+    saveBtn.addEventListener('click', cloudSaveBoard);
+    acts.appendChild(saveBtn);
+    var outBtn = el('button', 'btn btn-ghost btn-sm btn-plain', 'SIGN OUT');
+    outBtn.type = 'button';
+    outBtn.addEventListener('click', cloudLogout);
+    acts.appendChild(outBtn);
+    signed.appendChild(acts);
+
+    var pub = $('#cloud-public');
+    if (pub) {
+      pub.addEventListener('click', function () {
+        var on = !cloud.serverUser.public;
+        DSCLOUD.setPublic(on).then(function (r) {
+          if (r && r.user) {
+            cloud.serverUser = r.user;
+            S.board = !!r.user.public;
+            save();
+            renderCloudAccount();
+            toast(on ? 'Your name is on the board' : 'Taken off the board');
+          }
+        });
+      });
+    }
+  }
+
+  function cloudMail() {
+    if (cloud.serverUser && cloud.serverUser.email) return cloud.serverUser.email;
+    var n = profileName();
+    if (n && DSA.emailOf(n)) return DSA.emailOf(n);
+    return '';
+  }
+
+  function cloudAuth(kind) {
+    var mail = ($('#cloud-email') && $('#cloud-email').value || '').trim();
+    var pass = ($('#cloud-pass') && $('#cloud-pass').value || '');
+    var name = ($('#cloud-name') && $('#cloud-name').value || '').trim();
+    if (!mail) { toast('The e-mail first'); if ($('#cloud-email')) $('#cloud-email').focus(); return; }
+    if (!pass) { toast('The password too'); if ($('#cloud-pass')) $('#cloud-pass').focus(); return; }
+    if (kind === 'register' && pass.length < 8) { toast('At least 8 characters'); if ($('#cloud-pass')) $('#cloud-pass').focus(); return; }
+    var fn = kind === 'register' ? DSCLOUD.register : DSCLOUD.login;
+    fn(mail, pass, name).then(function (r) {
+      if (!r) { toast('The server did not answer — try again in a moment'); return; }
+      cloud.serverUser = r.user;
+      cloud.sub = !!(r.user.subscription && r.user.subscription.active);
+      cloud.subUntil = (r.user.subscription && r.user.subscription.until) || 0;
+      if (r.user.name) { S.display = r.user.name; save(); }
+      S.board = !!r.user.public;
+      var pn = $('#cloud-pass'); if (pn) pn.value = '';
+      renderCloudAccount();
+      renderAds();
+      renderSub();
+      renderFriends();
+      renderLimitChip();
+      toast(kind === 'register' ? 'Account created' : 'Welcome back');
+      syncCloud();
+    }).catch(function (e) {
+      toast(e && e.message ? e.message : 'That did not work');
+    });
+  }
+
+  function cloudLogout() {
+    DSCLOUD.logout().then(function () {
+      cloud.serverUser = null;
+      cloud.sub = false;
+      cloud.subUntil = 0;
+      S.board = false;
+      save();
+      renderCloudAccount();
+      renderAds();
+      renderSub();
+      renderFriends();
+      renderLimitChip();
+      toast('Signed out');
+    });
+  }
+
+  function cloudSaveBoard() {
+    var input = $('#cloud-board-name');
+    var name = (input && input.value || '').trim().replace(/\s+/g, ' ').slice(0, 20);
+    DSCLOUD.setPublic(!!cloud.serverUser.public, name).then(function (r) {
+      if (r && r.user) {
+        cloud.serverUser = r.user;
+        if (r.user.name) { S.display = r.user.name; save(); }
+        renderCloudAccount();
+        renderFriends();
+        toast('Saved');
+      }
+    });
+  }
+
+  // ------------------------------------------------------- the owner's desk
+  /* The owner key never leaves the browser that typed it. It is kept in
+     local storage of that browser only — the site itself never carries it. */
+  function ownerKeySet(key) {
+    cloud.ownerKey = key || '';
+    try {
+      if (cloud.ownerKey) localStorage.setItem('deadshop-owner-key-v1', cloud.ownerKey);
+      else localStorage.removeItem('deadshop-owner-key-v1');
+    } catch (e) { }
+  }
+
+  function renderOwnerQueue() {
+    var box = $('#bh-server');
+    if (!box) return;
+    box.innerHTML = '';
+    if (!cloud.ready) {
+      box.appendChild(el('div', 'footnote',
+        'The server is not reachable from this copy, so the queue above (the ' +
+        'local inbox) is all there is. On the machine that runs the server ' +
+        'this block fills up with the reports that came in.'));
+      return;
+    }
+    var row = el('div', 'set-row set-row-col');
+    row.appendChild(el('div', 'set-label', 'Owner key'));
+    var input = el('input', 'set-input');
+    input.type = 'password';
+    input.id = 'owner-key';
+    input.autocomplete = 'off';
+    input.setAttribute('placeholder', 'server-data/owner-key.txt');
+    input.value = cloud.ownerKey;
+    row.appendChild(input);
+    var acts = el('div', 'set-actions');
+    var open = el('button', 'btn btn-blue btn-sm', 'OPEN THE QUEUE');
+    open.type = 'button';
+    open.addEventListener('click', function () {
+      ownerKeySet(input.value || '');
+      ownerLoadQueue();
+    });
+    acts.appendChild(open);
+    var forget = el('button', 'btn btn-ghost btn-sm btn-plain', 'FORGET THE KEY');
+    forget.type = 'button';
+    forget.addEventListener('click', function () {
+      ownerKeySet('');
+      input.value = '';
+      ownerLoadQueue();
+    });
+    acts.appendChild(forget);
+    row.appendChild(acts);
+    box.appendChild(row);
+
+    var out = el('div', 'owner-out');
+    out.id = 'owner-out';
+    box.appendChild(out);
+    if (cloud.ownerKey) ownerLoadQueue();
+  }
+
+  function ownerLoadQueue() {
+    var out = $('#owner-out');
+    if (!out) return;
+    if (!cloud.ownerKey) {
+      out.innerHTML = '';
+      out.appendChild(el('div', 'footnote',
+        'Put the owner key in to see the reports that came in and the people ' +
+        'who asked for Rejuvenator.'));
+      return;
+    }
+    out.innerHTML = '';
+    out.appendChild(el('div', 'footnote', 'Loading…'));
+    DSCLOUD.reports(cloud.ownerKey, 'open').then(function (r) {
+      out.innerHTML = '';
+      if (!r || !r.reports) {
+        out.appendChild(el('div', 'footnote',
+          'The server did not accept the key, or it has nothing open.'));
+        return;
+      }
+      if (!r.reports.length) {
+        out.appendChild(el('div', 'footnote', 'No open reports. Nothing to review.'));
+      } else {
+        out.appendChild(el('div', 'owner-h', 'Reports to review'));
+        r.reports.forEach(function (rep) { out.appendChild(ownerReportRow(rep)); });
+      }
+      DSCLOUD.pendingSubs(cloud.ownerKey).then(function (p) {
+        if (!p || !p.pending || !p.pending.length) return;
+        out.appendChild(el('div', 'owner-h', 'Waiting for Rejuvenator'));
+        p.pending.forEach(function (s) { out.appendChild(ownerSubRow(s)); });
+      });
+    });
+  }
+
+  function ownerReportRow(rep) {
+    var payload = rep.payload || {};
+    var row = el('div', 'owner-row');
+    var body = el('div', 'owner-row-b');
+    body.appendChild(el('div', 'owner-row-t', payload.what || '(no description)'));
+    var meta = [];
+    if (rep.kind) meta.push(rep.kind);
+    if (rep.where) meta.push(rep.where);
+    if (payload.steps) meta.push('steps given');
+    if (payload.contact) meta.push(payload.contact);
+    if (rep.name) meta.push(rep.name);
+    body.appendChild(el('div', 'owner-row-m', meta.join(' · ')));
+    body.appendChild(el('div', 'owner-row-c', 'Code ' + (rep.code || '—')));
+
+    var acts = el('div', 'owner-acts');
+    var amount = el('input', 'bh-amount');
+    amount.type = 'number';
+    amount.min = '0';
+    amount.value = '25';
+    amount.setAttribute('aria-label', 'Souls to award');
+    acts.appendChild(amount);
+    var yes = el('button', 'cos-btn buy', 'ACCEPT');
+    yes.type = 'button';
+    yes.addEventListener('click', function () {
+      var n = Math.max(0, Math.round(Number(amount.value) || 0));
+      if (!n) { toast('Put a number of souls in the box'); return; }
+      DSCLOUD.decide(cloud.ownerKey, rep.id, 'accepted', n, '').then(function (res) {
+        if (!res || !res.reward_code) { toast('The server did not take it'); return; }
+        var codeBox = el('div', 'bh-code', res.reward_code);
+        body.appendChild(codeBox);
+        var copyBtn = el('button', 'btn btn-green btn-sm', 'COPY THE REWARD CODE');
+        copyBtn.type = 'button';
+        copyBtn.addEventListener('click', function () {
+          copyText(res.reward_code, 'Reward code copied');
+        });
+        acts.appendChild(copyBtn);
+        toast('Accepted — send the reward code back');
+        ownerLoadQueue();
+      });
+    });
+    acts.appendChild(yes);
+    var no = el('button', 'cos-btn', 'REJECT');
+    no.type = 'button';
+    no.addEventListener('click', function () {
+      DSCLOUD.decide(cloud.ownerKey, rep.id, 'rejected', 0, '').then(function () {
+        toast('Rejected');
+        ownerLoadQueue();
+      });
+    });
+    acts.appendChild(no);
+    body.appendChild(acts);
+    row.appendChild(body);
+    return row;
+  }
+
+  function ownerSubRow(s) {
+    var row = el('div', 'owner-row');
+    var body = el('div', 'owner-row-b');
+    body.appendChild(el('div', 'owner-row-t', s.email || '(no e-mail)'));
+    body.appendChild(el('div', 'owner-row-m',
+      (s.plan || 'rejuvenator') + ' · ' + (s.source || 'manual') +
+      (s.created ? ' · ' + new Date(s.created * 1000).toLocaleString() : '')));
+    var acts = el('div', 'owner-acts');
+    var months = el('input', 'bh-amount');
+    months.type = 'number';
+    months.min = '1';
+    months.max = '24';
+    months.value = '1';
+    months.setAttribute('aria-label', 'Months');
+    acts.appendChild(months);
+    var give = el('button', 'cos-btn buy', 'TURN IT ON');
+    give.type = 'button';
+    give.addEventListener('click', function () {
+      var m = Math.max(1, Math.min(24, Math.round(Number(months.value) || 1)));
+      DSCLOUD.grant(cloud.ownerKey, s.email, m).then(function (r) {
+        if (r && r.until) { toast('Rejuvenator is on until ' + new Date(r.until * 1000).toLocaleDateString()); ownerLoadQueue(); }
+        else toast('No account with that address');
+      });
+    });
+    acts.appendChild(give);
+    body.appendChild(acts);
+    row.appendChild(body);
+    return row;
+  }
+
+  // ------------------------------------------------------------ the board
+  function renderFriends() {
+    var box = $('#friends-body');
+    if (!box) return;
+    box.innerHTML = '';
+    if (!cloud.ready) {
+      box.appendChild(el('p', 'note',
+        'The board lives on the DeadShop server. This copy runs without one — ' +
+        'everything else still works.'));
+      return;
+    }
+    var head = el('div', 'board-head');
+    head.appendChild(el('h2', '', 'The board'));
+    var mine = el('div', 'board-mine');
+    if (cloud.serverUser) {
+      mine.appendChild(el('div', 'board-mine-n', 'You: ' + (cloud.serverUser.name || 'unnamed')));
+      mine.appendChild(el('div', 'board-mine-s',
+        cloud.serverUser.xp + ' XP · ' + cloud.serverUser.lessons + ' lessons · ' +
+        cloud.serverUser.streak + ' day streak · ' + cloud.serverUser.souls + ' souls'));
+      if (cloud.rank) mine.appendChild(el('div', 'board-mine-r', 'Place #' + cloud.rank));
+    } else {
+      mine.appendChild(el('div', 'board-mine-n', 'You are not on the board yet'));
+      mine.appendChild(el('div', 'board-mine-s',
+        'Make an account in your profile and put your name up — only people who ' +
+        'opt in are listed.'));
+    }
+    head.appendChild(mine);
+    box.appendChild(head);
+
+    var list = el('div', 'board-list');
+    if (!cloud.board.length) {
+      list.appendChild(el('p', 'note', 'Nobody has put their name up yet. Be the first.'));
+    }
+    cloud.board.forEach(function (p, i) {
+      var row = el('div', 'board-row');
+      row.appendChild(el('span', 'board-place', String(i + 1)));
+      row.appendChild(el('span', 'board-name', p.name || 'unnamed'));
+      row.appendChild(el('span', 'board-xp', p.xp + ' XP'));
+      row.appendChild(el('span', 'board-lessons', p.lessons + ' lessons'));
+      list.appendChild(row);
+    });
+    box.appendChild(list);
+
+    // the way in: put the name up, or make an account first
+    var acts = el('div', 'board-actions');
+    if (cloud.serverUser) {
+      if (!cloud.serverUser.public) {
+        var on = el('button', 'btn btn-green btn-block', 'PUT ME ON THE BOARD');
+        on.type = 'button';
+        on.addEventListener('click', function () {
+          DSCLOUD.setPublic(true, cloud.serverUser.name || S.display || '').then(function (r) {
+            if (r && r.user) {
+              cloud.serverUser = r.user;
+              S.board = true;
+              save();
+              renderFriends();
+              renderCloudAccount();
+              toast('Your name is on the board');
+            }
+          });
+        });
+        acts.appendChild(on);
+      } else {
+        var off = el('button', 'btn btn-ghost btn-block btn-plain', 'TAKE ME OFF THE BOARD');
+        off.type = 'button';
+        off.addEventListener('click', function () {
+          DSCLOUD.setPublic(false).then(function (r) {
+            if (r && r.user) {
+              cloud.serverUser = r.user;
+              S.board = false;
+              save();
+              renderFriends();
+              renderCloudAccount();
+              toast('Taken off the board');
+            }
+          });
+        });
+        acts.appendChild(off);
+      }
+    } else {
+      var acc = el('button', 'btn btn-blue btn-block', 'MAKE AN ACCOUNT TO JOIN');
+      acc.type = 'button';
+      acc.addEventListener('click', function () { show('profile'); });
+      acts.appendChild(acc);
+    }
+    box.appendChild(acts);
+    box.appendChild(el('p', 'note',
+      'Only the name and the numbers are shown. The e-mail stays on the server ' +
+      'and is never part of the board.'));
+  }
+
+  // ------------------------------------------------------------ the subscription
+  function renderSub() {
+    var box = $('#sub-body');
+    if (!box) return;
+    box.innerHTML = '';
+    var status = el('div', 'sub-status');
+    if (cloud.sub) {
+      status.appendChild(el('div', 'sub-on', 'Rejuvenator is on'));
+      if (cloud.subUntil) {
+        status.appendChild(el('div', 'sub-until',
+          'until ' + new Date(cloud.subUntil * 1000).toLocaleDateString()));
+      }
+      status.appendChild(el('div', 'sub-off', 'No ads, no daily limit. Enjoy.'));
+    } else {
+      status.appendChild(el('div', 'sub-off', 'Rejuvenator is not on'));
+      if (!cloud.ready) {
+        status.appendChild(el('div', 'sub-until',
+          'The subscription needs the DeadShop server. This copy runs alone, ' +
+          'so there is nothing to pay for — and nothing to switch off either.'));
+      }
+    }
+    box.appendChild(status);
+
+    var perks = el('ul', 'sub-perks');
+    var perkList = [
+      ['No ads, ever', 'The banner slots disappear completely'],
+      ['No daily limit', 'Learn as much as you like, mistakes included'],
+      ['Your name on the board', 'Seen by the other players'],
+      ['Your progress follows you', 'Every device, every browser'],
+      ['The live shop check works', 'The server is what makes it possible']
+    ];
+    perkList.forEach(function (p) {
+      var li = el('li', '');
+      li.appendChild(el('b', '', p[0]));
+      li.appendChild(el('span', 'sub-perk-note', p[1]));
+      perks.appendChild(li);
+    });
+    box.appendChild(perks);
+
+    var price = el('div', 'sub-price');
+    price.appendChild(el('span', 'sub-price-n', cloud.priceRub + ' ₽ / ' + cloud.priceUsd + ' $'));
+    price.appendChild(el('span', 'sub-price-m', 'per month'));
+    box.appendChild(price);
+
+    var actions = el('div', 'sub-actions');
+    if (!cloud.sub) {
+      var buy = el('button', 'btn btn-green btn-block', 'SUPPORT ON BOOSTY');
+      buy.type = 'button';
+      buy.addEventListener('click', function () {
+        var link = cloud.subUrl || (DSCLOUD.config && DSCLOUD.config.subscription && DSCLOUD.config.subscription.url) || '';
+        if (!link) { toast('The payment link is not set on the server yet'); return; }
+        window.open(link, '_blank', 'noopener');
+      });
+      actions.appendChild(buy);
+      var ask = el('button', 'btn btn-ghost btn-block', 'I PAID — ASK FOR THE CODE');
+      ask.type = 'button';
+      ask.addEventListener('click', function () {
+        var email = cloudMail();
+        if (!email) { toast('Put your e-mail in the profile first'); return; }
+        DSCLOUD.subscribe(email, 'rejuvenator', 'boosty', '').then(function (r) {
+          if (r && r.ok) toast('Sent — the owner switches it on for you');
+          else toast('The server is not reachable right now');
+        });
+      });
+      actions.appendChild(ask);
+    }
+    box.appendChild(actions);
+
+    var steps = el('div', 'sub-steps');
+    [['1', 'Pay on Boosty', 'Any card, or SBP. The money lands in the same account that pays for the server.'],
+     ['2', 'Write to the owner', 'Tell who you are — the e-mail you signed up with.'],
+     ['3', 'It is switched on', 'The owner turns Rejuvenator on for your account, usually within a few hours.']]
+      .forEach(function (s) {
+        var row = el('div', 'sub-step');
+        row.appendChild(el('div', 'sub-step-n', s[0]));
+        var body = el('div', 'sub-step-b');
+        body.appendChild(el('div', 'sub-step-t', s[1]));
+        body.appendChild(el('div', 'sub-step-d', s[2]));
+        row.appendChild(body);
+        steps.appendChild(row);
+      });
+    box.appendChild(steps);
+
+    var note = el('p', 'note',
+      'Rejuvenator pays for the server the site runs on. Cancel any time — ' +
+      'the limit comes back, nothing else changes.');
+    box.appendChild(note);
+  }
+
+  // ------------------------------------------------------------ syncing
+  function syncCloud() {
+    if (!cloud.ready || !DSCLOUD.getToken()) return;
+    DSCLOUD.saveProfile({
+      xp: S.xp, lessons: S.lessons, streak: S.streak, souls: S.souls,
+      mastery: S.mastery, history: S.history, cosmetics: S.cosmetics,
+      equipped: S.equipped, unitsDone: S.unitsDone, display: S.display
+    }, { xp: S.xp, lessons: S.lessons, streak: S.streak, souls: S.souls });
+  }
+
 
   // -------------------------------------------------------------- sounds
   /* Deadlock's interface is metal and steam: a bright ping when an answer
@@ -421,8 +1136,8 @@
   // ------------------------------------------------------------- support
   /* Everything a tester might want to tell us, in one block they can copy.
      This is the only place that knows where feedback goes. */
-  var APP_VERSION = '0.10.1';
-  var BUILD_DATE = '2026-10-26';
+  var APP_VERSION = '0.11.0';
+  var BUILD_DATE = '2026-10-27';
   // Where "report a problem" goes. Two options, both need no server:
   //   ISSUES_URL  a GitHub issue with the diagnostics already filled in
   //   SUPPORT_EMAIL  a mailbox (mailto:). Leave it empty to skip it.
@@ -439,6 +1154,11 @@
   var LIVE_SHOP_URL = 'api/shop';
 
   var WHATS_NEW = [
+    ['A cloud account', 'Sign in with an e-mail and a password. The progress follows you to every device — and it is encrypted on the server, not kept in your browser.'],
+    ['The friends board', 'A table of the people who play. Only the names people put up themselves are there, and the e-mail never is.'],
+    ['Five lessons a day', 'Five lessons, the daily run and the mistake drill count. The test does not — it gives nothing and takes nothing.'],
+    ['Rejuvenator', 'The paid tier: no ads, no daily limit, progress on every device. Cancel any time.'],
+    ['Bug reports that arrive', 'A report sent from the site lands in the queue of whoever runs it. Accept it and a soul reward comes back.'],
     ['Side menu', 'One column of collapsible modules — Learn, Reference, You. It stands next to the app on a desktop and slides in on a phone.'],
     ['Your mistakes hold the door', 'Finish a lesson with a wrong answer and the next one stays shut until you get it right. The drill asks exactly what you missed.'],
     ['The full recall says which row is which', 'Two rows can share a name. The card now groups them by the block they sit in and tells them apart.'],
@@ -572,6 +1292,10 @@
     if (name === 'profile') renderProfile();
     if (name === 'updates') renderUpdates();
     if (name === 'bughunt') renderBughunt();
+    if (name === 'friends') renderFriends();
+    if (name === 'sub') renderSub();
+    var lm = $('#limit-modal');
+    if (lm) lm.classList.remove('on');
     syncNavActive(name);
   }
   var lastXp = null, lastStreak = null, lastLeague = null;
@@ -660,6 +1384,8 @@
     profile: function () { show('profile'); },
     updates: function () { show('updates'); },
     bughunt: function () { show('bughunt'); },
+    friends: function () { show('friends'); },
+    sub: function () { show('sub'); },
     help: function () {
       show('profile');
       setTimeout(function () {
@@ -674,7 +1400,8 @@
   function syncNavActive(screen) {
     var map = {
       path: 'path', items: 'items', stats: 'stats',
-      profile: 'profile', updates: 'updates', bughunt: 'bughunt'
+      profile: 'profile', updates: 'updates', bughunt: 'bughunt',
+      friends: 'friends', sub: 'sub'
     };
     $$('.nav-item').forEach(function (it) {
       it.classList.toggle('on', !!map[screen] && map[screen] === it.dataset.go);
@@ -1191,6 +1918,10 @@
   var ACT_NAME = { facts: 'Facts', structure: 'Structure', judgment: 'Judgment' };
 
   function startLesson(unitId) {
+    gateLesson('unit', function () { startLessonNow(unitId); });
+  }
+
+  function startLessonNow(unitId) {
     S.paused = null;
     var unit = null;
     for (var i = 0; i < DS.units.length; i++) if (DS.units[i].id === unitId) unit = DS.units[i];
@@ -1213,6 +1944,10 @@
   }
 
   function startDaily() {
+    gateLesson('daily', startDailyNow);
+  }
+
+  function startDailyNow() {
     // six questions, the ones you know least about first
     var pool = [];
     DS.units.forEach(function (u) {
@@ -1363,6 +2098,10 @@
     var ids = (gate && gate.qs) || [];
     var items = (gate && gate.items) || [];
     if (!ids.length && !items.length) return;
+    gateLesson('drill', function () { startFixMistakesNow(ids, items); });
+  }
+
+  function startFixMistakesNow(ids, items) {
     var pool = [];
     DS.units.forEach(function (u) {
       u.questions.forEach(function (q) {
@@ -2685,13 +3424,13 @@
       var note = el('div', 'bh-note', 'Copy this code and send it to whoever runs DeadShop. ' +
         'If the report is one we can act on, you get souls for it — a reward code comes back the same way.');
       card.appendChild(note);
-      var code = el('div', 'bh-code', bhCode(rep));
-      card.appendChild(code);
+      var codeBox = el('div', 'bh-code', bhCode(rep));
+      card.appendChild(codeBox);
       var actions = el('div', 'bh-actions');
       var copyBtn = el('button', 'btn btn-green btn-sm', 'COPY THE CODE');
       copyBtn.type = 'button';
       copyBtn.addEventListener('click', function () {
-        copyText(bhCode(rep), 'Report code copied');
+        copyText(codeBox.textContent, 'Report code copied');
       });
       actions.appendChild(copyBtn);
       var mailBtn = el('button', 'btn btn-ghost btn-sm btn-plain', 'COPY AS TEXT');
@@ -2713,6 +3452,25 @@
       }
       card.appendChild(actions);
       done.appendChild(card);
+
+      // when the server is there the report goes to the owner straight away
+      // and the code is the server's one
+      if (cloud.ready) {
+        DSCLOUD.report({
+          kind: kind, where: rep.where, what: rep.what, steps: rep.steps,
+          contact: rep.contact, name: S.display || profileName() || '',
+          device: String(navigator.userAgent || '').slice(0, 140)
+        }).then(function (r) {
+          if (r && r.code) {
+            codeBox.textContent = r.code;
+            note.textContent = 'The report is with whoever runs DeadShop. Keep this code — ' +
+              'if they accept it, a reward code comes back the same way.';
+          } else {
+            note.textContent = 'The server did not answer, so the report stayed on this device. ' +
+              'Copy the code and send it to whoever runs DeadShop.';
+          }
+        });
+      }
     }
     toast('Report saved');
   }
@@ -2752,6 +3510,23 @@
     var raw = (node && node.value || '').trim();
     if (!raw) { toast('Paste a code first'); return; }
     var body = raw.replace(/\s+/g, '');
+
+    // a code from the server: DSG1-XXXXXXXX (souls) or DSB1-XXXXXXXX (a report)
+    if (/^DSG1-[0-9A-F]{6,}$/i.test(body)) {
+      if (!cloud.ready) { toast('The server is not reachable right now'); return; }
+      DSCLOUD.claim(body).then(function (r) {
+        if (!r) { toast('That code is not valid any more'); return; }
+        awardSouls(Number(r.souls) || 0, 'bughunt reward');
+        toast('+' + (r.souls || 0) + ' souls');
+        if (node) node.value = '';
+      });
+      return;
+    }
+    if (/^DSB1-[0-9A-F]{6,}$/i.test(body)) {
+      toast('That is a report code — send it to whoever runs DeadShop');
+      return;
+    }
+
     var payload = null;
     try {
       if (body.indexOf(BH_REPORT) === 0) payload = JSON.parse(b64d(body.slice(BH_REPORT.length)));
@@ -2799,6 +3574,7 @@
         });
       }
     }
+    renderOwnerQueue();
   }
 
   function bhReportRow(rep, owner) {
@@ -3140,7 +3916,18 @@
     currentQuestion: function () { return (L && L.qs) ? L.qs[L.i] : null; },
     lesson: function () { return L; },
     state: function () { return S; },
-    save: save
+    save: save,
+    // the cloud — so the checks can drive it without a server
+    cloud: function () { return cloud; },
+    lessonsToday: lessonsToday,
+    limitLeft: limitLeft,
+    gateLesson: gateLesson,
+    countLocalLesson: countLocalLesson,
+    renderAds: renderAds,
+    renderFriends: renderFriends,
+    renderSub: renderSub,
+    renderCloudAccount: renderCloudAccount,
+    showLimitScreen: showLimitScreen
   };
 
   document.addEventListener('DOMContentLoaded', function () {
@@ -3172,6 +3959,10 @@
     $('#stats-back').addEventListener('click', function () { setActiveTab('path'); show('path'); });
     $('#updates-back').addEventListener('click', function () { setActiveTab('path'); show('path'); });
     $('#bughunt-back').addEventListener('click', function () { setActiveTab('path'); show('path'); });
+    $('#friends-back').addEventListener('click', function () { setActiveTab('path'); show('path'); });
+    $('#sub-back').addEventListener('click', function () { setActiveTab('path'); show('path'); });
+    $('#friends-profile').addEventListener('click', function () { openProfile(); });
+    $('#sub-profile').addEventListener('click', function () { openProfile(); });
     $('#profile-btn').addEventListener('click', function () { openProfile(); });
     $('#items-profile').addEventListener('click', function () { openProfile(); });
     $('#stats-profile').addEventListener('click', function () { openProfile(); });
@@ -3213,6 +4004,23 @@
 
     // latest update
     $('#upd-check').addEventListener('click', checkLiveShop);
+
+    // the cloud: the account, the limit, the subscription
+    $('#cloud-register').addEventListener('click', function () { cloudAuth('register'); });
+    $('#cloud-login').addEventListener('click', function () { cloudAuth('login'); });
+    $('#cloud-pass').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); cloudAuth('register'); }
+    });
+    $('#limit-sub').addEventListener('click', function () {
+      $('#limit-modal').classList.remove('on');
+      show('sub');
+    });
+    $('#limit-back').addEventListener('click', function () {
+      $('#limit-modal').classList.remove('on');
+    });
+    $('#limit-modal').addEventListener('click', function (e) {
+      if (e.target.id === 'limit-modal') $('#limit-modal').classList.remove('on');
+    });
 
     // bughunt
     $('#bh-submit').addEventListener('click', bhSubmit);
@@ -3362,6 +4170,9 @@
     }
     show('path');
 
+    // the server, if there is one. Everything above works without it.
+    cloudStart();
+
     // deep links: #daily #items #stats #profile #updates #bughunt
     var hash = (location.hash || '').toLowerCase();
     if (hash === '#daily') setTimeout(startDaily, 80);
@@ -3434,6 +4245,8 @@
       if (km.classList.contains('on')) { e.preventDefault(); km.classList.remove('on'); return; }
       var wn = $('#whatsnew-modal');
       if (wn && wn.classList.contains('on')) { e.preventDefault(); wn.classList.remove('on'); return; }
+      var lmd = $('#limit-modal');
+      if (lmd && lmd.classList.contains('on')) { e.preventDefault(); lmd.classList.remove('on'); return; }
       if ($('#onboard-modal').classList.contains('on')) { e.preventDefault(); closeOnboard(); return; }
       if (current === 'items' || current === 'stats' || current === 'profile') {
         e.preventDefault();
