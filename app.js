@@ -431,6 +431,13 @@
   var ISSUES_URL = 'https://github.com/Sword3n/DeadShop-site/issues/new';
   var SUPPORT_EMAIL = '';
 
+  /* Where the live shop comes from. By default it is the same origin: the
+     Pages Function on Cloudflare, or the /api/shop door of the server on
+     the laptop. If the site is served from somewhere else (GitHub Pages)
+     and the live shop lives on another machine, put that address here —
+     the server sends the header that lets a browser read it. */
+  var LIVE_SHOP_URL = 'api/shop';
+
   var WHATS_NEW = [
     ['Side menu', 'One column of collapsible modules — Learn, Reference, You. It stands next to the app on a desktop and slides in on a phone.'],
     ['Your mistakes hold the door', 'Finish a lesson with a wrong answer and the next one stays shut until you get it right. The drill asks exactly what you missed.'],
@@ -3063,7 +3070,7 @@
       status.className = 'upd-status';
       status.textContent = 'Asking the live shop…';
     }
-    fetch('api/shop', { cache: 'no-store' })
+    fetch(LIVE_SHOP_URL, { cache: 'no-store' })
       .then(function (r) {
         if (!r.ok) throw new Error('HTTP ' + r.status);
         return r.json();
