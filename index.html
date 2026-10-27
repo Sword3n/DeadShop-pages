@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#58CC02">
+<meta name="description" content="DeadShop — learn every Deadlock shop item, one lesson at a time.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="DeadShop">
+<title>DeadShop — learn the Deadlock shop</title>
+<!-- link previews: og:image is relative on purpose so the site works from
+     any folder. Replace it with the absolute https URL once the domain is
+     known — Discord, X and Facebook ignore a relative image path. -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="DeadShop">
+<meta property="og:title" content="DeadShop — learn the Deadlock shop">
+<meta property="og:description" content="156 shop items, 64 lessons, 755 questions. Memorise every stat so you buy with confidence.">
+<meta property="og:image" content="assets/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="DeadShop — learn the Deadlock shop">
+<meta name="twitter:description" content="156 shop items, 64 lessons, 755 questions. Memorise every stat so you buy with confidence.">
+<meta name="twitter:image" content="assets/og.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="icon" href="assets/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="mask-icon" href="assets/icon.svg" color="#58CC02">
+<link rel="apple-touch-icon" href="assets/icon-180.png">
+<link rel="preload" href="assets/fonts/saira-var.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="app.css?v=8">
+</head>
+<body>
+<div id="app">
+
+  <!-- ========================== SIDE MENU ========================== -->
+  <!-- The whole navigation lives in one column of collapsible modules.
+       On a phone it slides in from the left, on a desktop it is always
+       there. The bottom tab bar stays for quick jumps on a phone. -->
+  <nav class="side-nav" id="side-nav" aria-label="Main menu">
+    <div class="nav-brand">
+      <img class="nav-brand-mark" src="assets/owl.svg" alt="" width="32" height="32">
+      <div class="nav-brand-txt">
+        <b>DeadShop</b>
+        <span>Deadlock shop trainer</span>
+      </div>
+      <button class="icon-btn nav-close" id="nav-close" type="button" aria-label="Close menu">
+        <svg viewBox="0 0 24 24" class="ico ico-line"><path d="M5 5l14 14M19 5L5 19"/></svg>
+      </button>
+    </div>
+
+    <div class="nav-scroll" id="nav-groups">
+      <section class="nav-group open" data-group="learn">
+        <button class="nav-head" type="button" aria-expanded="true">
+          <svg viewBox="0 0 24 24" class="nav-ico"><path d="M4 19c3.6 0 3.4-7 8-7s4.4 7 8 7"/><circle cx="4" cy="19" r="2"/><circle cx="20" cy="19" r="2"/></svg>
+          <span class="nav-head-txt">Learn</span>
+          <svg viewBox="0 0 24 24" class="nav-chev"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="nav-items">
+          <button class="nav-item on" type="button" data-go="path">Lesson path</button>
+          <button class="nav-item" type="button" data-go="daily">Daily run</button>
+          <button class="nav-item" type="button" data-go="exam">Test yourself</button>
+        </div>
+      </section>
+
+      <section class="nav-group" data-group="reference">
+        <button class="nav-head" type="button" aria-expanded="false">
+          <svg viewBox="0 0 24 24" class="nav-ico"><path d="M4 5h7v7H4zM13 5h7v7h-7zM4 14h7v7H4zM13 14h7v7h-7z"/></svg>
+          <span class="nav-head-txt">Reference</span>
+          <svg viewBox="0 0 24 24" class="nav-chev"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="nav-items">
+          <button class="nav-item" type="button" data-go="items">Item browser</button>
+          <button class="nav-item" type="button" data-go="stats">Statistics</button>
+          <button class="nav-item" type="button" data-go="updates">Latest update</button>
+        </div>
+      </section>
+
+      <section class="nav-group" data-group="you">
+        <button class="nav-head" type="button" aria-expanded="false">
+          <svg viewBox="0 0 24 24" class="nav-ico"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 21c0-4 3.4-6.4 7.5-6.4s7.5 2.4 7.5 6.4"/></svg>
+          <span class="nav-head-txt">You</span>
+          <svg viewBox="0 0 24 24" class="nav-chev"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="nav-items">
+          <button class="nav-item" type="button" data-go="profile">Profile</button>
+          <button class="nav-item" type="button" data-go="bughunt">Bughunt</button>
+          <button class="nav-item" type="button" data-go="help">Help &amp; feedback</button>
+          <button class="nav-item" type="button" data-go="whatsnew">What's new</button>
+        </div>
+      </section>
+    </div>
+
+    <div class="nav-foot">
+      <div class="nav-stats">
+        <div class="nav-stat"><b id="nav-xp">0</b><span>XP</span></div>
+        <div class="nav-stat"><b id="nav-streak">0</b><span>day streak</span></div>
+        <div class="nav-stat"><b id="nav-souls">0</b><span>souls</span></div>
+      </div>
+      <div class="nav-note">156 items · 64 lessons · data <span id="nav-snapshot">2026-10-15</span></div>
+    </div>
+  </nav>
+  <div class="nav-scrim" id="nav-scrim"></div>
+
+
+  <div class="screens">
+  <!-- ============================= PATH ============================= -->
+  <section class="screen" id="screen-path">
+    <header class="topbar">
+      <div class="topbar-stats">
+        <div class="chip chip-streak" id="streak-chip" title="Daily streak">
+          <img class="ico flame-ico" src="assets/flame.svg" alt="">
+          <span id="streak-val">0</span>
+        </div>
+        <div class="chip chip-level" id="level-chip" title="Your level">
+          <span id="level-badge"></span>
+          <span id="xp-val">0</span>
+        </div>
+        <div class="chip chip-souls" id="souls-chip" title="Souls — spend them on cosmetics">
+          <img class="ico" src="assets/soul.svg" alt="">
+          <span id="souls-val">0</span>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="league" title="League">
+          <span class="league-ico">◆</span><span id="league-val">Item Cadet</span>
+        </div>
+        <button class="icon-btn" id="keys-btn" aria-label="Keyboard shortcuts">
+          <svg viewBox="0 0 24 24" class="ico"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm.9 15.4v1.3h-1.8v-1.3h1.8zm1.9-6.6l-.9.9c-.5.5-.7.9-.7 1.6h-1.7v-.5c0-.7.2-1.1.7-1.6l1.2-1.2c.4-.3.5-.7.5-1.2 0-.9-.7-1.5-1.5-1.5s-1.5.6-1.6 1.5H8.5c0-1.8 1.4-3.2 3.4-3.2s3.4 1.4 3.4 3.1c0 .9-.3 1.5-1 2.1z"/></svg>
+        </button>
+        <button class="icon-btn" id="profile-btn" aria-label="Profile">
+          <svg viewBox="0 0 24 24" class="ico"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-4 0-8 2-8 5v1h16v-1c0-3-4-5-8-5z"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="scroll path-scroll" id="path-scroll">
+      <aside class="path-side">
+      <div class="hero">
+        <img class="hero-mark owl-mark owl-float" src="assets/owl.svg" alt="Grey Talon's owl" width="52" height="52">
+        <div>
+          <h1>DeadShop</h1>
+          <p class="hero-sub">Memorise the shop. Buy with confidence.</p>
+        </div>
+      </div>
+
+      <div class="owl-tip" id="owl-tip">
+        <img src="assets/owl.svg" alt="" width="34" height="34">
+        <p id="owl-tip-text">Grey Talon's owl is watching. Every stat you learn is a souls saved.</p>
+      </div>
+
+      <div class="daily-card" id="daily-card">
+        <div class="daily-left">
+          <div class="daily-title">Daily Shop Run</div>
+          <div class="daily-sub" id="daily-sub">6 questions · your streak is on the line</div>
+          <div class="goal-bar"><i id="goal-fill"></i></div>
+          <div class="goal-note" id="goal-note">0 / 12 questions today</div>
+        </div>
+        <button class="btn btn-green daily-btn" id="daily-btn">Start</button>
+      </div>
+
+      <div class="daily-card exam-card">
+        <div class="daily-left">
+          <div class="daily-title">Test yourself</div>
+          <div class="daily-sub">10 mixed questions from the whole shop · nothing counts against you</div>
+        </div>
+        <button class="btn btn-blue daily-btn" id="exam-btn">Start</button>
+      </div>
+
+      <div class="panel-title">Groups</div>
+      <div class="chip-scroll" id="group-chips"></div>
+
+      <div class="footnote" id="data-note">
+        <span id="data-counts">156 items · 64 lessons</span> · data snapshot <span id="data-snapshot">2026-10-15</span> from the game files
+      </div>
+      </aside>
+
+      <div class="path-main">
+        <div class="resume-card" id="resume-card" hidden>
+          <div class="resume-left">
+            <div class="resume-title">Lesson paused</div>
+            <div class="resume-sub" id="resume-sub">Pick up where you left off.</div>
+          </div>
+          <button class="btn btn-green daily-btn" id="resume-btn">Resume</button>
+          <button class="icon-btn" id="resume-drop" aria-label="Discard paused lesson">
+            <svg viewBox="0 0 24 24" class="ico"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
+        </div>
+
+        <div class="path" id="path-list"></div>
+      </div>
+    </div>
+
+    <nav class="tabbar">
+      <button class="tab active" data-tab="path">
+        <svg viewBox="0 0 24 24" class="ico"><path d="M4 20h4V10H4v10zm6 0h4V4h-4v16zm6 0h4v-7h-4v7z"/></svg>
+        <span>Path</span>
+      </button>
+      <button class="tab" data-tab="items">
+        <svg viewBox="0 0 24 24" class="ico"><path d="M4 4h7v7H4V4zm9 0h7v7h-7V4zM4 13h7v7H4v-7zm9 0h7v7h-7v-7z"/></svg>
+        <span>Items</span>
+      </button>
+      <button class="tab" data-tab="stats">
+        <svg viewBox="0 0 24 24" class="ico"><path d="M5 21V9h3v12H5zm5.5 0V3h3v18h-3zM16 21v-8h3v8h-3z"/></svg>
+        <span>Stats</span>
+      </button>
+    </nav>
+  </section>
+
+  <!-- ============================ ITEMS ============================ -->
+  <section class="screen" id="screen-items">
+    <header class="topbar">
+      <button class="icon-btn" id="items-back" aria-label="Home">
+        <svg viewBox="0 0 24 24" class="ico"><path d="M3 11.2 12 3l9 8.2V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg>
+      </button>
+      <div class="search-wrap">
+        <input id="item-search" type="search" placeholder="Search items…" autocomplete="off">
+      </div>
+      <button class="icon-btn" id="items-profile" aria-label="Profile">
+        <svg viewBox="0 0 24 24" class="ico"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-4 0-8 2-8 5v1h16v-1c0-3-4-5-8-5z"/></svg>
+      </button>
+    </header>
+    <div class="scroll" id="items-scroll">
+      <div class="filter-row" id="item-filters"></div>
+      <div class="item-list" id="item-list"></div>
+    </div>
+  </section>
+
+  <!-- ============================ STATS ============================ -->
+  <section class="screen" id="screen-stats">
+    <header class="topbar">
+      <button class="icon-btn" id="stats-back" aria-label="Home">
+        <svg viewBox="0 0 24 24" class="ico"><path d="M3 11.2 12 3l9 8.2V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg>
+      </button>
+      <h2 class="topbar-title">Your progress</h2>
+      <button class="icon-btn" id="stats-profile" aria-label="Profile">
+        <svg viewBox="0 0 24 24" class="ico"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-4 0-8 2-8 5v1h16v-1c0-3-4-5-8-5z"/></svg>
+      </button>
+    </header>
+    <div class="scroll">
+      <div class="stat-cards">
+        <div class="stat-card"><div class="stat-num" id="s-mastered">0</div><div class="stat-lbl">items mastered</div></div>
+        <div class="stat-card"><div class="stat-num" id="s-correct">0</div><div class="stat-lbl">correct answers</div></div>
+        <div class="stat-card"><div class="stat-num" id="s-wrong">0</div><div class="stat-lbl">mistakes</div></div>
+        <div class="stat-card"><div class="stat-num" id="s-streak">0</div><div class="stat-lbl">day streak</div></div>
+      </div>
+      <div class="cols">
+        <section class="col">
+          <h3 class="section-h">This week</h3>
+          <div class="week-chart" id="week-chart"></div>
+          <div class="week-note" id="week-note"></div>
+
+          <h3 class="section-h">By act</h3>
+          <div class="mastery-list" id="act-list"></div>
+          <div class="footnote">Facts are the exact numbers. Structure is what feeds what. Judgement is which item is actually better — and that survives a patch.</div>
+        </section>
+
+        <section class="col">
+          <h3 class="section-h">Needs review <span class="h-note" id="s-review-count"></span></h3>
+          <div class="mastery-list" id="review-list"></div>
+          <button class="btn btn-red btn-block" id="review-btn">REVIEW MISTAKES</button>
+          <div class="footnote" id="s-review-note"></div>
+        </section>
+      </div>
+
+      <h3 class="section-h">Mastery by item</h3>
+      <div class="mastery-list" id="mastery-list"></div>
+      <div class="footnote">Mastery grows with correct answers and decays with mistakes — items you know well come back rarely.</div>
+
+      <h3 class="section-h">By group</h3>
+      <div class="group-grid" id="group-list"></div>
+    </div>
+  </section>
+
+  <!-- =========================== LATEST UPDATE ======================= -->
+  <section class="screen" id="screen-updates">
+    <header class="topbar">
+      <button class="icon-btn" id="updates-back" aria-label="Home">
+        <svg viewBox="0 0 24 24" class="ico"><path d="M3 11.2 12 3l9 8.2V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg>
+      </button>
+      <h2 class="topbar-title">Latest update</h2>
+      <button class="icon-btn" id="updates-profile" aria-label="Profile">
+        <svg viewBox="0 0 24 24" class="ico"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-4 0-8 2-8 5v1h16v-1c0-3-4-5-8-5z"/></svg>
+      </button>
+    </header>
+    <div class="scroll">
+      <div class="upd-hero">
+        <div class="upd-kicker">The shop right now</div>
+        <div class="upd-sub" id="upd-current">Snapshot 2026-10-15 · build client-6785 · 156 items</div>
+        <button class="btn btn-blue btn-block" id="upd-check">CHECK THE LIVE SHOP</button>
+        <div class="upd-status" id="upd-status"></div>
+      </div>
+
+      <div id="upd-live"></div>
+
+      <h3 class="section-h">Last touched by the game</h3>
+      <div class="upd-block" id="upd-touched"></div>
+
+      <h3 class="section-h">Update history</h3>
+      <div id="upd-history"></div>
+      <div class="footnote">A change is only counted when the numbers in the game files moved. The history starts with the first patch we catch after this snapshot.</div>
+    </div>
+  </section>
+
+  <!-- ============================= BUGHUNT =========================== -->
+  <section class="screen" id="screen-bughunt">
+    <header class="topbar">
+      <button class="icon-btn" id="bughunt-back" aria-label="Home">
+        <svg viewBox="0 0 24 24" class="ico"><path d="M3 11.2 12 3l9 8.2V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg>
+      </button>
+      <h2 class="topbar-title">Bughunt</h2>
+      <button class="icon-btn" id="bughunt-profile" aria-label="Profile">
+        <svg viewBox="0 0 24 24" class="ico"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-4 0-8 2-8 5v1h16v-1c0-3-4-5-8-5z"/></svg>
+      </button>
+    </header>
+    <div class="scroll">
+      <div class="bh-hero">
+        <div class="bh-kicker">Found a bug? Take the hunt.</div>
+        <div class="bh-sub">Tell us what broke and where. A report we can act on earns souls — the currency you spend on cosmetics.</div>
+      </div>
+
+      <form class="settings" id="bh-form" autocomplete="off">
+        <div class="set-row set-row-col">
+          <div class="set-label">What kind of bug?</div>
+          <div class="seg" id="bh-kind">
+            <button type="button" class="seg-btn on" data-kind="data">Wrong data</button>
+            <button type="button" class="seg-btn" data-kind="ui">Layout</button>
+            <button type="button" class="seg-btn" data-kind="question">Question</button>
+            <button type="button" class="seg-btn" data-kind="other">Other</button>
+          </div>
+        </div>
+        <div class="set-row set-row-col">
+          <div class="set-label">Where did it happen?</div>
+          <input class="set-input" id="bh-where" type="text" maxlength="120"
+                 placeholder="e.g. Item browser → Rapid Rounds">
+        </div>
+        <div class="set-row set-row-col">
+          <div class="set-label">What happened?</div>
+          <textarea class="set-input" id="bh-what" rows="4" maxlength="2000"
+                    placeholder="What is wrong, and what should it be instead?"></textarea>
+        </div>
+        <div class="set-row set-row-col">
+          <div class="set-label">How to reproduce</div>
+          <textarea class="set-input" id="bh-steps" rows="3" maxlength="1200"
+                    placeholder="Steps, if you have them"></textarea>
+        </div>
+        <div class="set-row set-row-col">
+          <div class="set-label">Your name or e-mail (optional)</div>
+          <input class="set-input" id="bh-contact" type="text" maxlength="120"
+                 placeholder="So the souls can find you">
+        </div>
+        <button class="btn btn-green btn-block" id="bh-submit" type="button">SEND THE REPORT</button>
+      </form>
+
+      <div id="bh-done"></div>
+
+      <h3 class="section-h">Your reports</h3>
+      <div id="bh-mine"></div>
+
+      <h3 class="section-h">I have a code</h3>
+      <div class="settings">
+        <div class="set-row set-row-col">
+          <div class="set-label">Report code or soul reward</div>
+          <textarea class="set-input" id="bh-code" rows="3" maxlength="4000"
+                    placeholder="Paste a DSB1-… report code or a DSG1-… reward code"></textarea>
+        </div>
+        <button class="btn btn-blue btn-block" id="bh-apply" type="button">APPLY THE CODE</button>
+        <div class="footnote">A report code carries a report to us. A reward code carries souls back to you. Both are plain text — copy, paste, done.</div>
+      </div>
+
+      <h3 class="section-h" id="bh-owner-h">Owner tools</h3>
+      <div class="settings" id="bh-owner">
+        <div class="set-row set-row-col">
+          <div class="set-label">Review reports and pay out souls</div>
+          <div class="footnote">Only for whoever runs the site. Everything here stays in this browser until a code is copied out of it.</div>
+        </div>
+        <div id="bh-inbox"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================== LESSON ============================ -->
+  <section class="screen" id="screen-lesson">
+    <header class="lesson-head">
+      <button class="icon-btn" id="quit-btn" aria-label="Pause the lesson and go home">
+        <svg viewBox="0 0 24 24" class="ico"><path d="M3 11.2 12 3l9 8.2V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg>
+      </button>
+      <div class="progress"><div class="progress-fill" id="progress-fill"></div></div>
+      <div class="exam-timer" id="exam-timer" hidden>0:00</div>
+      <div class="lesson-count" id="lesson-count">1/1</div>
+    </header>
+
+    <div class="scroll lesson-scroll">
+      <div class="q-card" id="q-card"></div>
+      <div class="kbd-hint" aria-hidden="true">
+        <span id="kbd-pick"><kbd>1</kbd>–<kbd>9</kbd> pick an answer</span>
+        <span><kbd>H</kbd> hint</span>
+        <span><kbd>Enter</kbd> check</span>
+        <span><kbd>Esc</kbd> leave</span>
+      </div>
+    </div>
+
+    <footer class="action-bar" id="action-bar">
+      <button class="btn btn-green btn-block" id="check-btn" disabled>CHECK</button>
+    </footer>
+
+    <div class="feedback" id="feedback" aria-hidden="true">
+      <div class="feedback-inner">
+        <div class="feedback-head">
+          <div class="feedback-title" id="feedback-title">Nice!</div>
+          <div class="feedback-sub" id="feedback-sub"></div>
+        </div>
+        <div class="feedback-body" id="feedback-body"></div>
+        <button class="btn btn-green btn-block" id="continue-btn">CONTINUE</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================== RESULT ============================ -->
+  <section class="screen" id="screen-result">
+    <div class="scroll result-scroll">
+      <div class="result-card" id="result-card">
+        <div class="result-mascot">
+          <img class="result-owl" src="assets/owl.svg" alt="Grey Talon's owl" width="132" height="132">
+          <div class="result-emoji" id="result-emoji">🔥</div>
+        </div>
+        <h2 class="result-title" id="result-title">Lesson complete!</h2>
+        <div class="result-note" id="result-note"></div>
+        <div class="result-stats">
+          <div class="rs"><div class="rs-num" id="r-xp">+0</div><div class="rs-lbl" id="r-lbl-xp">XP</div></div>
+          <div class="rs"><div class="rs-num" id="r-acc">0%</div><div class="rs-lbl" id="r-lbl-acc">accuracy</div></div>
+          <div class="rs"><div class="rs-num" id="r-streak">0</div><div class="rs-lbl" id="r-lbl-streak">day streak</div></div>
+          <div class="rs"><div class="rs-num" id="r-souls">+0</div><div class="rs-lbl" id="r-lbl-souls">souls</div></div>
+        </div>
+        <div class="result-items" id="result-items"></div>
+        <button class="btn btn-green btn-block" id="result-next" hidden>NEXT LESSON</button>
+        <button class="btn btn-ghost btn-block btn-plain" id="result-continue">BACK TO PATH</button>
+      </div>
+    </div>
+    <div class="confetti" id="confetti"></div>
+  </section>
+
+  <!-- ============================= AUTH ============================ -->
+  <section class="screen" id="screen-auth">
+    <div class="scroll auth-scroll">
+      <div class="auth-card">
+        <button class="icon-btn auth-back" id="auth-back" aria-label="Back">
+          <svg viewBox="0 0 24 24" class="ico"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <img class="auth-logo owl-mark owl-float" src="assets/owl.svg" alt="Grey Talon's owl" width="56" height="56">
+        <h2 class="auth-title" id="auth-title">Create your profile</h2>
+        <p class="auth-sub" id="auth-sub">Your progress is saved on this device only.</p>
+
+        <div class="seg auth-seg" id="auth-kind-seg">
+          <button class="seg-btn on" data-kind="name" type="button">Profile name</button>
+          <button class="seg-btn" data-kind="email" type="button">Email</button>
+        </div>
+
+        <label class="field-lbl" id="lbl-auth-name" for="auth-name">Name</label>
+        <input class="answer-input auth-input" id="auth-name" type="text" autocomplete="username"
+               placeholder="e.g. Swampy" maxlength="20">
+
+        <label class="field-lbl" id="lbl-auth-email" for="auth-email">Email</label>
+        <input class="answer-input auth-input" id="auth-email" type="email" autocomplete="email"
+               inputmode="email" placeholder="you@example.com" maxlength="120" hidden>
+
+        <label class="field-lbl" id="lbl-auth-pass" for="auth-pass">Password</label>
+        <input class="answer-input auth-input" id="auth-pass" type="password" autocomplete="current-password"
+               placeholder="at least 4 characters">
+
+        <label class="field-lbl" id="lbl-auth-pass2" for="auth-pass2">New password</label>
+        <input class="answer-input auth-input" id="auth-pass2" type="password" autocomplete="new-password"
+               placeholder="at least 4 characters" hidden>
+
+        <label class="field-lbl" id="lbl-auth-code" for="auth-code">Confirmation code</label>
+        <input class="answer-input auth-input" id="auth-code" type="text" inputmode="numeric"
+               autocomplete="one-time-code" placeholder="6 digits" maxlength="6" hidden>
+
+        <div class="auth-note" id="auth-note" hidden></div>
+        <div class="auth-error" id="auth-error"></div>
+
+        <button class="btn btn-green btn-block" id="auth-submit">CREATE PROFILE</button>
+        <button class="btn btn-ghost btn-block btn-plain" id="auth-switch">I already have a profile</button>
+        <button class="btn btn-ghost btn-block btn-plain" id="auth-forgot" hidden>Forgot your password?</button>
+        <button class="btn btn-ghost btn-block btn-plain" id="auth-resend" hidden>Send a new code</button>
+        <button class="btn btn-ghost btn-block btn-plain" id="auth-guest">Continue as guest</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================== PROFILE =========================== -->
+  <section class="screen" id="screen-profile">
+    <header class="topbar">
+      <button class="icon-btn" id="profile-back" aria-label="Home">
+        <svg viewBox="0 0 24 24" class="ico"><path d="M3 11.2 12 3l9 8.2V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg>
+      </button>
+      <h2 class="topbar-title">Profile</h2>
+    </header>
+    <div class="scroll">
+      <div class="cols">
+      <section class="col">
+      <div class="profile-card">
+        <div class="avatar" id="profile-avatar">?</div>
+        <div class="pc-body">
+          <div class="pc-name" id="profile-name">Guest</div>
+          <div class="pc-meta" id="profile-meta">Level 1 · Item Cadet</div>
+        </div>
+      </div>
+
+      <h3 class="section-h">Profiles on this device</h3>
+      <div class="guest-banner" id="guest-banner">
+        <div class="gb-title">Playing as guest</div>
+        <div class="gb-note" id="guest-note">You are playing as a guest. Create a profile to keep your progress separate.</div>
+        <div class="gb-actions">
+          <button class="btn btn-green btn-block" id="guest-signup">Create a profile</button>
+          <button class="btn btn-ghost btn-block btn-plain" id="guest-signin">I already have a profile</button>
+        </div>
+      </div>
+      <div class="profile-list" id="profile-list"></div>
+      <button class="btn btn-blue btn-block btn-plain" id="profile-new">+ New profile</button>
+      <button class="btn btn-ghost btn-block btn-plain" id="signout-btn">Sign out</button>
+      </section>
+
+      <section class="col">
+      <h3 class="section-h">Your profile</h3>
+      <div class="settings">
+        <div class="set-row set-row-col">
+          <div class="set-label">Display name</div>
+          <div class="set-inline">
+            <input class="set-input" id="profile-display" type="text" maxlength="20"
+                   placeholder="How should we call you?" autocomplete="nickname">
+            <button class="btn btn-blue btn-sm" id="profile-display-save">Save</button>
+          </div>
+        </div>
+        <div class="set-row">
+          <div class="set-label">Email</div>
+          <div class="set-value" id="set-email">not set</div>
+        </div>
+        <div class="set-row set-row-col">
+          <div class="set-label">Avatar</div>
+          <div class="avatar-picker" id="avatar-picker"></div>
+        </div>
+        <div class="set-row">
+          <div class="set-label">Daily goal</div>
+          <div class="seg" id="goal-seg">
+            <button class="seg-btn" data-goal="6" type="button">6</button>
+            <button class="seg-btn" data-goal="12" type="button">12</button>
+            <button class="seg-btn" data-goal="20" type="button">20</button>
+          </div>
+        </div>
+        <div class="set-row">
+          <div class="set-label">Answered today</div>
+          <div class="set-value" id="set-today">0 / 12</div>
+        </div>
+      </div>
+
+      <h3 class="section-h">Souls <span class="h-note" id="souls-earned">0 earned</span></h3>
+      <div class="souls-card">
+        <div class="souls-balance">
+          <img class="souls-mark" src="assets/soul.svg" alt="">
+          <div class="souls-txt">
+            <div class="souls-num" id="souls-balance">0</div>
+            <div class="souls-lbl">souls to spend</div>
+          </div>
+        </div>
+        <div class="souls-why" id="souls-why">Finish a lesson and the shop pays you back.</div>
+      </div>
+
+      <h3 class="section-h">Cosmetics</h3>
+      <div class="cos-groups" id="cos-shop"></div>
+
+      <h3 class="section-h">Settings</h3>
+      <div class="settings">
+        <div class="set-row">
+          <div class="set-label">Appearance</div>
+          <div class="seg" id="theme-seg">
+            <button data-theme="auto" class="seg-btn">Auto</button>
+            <button data-theme="light" class="seg-btn">Light</button>
+            <button data-theme="dark" class="seg-btn">Dark</button>
+          </div>
+        </div>
+        <div class="set-row">
+          <div class="set-label">Sound effects</div>
+          <div class="set-meta" id="audio-state">idle</div>
+          <button class="btn btn-ghost btn-sm" id="sound-test" type="button">TEST</button>
+          <button class="toggle" id="sound-toggle" role="switch"><span></span></button>
+        </div>
+        <div class="set-row">
+          <div class="set-label">Vibration</div>
+          <button class="toggle" id="haptic-toggle" role="switch"><span></span></button>
+        </div>
+        <div class="set-row">
+          <div class="set-label">Reduce motion</div>
+          <button class="toggle" id="motion-toggle" role="switch"><span></span></button>
+        </div>
+      </div>
+
+      <h3 class="section-h" id="profile-help">Help &amp; feedback</h3>
+      <div class="settings">
+        <button class="set-action" id="report-btn">Report a bug — Bughunt</button>
+        <button class="set-action" id="diag-btn">Copy diagnostics</button>
+        <button class="set-action" id="whatsnew-btn">What's new</button>
+      </div>
+
+      <h3 class="section-h">Data</h3>
+      <div class="settings">
+        <button class="set-action" id="passwd-btn">Change password</button>
+        <button class="set-action" id="export-btn">Export progress as JSON</button>
+        <button class="set-action" id="import-btn">Import progress from JSON</button>
+        <button class="set-action danger" id="reset-btn">Reset this profile's progress</button>
+      </div>
+      <input type="file" id="import-file" accept="application/json,.json" hidden>
+
+      <div class="footnote" id="profile-foot">
+        Accounts live in this browser's local storage. There is no server — clearing site data removes them.
+      </div>
+      </section>
+      </div>
+    </div>
+  </section>
+  </div>
+
+  <!-- ======================== ITEM DETAIL ========================== -->
+  <div class="modal" id="item-modal" aria-hidden="true">
+    <div class="modal-card" id="modal-card"></div>
+  </div>
+
+  <!-- ====================== KEYBOARD HELP ========================== -->
+  <div class="modal" id="keys-modal" aria-hidden="true">
+    <div class="modal-card keys-card">
+      <div class="modal-head">
+        <div>
+          <div class="modal-title">Keyboard</div>
+          <div class="modal-meta">Everything works without the mouse</div>
+        </div>
+      </div>
+      <div class="keys-list">
+        <div class="keys-row"><span><kbd>1</kbd>–<kbd>9</kbd></span><b>pick an answer</b></div>
+        <div class="keys-row"><span><kbd>H</kbd></span><b>open a hint</b></div>
+        <div class="keys-row"><span><kbd>Enter</kbd></span><b>check the answer, then continue</b></div>
+        <div class="keys-row"><span><kbd>Esc</kbd></span><b>leave the lesson, close a popup</b></div>
+        <div class="keys-row"><span><kbd>/</kbd></span><b>jump to the item search</b></div>
+        <div class="keys-row"><span><kbd>↑</kbd> <kbd>↓</kbd></span><b>move through the answer options</b></div>
+      </div>
+      <button class="btn btn-green btn-block" id="keys-close">CLOSE</button>
+    </div>
+  </div>
+
+  <!-- ========================= WHATS NEW ============================ -->
+  <div class="modal" id="whatsnew-modal" aria-hidden="true">
+    <div class="modal-card whatsnew-card">
+      <div class="modal-head">
+        <div>
+          <div class="modal-title">What's new</div>
+          <div class="modal-meta" id="whatsnew-version">DeadShop 0.9.0</div>
+        </div>
+      </div>
+      <div class="whatsnew-list" id="whatsnew-list"></div>
+      <button class="btn btn-green btn-block" id="whatsnew-close">CLOSE</button>
+    </div>
+  </div>
+
+  <!-- ========================= ONBOARDING ========================== -->
+  <div class="modal" id="onboard-modal" aria-hidden="true">    <div class="modal-card onboard-card">
+      <img class="onboard-mark owl-mark" src="assets/owl.svg" alt="Grey Talon's owl" width="72" height="72">
+      <h2 class="onboard-title">Deadlock shop trainer</h2>
+      <p class="onboard-text"><span id="onboard-counts">156 shop items. 64 short lessons.</span>
+        Every stat is checked against the game files.</p>
+      <ul class="onboard-list">
+        <li><b>Facts</b> — the exact stat values</li>
+        <li><b>Structure</b> — what feeds what, and what upgrades into what</li>
+        <li><b>Judgment</b> — which item is really better, even after a patch</li>
+      </ul>
+      <p class="onboard-reassure">
+        No account, no sign-up, nothing sent anywhere — your progress stays in this
+        browser. Open it once and it keeps working offline.
+      </p>
+      <button class="btn btn-green btn-block" id="onboard-start">START LEARNING</button>
+      <button class="btn btn-ghost btn-block btn-plain" id="onboard-skip">Not now</button>
+      <p class="onboard-fine">
+        Fan project, not affiliated with Valve. Data snapshot
+        <span id="onboard-snapshot">2026-10-15</span>.
+      </p>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</div>
+<script src="data/data.js?v=8"></script>
+<script src="data/shop_stats.js?v=1"></script>
+<script src="data/updates.js?v=1"></script>
+<script src="core.js?v=8"></script>
+<script src="auth.js?v=8"></script>
+<script src="app.js?v=8"></script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" role="img" aria-label="streak">
+  <defs>
+    <linearGradient id="dsFlame" x1="0.5" y1="1" x2="0.5" y2="0">
+      <stop offset="0" stop-color="#1D4ED8"/>
+      <stop offset="0.5" stop-color="#22D3EE"/>
+      <stop offset="1" stop-color="#DDFBFF"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#dsFlame)" d="M12 1.4C12 1.4 13.8 4.6 15.4 6.4 17 8.2 20 10.2 20 14.4 20 18.2 16.4 21.4 12 21.4 7.6 21.4 4 18.2 4 14.4 4 11.2 6 8.6 8 6.4 8.4 8.2 9.2 9.4 10.2 10.2 10.6 7.2 11 4.2 12 1.4Z"/>
+</svg>
