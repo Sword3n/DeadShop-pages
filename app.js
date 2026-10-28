@@ -1193,7 +1193,7 @@
   // ------------------------------------------------------------- support
   /* Everything a tester might want to tell us, in one block they can copy.
      This is the only place that knows where feedback goes. */
-  var APP_VERSION = '0.13.0';
+  var APP_VERSION = '0.13.1';
   var BUILD_DATE = '2026-10-28';
   // Where "report a problem" goes. Two options, both need no server:
   //   ISSUES_URL  a GitHub issue with the diagnostics already filled in
@@ -1229,7 +1229,7 @@
     ['The counter library', 'Nine lists of what answers what — against healing, against gun damage, against the tanks — built from the shop itself. And a quiz that asks which item answers which hero.'],
     ['Heroes instead of icons', 'The avatar of the profile is a portrait of a hero now, and the streak decides how it looks: hurt, steady, or glowing.'],
     ['A shut lesson shows what is inside it', 'The icons of the items and the reason it is shut — finish the lesson before, or get the missed ones right.'],
-    ['The Deadlock palette', 'Teal energy, green souls, a cold vault. The weapon is orange, the spirit is the green that says "right", and every button passes the contrast test.'],
+    ['The Deadlock palette', 'Teal energy, green souls, a cold vault. The weapon is orange, the spirit is violet, the vitality is green, and every button passes the contrast test.'],
     ['The loading screen of the game', 'The owl, a turning energy ring and a bar of light while the shop is read.'],
     ['A cloud account', 'Sign in with an e-mail and a password. The progress follows you to every device — and it is encrypted on the server, not kept in your browser.'],
     ['The friends board', 'A table of the people who play. Only the names people put up themselves are there, and the e-mail never is.'],

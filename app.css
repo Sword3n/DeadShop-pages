@@ -1693,19 +1693,19 @@ body.acc-crimson{--teal:#F87171;--teal-d:#991B1B}
 /* ---- F4: the three branches of the game have three colours ---- */
 :root{
   /* the three branches of the shop: the weapon in orange, the spirit in
-     the green that says "right", the vitality in the deeper green */
+     violet, the vitality in green */
   --br-gun:#F5A524; --br-gun-d:#8A5608;
-  --br-spirit:#3FB950; --br-spirit-d:#1E6330;
+  --br-spirit:#A78BFA; --br-spirit-d:#7C3AED;
   --br-vital:#12A15A; --br-vital-d:#0A6E3E;
 }
 :root[data-theme="dark"]{
   --br-gun-d:#FFC96B;
-  --br-spirit-d:#5FD16B;
+  --br-spirit-d:#C4B0FF;
   --br-vital-d:#3FD189;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --br-gun-d:#FFC96B; --br-spirit-d:#5FD16B; --br-vital-d:#3FD189;
+    --br-gun-d:#FFC96B; --br-spirit-d:#C4B0FF; --br-vital-d:#3FD189;
   }
 }
 .ic-slot-gun{border-left:3px solid var(--br-gun)}
@@ -1722,7 +1722,7 @@ body.acc-crimson{--teal:#F87171;--teal-d:#991B1B}
 .stat-chip{font-weight:800;white-space:nowrap;border-radius:5px;padding:0 3px;
   background:var(--soft);color:var(--ink-2)}
 .stat-chip.stat-gun{color:var(--br-gun-d);background:rgba(245,165,36,.14)}
-.stat-chip.stat-spirit{color:var(--br-spirit-d);background:rgba(63,185,80,.15)}
+.stat-chip.stat-spirit{color:var(--br-spirit-d);background:rgba(167,139,250,.16)}
 .stat-chip.stat-vital{color:var(--br-vital-d);background:rgba(18,161,90,.15)}
 .feedback-body .stat-chip{background:rgba(255,255,255,.25)}
 
