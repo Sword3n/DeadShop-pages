@@ -1,7 +1,7 @@
 /* DeadShop service worker — offline shell + runtime cache for item icons.
    Only registers in a secure context (https:// or localhost); on a plain-http
    LAN address the browser refuses it, so the app must degrade gracefully. */
-var CACHE = 'deadshop-v12';
+var CACHE = 'deadshop-v13';
 var SHELL = [
   './',
   './index.html',
@@ -15,6 +15,7 @@ var SHELL = [
   './data/shop_stats.js',
   './data/updates.js',
   './data/config.js',
+  './data/heroes.js',
   './assets/icon.svg',
   './assets/owl.svg',
   './assets/flame.svg',
@@ -24,7 +25,8 @@ var SHELL = [
   './assets/icon-180.png',
   './assets/icon-maskable-512.png',
   './assets/favicon-32.png',
-  './assets/fonts/saira-var.woff2'
+  './assets/fonts/saira-var.woff2',
+  './assets/sfx/lesson-done.m4a'
 ];
 
 /* './data/data.js' for every path we care about */

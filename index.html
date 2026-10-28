@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#58CC02">
+<meta name="theme-color" content="#0C1114">
 <meta name="description" content="DeadShop — learn every Deadlock shop item, one lesson at a time.">
 <!-- a private test build: it stays out of the search engines, the link is
      the only way in. Remove this line when the site goes public on purpose. -->
@@ -12,29 +12,50 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="DeadShop">
 <title>DeadShop — learn the Deadlock shop</title>
-<!-- link previews: og:image is relative on purpose so the site works from
-     any folder. Replace it with the absolute https URL once the domain is
-     known — Discord, X and Facebook ignore a relative image path. -->
+<!-- link previews: og:image must be a full address — Discord, X and
+     Facebook ignore a relative image path. This is the address of the
+     published build; it changes with the place the site lives. -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="DeadShop">
 <meta property="og:title" content="DeadShop — learn the Deadlock shop">
 <meta property="og:description" content="156 shop items, 64 lessons, 755 questions. Memorise every stat so you buy with confidence.">
-<meta property="og:image" content="assets/og.png">
+<meta property="og:image" content="https://sword3n.github.io/DeadShop-pages/assets/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="DeadShop — learn the Deadlock shop">
 <meta name="twitter:description" content="156 shop items, 64 lessons, 755 questions. Memorise every stat so you buy with confidence.">
-<meta name="twitter:image" content="assets/og.png">
+<meta name="twitter:image" content="https://sword3n.github.io/DeadShop-pages/assets/og.png">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
 <link rel="icon" href="assets/favicon-32.png" sizes="32x32" type="image/png">
-<link rel="mask-icon" href="assets/icon.svg" color="#58CC02">
+<link rel="mask-icon" href="assets/icon.svg" color="#3DDCC8">
 <link rel="apple-touch-icon" href="assets/icon-180.png">
 <link rel="preload" href="assets/fonts/saira-var.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="app.css?v=9">
 </head>
 <body>
+<!-- ========================== THE BOOT SCREEN ==========================
+     The shop is a big file and a phone needs a moment to swallow it.
+     The loader is the loading screen of the game: the owl, a turning
+     energy ring and a bar. It goes away as soon as the app is ready. -->
+<div id="boot" aria-hidden="true">
+  <div class="boot-mark">
+    <span class="boot-ring"></span>
+    <img src="assets/owl.svg" alt="" width="86" height="86">
+  </div>
+  <div class="boot-name">DeadShop</div>
+  <div class="boot-bar"><i></i></div>
+  <div class="boot-note">Loading the shop</div>
+</div>
+<script>
+  /* if the app never starts, the loader must not stay on the screen for
+     ever — after twelve seconds it goes away either way */
+  setTimeout(function () {
+    var b = document.getElementById('boot');
+    if (b) b.classList.add('gone');
+  }, 12000);
+</script>
 <div id="app">
 
   <!-- ========================== SIDE MENU ========================== -->
@@ -42,16 +63,16 @@
        On a phone it slides in from the left, on a desktop it is always
        there. The bottom tab bar stays for quick jumps on a phone. -->
   <nav class="side-nav" id="side-nav" aria-label="Main menu">
-    <div class="nav-brand">
+    <button class="nav-brand" id="nav-home" type="button" aria-label="DeadShop - home">
       <img class="nav-brand-mark" src="assets/owl.svg" alt="" width="32" height="32">
-      <div class="nav-brand-txt">
+      <span class="nav-brand-txt">
         <b>DeadShop</b>
         <span>Deadlock shop trainer</span>
-      </div>
-      <button class="icon-btn nav-close" id="nav-close" type="button" aria-label="Close menu">
+      </span>
+      <span class="icon-btn nav-close" id="nav-close" role="button" tabindex="0" aria-label="Close menu">
         <svg viewBox="0 0 24 24" class="ico ico-line"><path d="M5 5l14 14M19 5L5 19"/></svg>
-      </button>
-    </div>
+      </span>
+    </button>
 
     <div class="nav-scroll" id="nav-groups">
       <section class="nav-group open" data-group="learn">
@@ -64,6 +85,7 @@
           <button class="nav-item on" type="button" data-go="path">Lesson path</button>
           <button class="nav-item" type="button" data-go="daily">Daily run</button>
           <button class="nav-item" type="button" data-go="exam">Test yourself</button>
+          <button class="nav-item" type="button" data-go="counters">Counter library</button>
           <button class="nav-item" type="button" data-go="friends">Friends board</button>
         </div>
       </section>
@@ -88,21 +110,14 @@
           <svg viewBox="0 0 24 24" class="nav-chev"><path d="M6 9l6 6 6-6"/></svg>
         </button>
         <div class="nav-items">
-          <button class="nav-item" type="button" data-go="profile">Profile</button>
           <button class="nav-item" type="button" data-go="bughunt">Bughunt</button>
           <button class="nav-item" type="button" data-go="sub">Rejuvenator</button>
           <button class="nav-item" type="button" data-go="help">Help &amp; feedback</button>
-          <button class="nav-item" type="button" data-go="whatsnew">What's new</button>
         </div>
       </section>
     </div>
 
     <div class="nav-foot">
-      <div class="nav-stats">
-        <div class="nav-stat"><b id="nav-xp">0</b><span>XP</span></div>
-        <div class="nav-stat"><b id="nav-streak">0</b><span>day streak</span></div>
-        <div class="nav-stat"><b id="nav-souls">0</b><span>souls</span></div>
-      </div>
       <div class="nav-note">156 items · 64 lessons · data <span id="nav-snapshot">2026-10-15</span></div>
     </div>
   </nav>
@@ -110,24 +125,119 @@
 
 
   <div class="screens">
+  <!-- ============================== HOME ============================== -->
+  <!-- The screen the site opens on. One big thing to do, four smaller
+       ones to the side, and nothing else: the daily run is the reason
+       most people open the site. -->
+  <section class="screen" id="screen-home">
+    <header class="topbar topbar-home">
+      <button class="home-brand" id="home-brand" type="button" aria-label="DeadShop">
+        <img class="nav-brand-mark" src="assets/owl.svg" alt="" width="34" height="34">
+        <span class="home-brand-txt">Dead<em>Shop</em></span>
+      </button>
+      <div class="topbar-right">
+        <button class="icon-btn" id="home-keys" aria-label="Keyboard shortcuts">
+          <svg viewBox="0 0 24 24" class="ico"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm.9 15.4v1.3h-1.8v-1.3h1.8zm1.9-6.6-.9.9c-.5.5-.7.9-.7 1.6h-1.7v-.5c0-.7.2-1.1.7-1.6l1.2-1.2c.4-.3.5-.7.5-1.2 0-.9-.7-1.5-1.5-1.5s-1.5.6-1.6 1.5H8.5c0-1.8 1.4-3.2 3.4-3.2s3.4 1.4 3.4 3.1c0 .9-.3 1.5-1 2.1z"/></svg>
+        </button>
+        <button class="icon-btn" id="home-profile" aria-label="Profile">
+          <svg viewBox="0 0 24 24" class="ico"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-4 0-8 2-8 5v1h16v-1c0-3-4-5-8-5z"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="scroll home-scroll">
+      <div class="home-hero">
+        <img class="home-mark owl-mark owl-float" src="assets/owl.svg" alt="Grey Talon's owl" width="104" height="104">
+        <h1 class="home-title">DeadShop</h1>
+        <p class="home-sub">Learn the shop. Buy with confidence.</p>
+      </div>
+
+      <button class="home-main" id="home-daily" type="button">
+        <span class="home-main-k">DAILY RUN</span>
+        <span class="home-main-s" id="home-daily-sub">the same questions for everyone today</span>
+      </button>
+
+      <div class="home-tiles">
+        <button class="home-tile" type="button" data-go="path">
+          <svg viewBox="0 0 24 24" class="ico"><path d="M4 19c3.6 0 3.4-7 8-7s4.4 7 8 7"/><circle cx="4" cy="19" r="2"/><circle cx="20" cy="19" r="2"/></svg>
+          <b>Lessons</b><span>the path, 64 of them</span>
+        </button>
+        <button class="home-tile" type="button" data-go="exam">
+          <svg viewBox="0 0 24 24" class="ico"><path d="M12 2 1 21h22L12 2zm1 15h-2v-2h2v2zm0-4h-2V8h2v5z"/></svg>
+          <b>Test yourself</b><span>ten questions, on the clock</span>
+        </button>
+        <button class="home-tile" type="button" data-go="items">
+          <svg viewBox="0 0 24 24" class="ico"><path d="M4 4h7v7H4V4zm9 0h7v7h-7V4zM4 13h7v7H4v-7zm9 0h7v7h-7v-7z"/></svg>
+          <b>Items</b><span>the whole shop, searchable</span>
+        </button>
+        <button class="home-tile" type="button" data-go="profile">
+          <svg viewBox="0 0 24 24" class="ico"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-4 0-8 2-8 5v1h16v-1c0-3-4-5-8-5z"/></svg>
+          <b>Profile</b><span>progress and settings</span>
+        </button>
+      </div>
+
+      <div class="home-goal">
+        <div class="home-goal-l">
+          <span class="home-goal-t">Today's goal</span>
+          <span class="home-goal-n" id="home-goal-note">0 / 12 questions</span>
+        </div>
+        <div class="goal-bar"><i id="home-goal-fill"></i></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================== COUNTERS ========================== -->
+  <!-- The library: what answers what. The lists are built from the groups
+       of the shop, so they grow with the data. -->
+  <section class="screen" id="screen-counters">
+    <header class="topbar">
+      <button class="icon-btn" id="counters-back" aria-label="Back">
+        <svg viewBox="0 0 24 24" class="ico"><path d="M15 5l-7 7 7 7"/></svg>
+      </button>
+      <div class="topbar-title">Counter library</div>
+      <div class="topbar-right">
+        <button class="icon-btn" id="counters-profile" aria-label="Profile">
+          <svg viewBox="0 0 24 24" class="ico"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-4 0-8 2-8 5v1h16v-1c0-3-4-5-8-5z"/></svg>
+        </button>
+      </div>
+    </header>
+    <div class="scroll counters-scroll">
+      <div class="cnt-hero">
+        <div class="cnt-hero-t">What answers what</div>
+        <div class="cnt-hero-s">Nine lists, built from the shop itself. Open one to see the items.</div>
+      </div>
+      <button class="btn btn-block cnt-quiz" id="counters-quiz">PICK THE RIGHT COUNTER</button>
+      <div id="counter-list"></div>
+      <div id="counter-items" hidden></div>
+    </div>
+  </section>
+
   <!-- ============================= PATH ============================= -->
   <section class="screen" id="screen-path">
     <header class="topbar">
       <div class="topbar-stats">
         <div class="chip chip-streak" id="streak-chip" title="Daily streak">
           <img class="ico flame-ico" src="assets/flame.svg" alt="">
-          <span id="streak-val">0</span>
+          <span class="chip-num" id="streak-val">0</span>
+          <span class="chip-lbl">streak</span>
         </div>
         <div class="chip chip-level" id="level-chip" title="Your level">
           <span id="level-badge"></span>
-          <span id="xp-val">0</span>
+          <span class="chip-num" id="xp-val">0</span>
+          <span class="chip-lbl">xp</span>
         </div>
-        <div class="chip chip-souls" id="souls-chip" title="Souls — spend them on cosmetics">
+        <div class="chip chip-souls" id="souls-chip" title="Souls">
           <img class="ico" src="assets/soul.svg" alt="">
-          <span id="souls-val">0</span>
+          <span class="chip-num" id="souls-val">0</span>
+          <span class="chip-lbl">souls</span>
         </div>
         <div class="chip chip-limit" id="limit-chip" title="Lessons left today" hidden>
-          <span id="limit-left">5</span><span class="chip-limit-l">left</span>
+          <span class="chip-num" id="limit-left">5</span>
+          <span class="chip-lbl chip-limit-l">left</span>
+        </div>
+        <div class="chip chip-goal" id="goal-chip" title="Questions today">
+          <span class="chip-num" id="goal-chip-text">0/12</span>
+          <span class="chip-lbl">today</span>
         </div>
       </div>
       <div class="topbar-right">
@@ -178,6 +288,7 @@
 
       <div class="panel-title">Groups</div>
       <div class="chip-scroll" id="group-chips"></div>
+      <div class="chip-scroll chip-scroll-more" id="group-chips-more" hidden></div>
 
       <div class="ad-slot" data-slot="path"></div>
 
@@ -442,6 +553,7 @@
       </button>
       <div class="progress"><div class="progress-fill" id="progress-fill"></div></div>
       <div class="exam-timer" id="exam-timer" hidden>0:00</div>
+      <div class="run-score" id="run-score" hidden>0 ✓</div>
       <div class="lesson-count" id="lesson-count">1/1</div>
     </header>
 
@@ -555,10 +667,11 @@
       <div class="cols">
       <section class="col">
       <div class="profile-card">
-        <div class="avatar" id="profile-avatar">?</div>
+        <div class="avatar avatar-hero" id="profile-avatar">?</div>
         <div class="pc-body">
           <div class="pc-name" id="profile-name">Guest</div>
           <div class="pc-meta" id="profile-meta">Level 1 · Item Cadet</div>
+          <div class="pc-mood" id="profile-mood"></div>
         </div>
       </div>
 
@@ -620,6 +733,7 @@
         <div class="set-row set-row-col">
           <div class="set-label">Avatar</div>
           <div class="avatar-picker" id="avatar-picker"></div>
+          <div class="set-label">Your hero — the streak decides how it looks</div>
         </div>
         <div class="set-row">
           <div class="set-label">Daily goal</div>
@@ -646,9 +760,6 @@
         </div>
         <div class="souls-why" id="souls-why">Finish a lesson and the shop pays you back.</div>
       </div>
-
-      <h3 class="section-h">Cosmetics</h3>
-      <div class="cos-groups" id="cos-shop"></div>
 
       <h3 class="section-h">Settings</h3>
       <div class="settings">
@@ -680,7 +791,7 @@
       <div class="settings">
         <button class="set-action" id="report-btn">Report a bug — Bughunt</button>
         <button class="set-action" id="diag-btn">Copy diagnostics</button>
-        <button class="set-action" id="whatsnew-btn">What's new</button>
+        <button class="set-action" id="whatsnew-profile-btn">What's new</button>
       </div>
 
       <h3 class="section-h">Data</h3>
@@ -767,6 +878,25 @@
     </div>
   </div>
 
+  <!-- ======================= LEAVE THE LESSON ======================= -->
+  <div class="modal" id="quit-modal" aria-hidden="true">
+    <div class="modal-card quit-card">
+      <div class="modal-head">
+        <div>
+          <div class="modal-title">Leave the lesson?</div>
+          <div class="modal-meta">Your place is kept - you can pick it up where you stopped</div>
+        </div>
+      </div>
+      <div class="limit-body">
+        <p class="limit-note" id="quit-note">The questions you have already answered stay counted. The one in front of you goes back into the pack.</p>
+        <div class="limit-actions">
+          <button class="btn btn-green btn-block" id="quit-yes">LEAVE THE LESSON</button>
+          <button class="btn btn-ghost btn-block btn-plain" id="quit-no">KEEP GOING</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ========================= ONBOARDING ========================== -->
   <div class="modal" id="onboard-modal" aria-hidden="true">    <div class="modal-card onboard-card">
       <img class="onboard-mark owl-mark" src="assets/owl.svg" alt="Grey Talon's owl" width="72" height="72">
@@ -796,6 +926,7 @@
 <script src="data/data.js?v=8"></script>
 <script src="data/shop_stats.js?v=1"></script>
 <script src="data/updates.js?v=1"></script>
+<script src="data/heroes.js?v=1"></script>
 <script src="data/config.js?v=1"></script>
 <script src="core.js?v=9"></script>
 <script src="auth.js?v=9"></script>

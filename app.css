@@ -12,21 +12,27 @@
   font-display:swap;
 }
 
-/* ============================== tokens ============================== */
+/* ============================== tokens ==============================
+   The look of the game, not the look of Duolingo.
+   Teal is the energy you spend, amber is what the souls are worth, and
+   green is kept for one job only: saying that an answer was right. */
 :root{
-  --green:#58CC02; --green-d:#46A302; --green-l:#D7FFB8;
-  --blue:#1CB0F6; --blue-d:#1899D6; --blue-l:#DDF4FF;
-  --red:#FF4B4B;  --red-d:#EA2B2B;  --red-l:#FFDFE0;
-  --gold:#FFC800; --gold-d:#E5A600;
+  --green:#3FB950; --green-d:#2A7F38; --green-l:#DFF3E3;
+  --blue:#0A74A8; --blue-d:#075C86; --blue-l:#DDF4FF;
+  --red:#D63030;  --red-d:#A81F1F;  --red-l:#FFDFE0;
+  --gold:#FFC800; --gold-d:#A97A00;
   --orange:#FF9600;
   /* the Deadlock accents: the teal of the game's energy and the amber of
      the souls you spend */
   --teal:#3DDCC8; --teal-d:#1FA795; --teal-l:#D8F7F2;
   --amber:#F5A524; --amber-d:#C67B08; --amber-l:#FDEBCC;
+  /* the ink that sits on a bright fill: every button of the site uses it,
+     so no white text is ever put on a light colour */
+  --on-teal:#06231F; --on-amber:#2E1B00; --on-red:#FFF1F1;
   --ink:#22282B; --ink-2:#5E6A70; --line:#DAD4C7; --line-d:#C6BEAD;
   --bg:#F2EFE8; --card:#FFFDF9; --soft:#EAE6DC; --shadow:0 2px 0 var(--line-d);
   --r:16px;
-  --ring:#DAD4C7; --ring-on:#58CC02;
+  --ring:#DAD4C7; --ring-on:#3FB950;
   --gold-l:#FDEBCC;
   --font-ui:'Saira',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
   --font-body:system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
@@ -35,21 +41,23 @@
   :root:not([data-theme="light"]){
     --ink:#E7EEF1; --ink-2:#8DA0A9; --line:#25333A; --line-d:#33454E;
     --bg:#0C1114; --card:#151D22; --soft:#1C262C; --shadow:0 2px 0 var(--line-d);
-    --green-l:#2F5212; --red-l:#4E1B1E; --blue-l:#12303F; --gold-l:#3A2C10;
+    --green-l:#1E3D26; --red-l:#4E1B1E; --blue-l:#12303F; --gold-l:#3A2C10;
     --teal-l:#123C3A; --amber-l:#3E2D0D;
     /* brighter text colours: green and red sit on their own tinted
        backgrounds, and the light-theme values are unreadable there */
-    --green-d:#6FDC1E; --red-d:#FF6B6B;
-    --ring:#25333A; --ring-on:#58CC02;
+    --green-d:#5FD16B; --red-d:#FF6B6B; --blue-d:#6FCDF7;
+    --on-red:#3A0505;
+    --ring:#25333A; --ring-on:#5FD16B;
   }
 }
 :root[data-theme="dark"]{
   --ink:#E7EEF1; --ink-2:#8DA0A9; --line:#25333A; --line-d:#33454E;
   --bg:#0C1114; --card:#151D22; --soft:#1C262C; --shadow:0 2px 0 var(--line-d);
-  --green-l:#2F5212; --red-l:#4E1B1E; --blue-l:#12303F; --gold-l:#3A2C10;
+  --green-l:#1E3D26; --red-l:#4E1B1E; --blue-l:#12303F; --gold-l:#3A2C10;
   --teal-l:#123C3A; --amber-l:#3E2D0D;
-  --green-d:#6FDC1E; --red-d:#FF6B6B;
-  --ring:#25333A; --ring-on:#58CC02;
+  --green-d:#5FD16B; --red-d:#FF6B6B; --blue-d:#6FCDF7;
+  --on-red:#3A0505;
+  --ring:#25333A; --ring-on:#5FD16B;
 }
 
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -63,8 +71,9 @@ body{
   overscroll-behavior-y:none;
   -webkit-font-smoothing:antialiased;
 }
-#app{max-width:520px;margin:0 auto;height:100%;position:relative;background:var(--bg);
-  box-shadow:0 0 40px rgba(0,0,0,.06)}
+/* The app is the whole window now: the old narrow column with margins
+   around it wasted a third of a desktop screen on nothing. */
+#app{width:100%;height:100%;position:relative;background:var(--bg)}
 @media(min-width:540px){#app{border-left:1px solid var(--line);border-right:1px solid var(--line)}}
 button{font-family:inherit;font-weight:800;cursor:pointer}
 /* the display face carries the Deadlock feel: headings, item names,
@@ -80,8 +89,11 @@ h1,h2,h3,.hero h1,.topbar-title,.unit-title,.ic-name,.ih-name,.modal-title,
 .ico{width:22px;height:22px;fill:currentColor;flex:none}
 /* an open line has no area to fill, so a stroked icon needs its own class */
 .ico-line{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.screen{position:absolute;inset:0;display:none;flex-direction:column;background:var(--bg)}
-.screen.on{display:flex}
+/* the screens fade into one another instead of snapping */
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--bg);
+  opacity:0;visibility:hidden;pointer-events:none;
+  transition:opacity .18s ease,visibility .18s ease}
+.screen.on{opacity:1;visibility:visible;pointer-events:auto}
 .scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 16px 24px}
 
 /* ============================ top bar ============================== */
@@ -110,17 +122,23 @@ h1,h2,h3,.hero h1,.topbar-title,.unit-title,.ic-name,.ih-name,.modal-title,
 .daily-sub{font-size:12.5px;color:var(--ink-2);font-weight:700}
 .daily-btn{padding:10px 18px;font-size:14px;flex:none}
 
-/* ============================= buttons ============================== */
+/* ============================= buttons ==============================
+   Two kinds of button, and only two:
+   the main one (a filled slab of teal with dark ink on it — the white
+   text of the old palette sat on a bright fill at 2:1, well under the
+   4.5:1 the WCAG asks for) and the quiet one (a flat plate).
+   Amber stands in for the second colour of the game, red for the danger. */
 .btn{border:0;border-radius:14px;padding:14px 20px;font-size:15px;letter-spacing:.6px;
-  color:#fff;background:var(--green);box-shadow:0 4px 0 var(--green-d);transition:transform .06s,box-shadow .06s}
-.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--green-d)}
-.btn:disabled{background:var(--line);box-shadow:none;color:#fff;cursor:default;transform:none}
+  color:var(--on-teal);background:var(--teal);box-shadow:0 4px 0 var(--teal-d);
+  transition:transform .06s,box-shadow .06s}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--teal-d)}
+.btn:disabled{background:var(--line);box-shadow:none;color:var(--ink-2);cursor:default;transform:none}
 .btn-block{width:100%;display:block}
-.btn-blue{background:var(--blue);box-shadow:0 4px 0 var(--blue-d)}
-.btn-blue:active{box-shadow:0 1px 0 var(--blue-d)}
-.btn-red{background:var(--red);box-shadow:0 4px 0 var(--red-d)}
+.btn-blue{background:var(--amber);color:var(--on-amber);box-shadow:0 4px 0 var(--amber-d)}
+.btn-blue:active{box-shadow:0 1px 0 var(--amber-d)}
+.btn-red{background:var(--red);color:var(--on-red);box-shadow:0 4px 0 var(--red-d)}
 .btn-red:active{box-shadow:0 1px 0 var(--red-d)}
-.btn-ghost{background:var(--soft);color:var(--blue);box-shadow:none}
+.btn-ghost{background:var(--soft);color:var(--ink-2);box-shadow:none}
 .btn-ghost:active{transform:none;background:var(--line)}
 .btn-plain{margin-top:8px;background:transparent;color:var(--ink-2);padding:10px;font-size:13px;
   letter-spacing:.2px;box-shadow:none}
@@ -492,18 +510,19 @@ textarea.answer-input{min-height:130px;resize:vertical;font-size:15px;font-weigh
   border-bottom:1px solid var(--line)}
 .set-row:last-child{border-bottom:0}
 .set-label{font-size:14.5px}
-.set-action{display:block;width:100%;text-align:left;border:0;background:none;color:var(--blue);
+.set-action{display:block;width:100%;text-align:left;border:0;background:none;color:var(--blue-d);
   padding:14px;font-size:14.5px;font-weight:800;border-bottom:1px solid var(--line)}
 .set-action:last-child{border-bottom:0}
 .set-action.danger{color:var(--red-d)}
 .seg{display:flex;border:2px solid var(--line);border-radius:10px;overflow:hidden;flex:none}
-.seg-btn{border:0;background:var(--card);color:var(--ink-2);padding:6px 11px;font-size:12.5px;font-weight:800}
-.seg-btn.on{background:var(--green);color:#fff}
+.seg-btn{border:0;background:var(--card);color:var(--ink-2);padding:7px 12px;font-size:12.5px;font-weight:800;
+  transition:background .14s ease,color .14s ease}
+.seg-btn.on{background:var(--teal);color:var(--on-teal)}
 .toggle{width:46px;height:27px;border-radius:99px;border:2px solid var(--line);background:var(--soft);
   padding:0;position:relative;flex:none;transition:background .15s,border-color .15s}
 .toggle span{position:absolute;top:2px;left:2px;width:19px;height:19px;border-radius:50%;background:var(--line-d);
   transition:transform .18s,background .18s}
-.toggle.on{background:var(--green);border-color:var(--green)}
+.toggle.on{background:var(--teal);border-color:var(--teal-d)}
 .toggle.on span{transform:translateX(19px);background:#fff}
 
 /* =========================== onboarding ============================ */
@@ -635,9 +654,8 @@ textarea.answer-input{min-height:130px;resize:vertical;font-size:15px;font-weigh
    proper page: a sidebar next to the path, cards in a grid, and a
    comfortable reading column for the lesson. */
 @media (min-width:900px){
-  body{font-size:17px;background:var(--soft)}
-  #app{max-width:1120px;box-shadow:0 0 60px rgba(0,0,0,.10);border-left:1px solid var(--line);
-    border-right:1px solid var(--line);min-height:100%}
+  body{font-size:17px;background:var(--bg)}
+  #app{width:100%;min-height:100%}
   .scroll{padding:0 32px 32px}
   .topbar{padding:18px 32px 12px}
   .topbar-title{font-size:22px}
@@ -645,10 +663,19 @@ textarea.answer-input{min-height:130px;resize:vertical;font-size:15px;font-weigh
   .hero-sub{font-size:15px}
   .hero-mark{width:60px;height:60px;border-radius:16px}
 
-  /* ---- path: sidebar + lesson list ---- */
-  .path-scroll{display:grid;grid-template-columns:330px minmax(0,1fr);gap:34px;align-items:start}
-  .path-side{position:sticky;top:0;padding-top:8px}
+  /* ---- path: the side block becomes a band across the top and the
+     lessons become a grid of cards. The old layout kept a narrow column
+     of lessons next to a wide empty field; nothing was in that field. ---- */
+  .path-scroll{display:block;max-width:1600px;margin:0 auto;padding:0 32px 40px}
+  .path-side{position:static;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:14px;align-items:stretch;padding-top:8px}
+  .path-side > .hero,.path-side > .owl-tip,.path-side > .panel-title,
+  .path-side > .chip-scroll,.path-side > .ad-slot,.path-side > .footnote{grid-column:1/-1}
+  .path-side > .daily-card{margin:0}
   .path-main{min-width:0}
+  #path-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));
+    gap:12px 16px;align-items:start}
+  #path-list > .chapter{grid-column:1/-1}
   .panel-title{display:block}
   .chip-scroll{flex-wrap:wrap;overflow:visible;margin:0;padding:0;gap:7px}
   .gchip{font-size:12px;padding:5px 12px}
@@ -718,8 +745,6 @@ textarea.answer-input{min-height:130px;resize:vertical;font-size:15px;font-weigh
 }
 
 @media (min-width:1280px){
-  #app{max-width:1240px}
-  .path-scroll{grid-template-columns:360px minmax(0,1fr)}
   .item-list{grid-template-columns:repeat(3,minmax(0,1fr))}
 }
 
@@ -800,9 +825,8 @@ textarea.answer-input{min-height:130px;resize:vertical;font-size:15px;font-weigh
 .bar > i{background:var(--energy)}
 .mastery-dot.on{background:var(--teal)}
 .mastery-dot.half{background:var(--amber)}
-.topbar{position:relative}
-.topbar::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;
-  background:linear-gradient(90deg,var(--teal) 0%,var(--amber) 100%);opacity:.75}
+/* the teal-to-amber bar under the header is gone: it did not line up with
+   the middle of the content and only added noise */
 #goal-fill{background:var(--souls)}
 #streak-chip .ico{color:var(--orange)}
 #gold-chip .ico{color:var(--gold-d)}
@@ -949,7 +973,8 @@ textarea.answer-input{min-height:130px;resize:vertical;font-size:15px;font-weigh
 
 /* ---- brand ---- */
 .nav-brand{display:flex;align-items:center;gap:10px;padding:16px 14px 14px;
-  border-bottom:1px solid var(--line)}
+  border-bottom:1px solid var(--line);width:100%;background:none;border-top:0;border-right:0;
+  border-left:0;text-align:left;cursor:pointer}
 .nav-brand-mark{width:32px;height:32px;object-fit:contain;flex:none}
 .nav-brand-txt{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.15}
 .nav-brand-txt b{font-family:var(--font-ui);font-size:17px;letter-spacing:1.4px;
@@ -1013,7 +1038,7 @@ textarea.answer-input{min-height:130px;resize:vertical;font-size:15px;font-weigh
 
 /* ---- desktop: the menu stands next to the app ---- */
 @media (min-width:1000px){
-  #app{max-width:1360px;display:grid;grid-template-columns:272px minmax(0,1fr);
+  #app{width:100%;display:grid;grid-template-columns:272px minmax(0,1fr);
     grid-template-rows:100%}
   .side-nav{position:relative;transform:none;visibility:visible;width:auto;max-width:none;
     border-right:1px solid var(--line);box-shadow:none;z-index:auto}
@@ -1380,3 +1405,285 @@ body.acc-crimson{--teal:#F87171;--teal-d:#991B1B}
 .owner-row-c{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;
   color:var(--teal-d);word-break:break-all}
 .owner-acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px}
+
+/* ==================================================================
+   THE SECOND PASS
+   The list of changes from the audit, applied to the skin:
+   the home launcher, the header with named counters, the bell with
+   a dot, the wider layout, the readable lesson screen and the small
+   things that make a site feel finished.
+   ================================================================== */
+
+/* ---- D5: a double click on a button must not paint it ---- */
+.btn,.seg-btn,.gchip,.fchip,.icon-btn,.tab,.chip,.nav-item,.nav-head,.unit,
+.opt,.home-tile,.home-main,.home-brand,.ava,.set-action,.unit-fix,.unit-cta,
+.daily-btn,.lesson-count,.run-score,.goal-note,.rs-lbl,.chip-lbl,.chip-num,
+.limit-actions .btn,.cos-btn,.set-input,.segment,.weekday,.set-row,.stat-card{
+  -webkit-user-select:none;user-select:none
+}
+/* the text of the page is still text: it can be copied */
+.q-title,.q-card p,.feedback-body,.ic-meta,.note,.wn-note,.unit-note,.bh-note,
+.explain,.rs-lbl,.modal-meta,.limit-note,.home-main-s,.home-tile span{user-select:text}
+
+/* ---- B1 + B2: the counters of the header, with names ---- */
+.topbar-stats{display:flex;gap:4px;align-items:flex-end}
+.chip{flex-direction:column;gap:1px;align-items:center;justify-content:flex-end;
+  min-width:32px;padding:1px 2px 0;line-height:1}
+.chip .ico{width:22px;height:22px}
+.chip-num{font-family:var(--font-ui);font-size:14px;font-weight:800;line-height:1.15;
+  font-variant-numeric:tabular-nums;color:var(--ink)}
+.chip-lbl{font-size:8.5px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;
+  color:var(--ink-2);line-height:1;white-space:nowrap}
+/* the level badge already carries a number, so it sits next to the XP */
+.chip-level{flex-direction:row;flex-wrap:wrap;justify-content:center;gap:4px;min-width:40px}
+.chip-level .chip-lbl{flex-basis:100%;text-align:center}
+.chip-goal{color:var(--amber-d)}
+:root[data-theme="dark"] .chip-goal{color:var(--amber)}
+.chip-goal .chip-num{color:inherit}
+.chip-limit{color:var(--teal-d);border:0;background:none;border-radius:0;padding:1px 2px 0}
+:root[data-theme="dark"] .chip-limit{color:var(--teal)}
+.chip-limit .chip-num{color:inherit}
+.chip-goal,.chip-limit{border:0;background:none}
+
+/* ---- A4: the bell of the updates, with a dot while there is news ---- */
+.wn-btn{position:relative}
+.wn-btn.unread::after{
+  content:"";position:absolute;top:3px;right:3px;width:9px;height:9px;border-radius:50%;
+  background:var(--amber);box-shadow:0 0 0 2px var(--bg)
+}
+
+/* ---- A2: leaving a lesson asks first ---- */
+.quit-card{width:min(400px,92vw)}
+.quit-card .limit-note{margin-bottom:10px}
+
+/* ---- E3: the score of a run, next to the clock ---- */
+.run-score{font-family:var(--font-ui);font-size:13px;font-weight:800;color:var(--teal);
+  background:var(--teal-l);border:1px solid var(--teal-d);border-radius:99px;
+  padding:2px 9px;white-space:nowrap}
+:root[data-theme="dark"] .run-score{color:var(--teal)}
+.exam-timer{color:var(--amber-d)}
+:root[data-theme="dark"] .exam-timer{color:var(--amber)}
+
+/* ---- A3: the home launcher ---- */
+.topbar-home{padding-bottom:6px}
+.home-brand{display:flex;align-items:center;gap:9px;background:none;border:0;padding:0;
+  color:var(--ink)}
+.home-brand .nav-brand-mark{width:34px;height:34px}
+.home-brand-txt{font-family:var(--font-ui);font-size:20px;font-weight:800;letter-spacing:2.6px;
+  text-transform:uppercase;color:var(--ink);line-height:1}
+.home-brand-txt em{font-style:normal;color:var(--teal)}
+.home-scroll{display:flex;flex-direction:column;gap:14px;width:100%;max-width:860px;
+  margin:0 auto;padding:6px 16px 28px}
+
+.home-hero{display:flex;flex-direction:column;align-items:center;text-align:center;
+  gap:2px;padding:10px 0 2px}
+.home-hero .owl-mark{width:92px;height:92px;filter:drop-shadow(0 8px 18px rgba(0,0,0,.35))}
+.home-title{font-family:var(--font-ui);font-size:40px;font-weight:800;letter-spacing:5px;
+  text-transform:uppercase;margin:2px 0 0;color:var(--teal);
+  text-shadow:0 0 26px rgba(61,220,200,.35)}
+.home-sub{margin:2px 0 0;font-size:13.5px;font-weight:700;color:var(--ink-2)}
+
+.home-main{
+  display:flex;flex-direction:column;align-items:center;gap:4px;width:100%;
+  border:2px solid var(--teal-d);background:
+    linear-gradient(135deg,rgba(61,220,200,.18),rgba(61,220,200,.05));
+  padding:22px 16px;cursor:pointer;
+  clip-path:polygon(14px 0,calc(100% - 14px) 0,100% 14px,100% calc(100% - 14px),
+    calc(100% - 14px) 100%,14px 100%,0 calc(100% - 14px),0 14px);
+  box-shadow:0 4px 0 var(--teal-d);transition:transform .08s ease,box-shadow .08s ease
+}
+.home-main:active{transform:translateY(3px);box-shadow:0 1px 0 var(--teal-d)}
+.home-main-k{font-family:var(--font-ui);font-size:25px;font-weight:800;letter-spacing:4px;
+  text-transform:uppercase;color:var(--teal);line-height:1.1}
+.home-main-s{font-size:12.5px;font-weight:700;color:var(--ink-2)}
+
+.home-tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.home-tile{display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;
+  background:var(--card);border:2px solid var(--line);padding:13px 13px 14px;cursor:pointer;
+  clip-path:polygon(11px 0,calc(100% - 11px) 0,100% 11px,100% calc(100% - 11px),
+    calc(100% - 11px) 100%,11px 100%,0 calc(100% - 11px),0 11px);
+  box-shadow:0 3px 0 var(--line-d);
+  transition:transform .08s ease,border-color .14s ease,box-shadow .08s ease}
+.home-tile:active{transform:translateY(2px);box-shadow:0 1px 0 var(--line-d)}
+.home-tile .ico{width:26px;height:26px;color:var(--teal-d);margin-bottom:2px}
+:root[data-theme="dark"] .home-tile .ico{color:var(--teal)}
+.home-tile b{font-family:var(--font-ui);font-size:14px;font-weight:800;letter-spacing:.8px;
+  text-transform:uppercase;color:var(--ink)}
+.home-tile span{font-size:11.5px;font-weight:700;color:var(--ink-2);line-height:1.35}
+
+.home-goal{background:var(--card);border:2px solid var(--line);padding:13px 14px;
+  clip-path:polygon(11px 0,calc(100% - 11px) 0,100% 11px,100% calc(100% - 11px),
+    calc(100% - 11px) 100%,11px 100%,0 calc(100% - 11px),0 11px);
+  box-shadow:0 3px 0 var(--line-d)}
+.home-goal-l{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.home-goal-t{font-family:var(--font-ui);font-size:11.5px;font-weight:800;letter-spacing:1.4px;
+  text-transform:uppercase;color:var(--ink-2)}
+.home-goal-n{font-size:12.5px;font-weight:800;color:var(--ink)}
+.home-goal .goal-bar{max-width:none;margin-top:8px}
+
+/* ---- C6: the lesson screen used to leave half a phone empty ---- */
+.lesson-scroll{display:flex;flex-direction:column}
+.lesson-scroll > .q-card{margin-top:auto;margin-bottom:auto}
+.lesson-scroll > .kbd-hint{margin-top:auto}
+
+/* ---- D2: the name of the site, large ---- */
+.hero h1{font-size:34px;letter-spacing:3px}
+.nav-brand-txt b{font-size:19px;letter-spacing:2px}
+
+/* ---- D6: no motion when the player asked for none ---- */
+.reduce-motion .screen,.reduce-motion .screen.on{transition:none}
+@media (prefers-reduced-motion: reduce){
+  .screen,.screen.on{transition:none}
+}
+
+/* ---- the counters of the home screen on a wide screen ---- */
+@media (min-width:900px){
+  .home-scroll{max-width:980px;gap:16px;padding-top:14px}
+  .home-hero .owl-mark{width:120px;height:120px}
+  .home-title{font-size:54px;letter-spacing:8px}
+  .home-tiles{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .home-main-k{font-size:30px}
+}
+
+/* ---- C3: the families of the groups, and the long list under "More" ---- */
+.gchip-more{border-style:dashed}
+.chip-scroll-more{border-top:1px dashed var(--line);padding-top:8px;margin-top:2px}
+
+/* ---- C4: a lesson that is still shut shows what is inside it ---- */
+.unit-lock{position:absolute;right:-2px;bottom:-2px;width:20px;height:20px;border-radius:6px;
+  background:var(--card);border:2px solid var(--line-d);display:grid;place-items:center;
+  font-size:10px;filter:saturate(.4)}
+.unit.locked .unit-icon img{filter:grayscale(.7) brightness(.85);opacity:.75}
+.unit-strip{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}
+.unit-strip img{width:26px;height:26px;object-fit:contain;background:var(--soft);
+  border:1px solid var(--line);border-radius:6px;padding:2px;opacity:.85}
+.unit-note-lock{color:var(--ink-2);font-size:11.5px;margin-top:5px;font-style:italic}
+
+/* ---- C5: the avatar is a hero, and the streak decides how it looks ---- */
+.avatar-hero{width:64px;height:82px;border-radius:0;overflow:hidden;position:relative;
+  background:var(--soft);border:2px solid var(--line);display:block}
+.avatar-hero img{width:100%;height:100%;object-fit:cover;object-position:50% 0;display:block}
+.avatar-hero.hurt{border-color:var(--red-d)}
+.avatar-hero.hurt img{filter:grayscale(.7) brightness(.82)}
+.avatar-hero.steady{border-color:var(--teal-d)}
+.avatar-hero.streak{border-color:var(--amber);
+  box-shadow:0 0 0 2px var(--amber),0 0 22px rgba(245,165,36,.5)}
+.pc-mood{font-size:11.5px;font-weight:800;color:var(--ink-2);margin-top:4px;letter-spacing:.3px}
+.pc-mood.hurt{color:var(--red-d)}
+.pc-mood.steady{color:var(--teal-d)}
+.pc-mood.streak{color:var(--amber-d)}
+.ava{width:52px;height:64px}
+.ava img{object-fit:cover;object-position:50% 0}
+
+/* ---- F1 + F2: the counter library and the quiz ---- */
+.counters-scroll{display:flex;flex-direction:column;gap:12px;width:100%;max-width:900px;
+  margin:0 auto;padding:6px 16px 28px}
+.cnt-hero{background:var(--card);border:2px solid var(--line);border-top-color:var(--teal-d);
+  padding:14px;clip-path:polygon(11px 0,calc(100% - 11px) 0,100% 11px,100% calc(100% - 11px),
+    calc(100% - 11px) 100%,11px 100%,0 calc(100% - 11px),0 11px);box-shadow:0 3px 0 var(--line-d)}
+.cnt-hero-t{font-family:var(--font-ui);font-size:16px;font-weight:800;letter-spacing:1.2px;
+  text-transform:uppercase;color:var(--ink)}
+.cnt-hero-s{font-size:13px;font-weight:700;color:var(--ink-2);margin-top:4px;line-height:1.45}
+.cnt-quiz{font-size:16px;letter-spacing:1.6px}
+.cnt-row{display:flex;flex-direction:column;gap:6px;text-align:left;width:100%;
+  background:var(--card);border:2px solid var(--line);padding:13px;cursor:pointer;
+  clip-path:polygon(11px 0,calc(100% - 11px) 0,100% 11px,100% calc(100% - 11px),
+    calc(100% - 11px) 100%,11px 100%,0 calc(100% - 11px),0 11px);
+  box-shadow:0 3px 0 var(--line-d);transition:transform .08s ease,border-color .14s ease}
+.cnt-row:active{transform:translateY(2px);box-shadow:0 1px 0 var(--line-d)}
+.cnt-row-t{font-family:var(--font-ui);font-size:15px;font-weight:800;letter-spacing:1px;
+  text-transform:uppercase;color:var(--teal-d)}
+:root[data-theme="dark"] .cnt-row-t{color:var(--teal)}
+.cnt-row-n{font-size:12.5px;font-weight:700;color:var(--ink-2);line-height:1.45}
+.cnt-row-icons{display:flex;gap:4px;margin-top:2px}
+.cnt-row-icons img{width:28px;height:28px;object-fit:contain;background:var(--soft);
+  border:1px solid var(--line);border-radius:6px;padding:2px}
+.cnt-detail-h{display:flex;flex-direction:column;gap:6px;background:var(--card);
+  border:2px solid var(--teal-d);padding:14px;margin-top:12px}
+.cnt-detail-t{font-family:var(--font-ui);font-size:16px;font-weight:800;letter-spacing:1px;
+  text-transform:uppercase;color:var(--ink)}
+.cnt-detail-n{font-size:13px;font-weight:700;color:var(--ink-2);line-height:1.45}
+.cnt-items{background:var(--card);border:2px solid var(--line);border-top:0;padding:4px 14px 12px}
+.cnt-item{display:flex;align-items:center;gap:11px;padding:9px 0;border-bottom:1px solid var(--line)}
+.cnt-item:last-child{border-bottom:0}
+.cnt-item img{width:38px;height:38px;object-fit:contain;flex:none}
+.cnt-item-b{flex:1;min-width:0}
+.cnt-item-n{font-family:var(--font-ui);font-size:14px;font-weight:800;color:var(--ink)}
+.cnt-item-m{font-size:11.5px;font-weight:700;color:var(--ink-2);line-height:1.4;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+/* the hero in a question */
+.hero-head img{width:52px;height:66px;object-fit:cover;object-position:50% 0}
+
+/* ---- F4: the three branches of the game have three colours ---- */
+:root{
+  --br-gun:#F5A524; --br-gun-d:#A9700A;
+  --br-spirit:#A78BFA; --br-spirit-d:#7C3AED;
+  --br-vital:#4FB3E8; --br-vital-d:#1B7FBF;
+}
+:root[data-theme="dark"]{
+  --br-gun-d:#FFC96B;
+  --br-spirit-d:#C4B0FF;
+  --br-vital-d:#8FD2FF;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --br-gun-d:#FFC96B; --br-spirit-d:#C4B0FF; --br-vital-d:#8FD2FF;
+  }
+}
+.ic-slot-gun{border-left:3px solid var(--br-gun)}
+.ic-slot-gun .ic-name,.ic-slot-gun .ih-name{color:var(--br-gun-d)}
+.ic-slot-spirit{border-left:3px solid var(--br-spirit)}
+.ic-slot-spirit .ic-name,.ic-slot-spirit .ih-name{color:var(--br-spirit-d)}
+.ic-slot-vital{border-left:3px solid var(--br-vital)}
+.ic-slot-vital .ic-name,.ic-slot-vital .ih-name{color:var(--br-vital-d)}
+.item-head.ic-slot-gun{border-left-color:var(--br-gun)}
+.item-head.ic-slot-spirit{border-left-color:var(--br-spirit)}
+.item-head.ic-slot-vital{border-left-color:var(--br-vital)}
+
+/* ---- F3: a stat in the text wears the colour of its branch ---- */
+.stat-chip{font-weight:800;white-space:nowrap;border-radius:5px;padding:0 3px;
+  background:var(--soft);color:var(--ink-2)}
+.stat-chip.stat-gun{color:var(--br-gun-d);background:rgba(245,165,36,.14)}
+.stat-chip.stat-spirit{color:var(--br-spirit-d);background:rgba(167,139,250,.16)}
+.stat-chip.stat-vital{color:var(--br-vital-d);background:rgba(79,179,232,.14)}
+.feedback-body .stat-chip{background:rgba(255,255,255,.25)}
+
+/* ==================================================================
+   THE BOOT SCREEN
+   The loading screen of the game, borrowed: the owl in the middle of a
+   turning energy ring and a bar of light underneath. It is here because
+   the shop is 575 KB and a phone on a slow line needs a moment.
+   ================================================================== */
+#boot{
+  position:fixed;inset:0;z-index:9999;display:grid;place-items:center;align-content:center;
+  gap:8px;padding:24px;
+  background:
+    radial-gradient(900px 420px at 50% -8%,rgba(61,220,200,.12),transparent 62%),
+    radial-gradient(700px 380px at 90% 110%,rgba(245,165,36,.08),transparent 60%),
+    #0C1114;
+  transition:opacity .35s ease,visibility .35s ease
+}
+#boot.gone{opacity:0;visibility:hidden;pointer-events:none}
+.boot-mark{position:relative;width:112px;height:112px;display:grid;place-items:center}
+.boot-mark img{width:84px;height:84px;object-fit:contain;position:relative;z-index:2;
+  animation:owlIdle 4s ease-in-out infinite}
+.boot-ring{position:absolute;inset:0;border-radius:50%;
+  border:2px solid rgba(61,220,200,.16);
+  border-top-color:var(--teal);border-right-color:rgba(245,165,36,.75);
+  animation:bootSpin 1.6s linear infinite}
+@keyframes bootSpin{to{transform:rotate(360deg)}}
+.boot-name{font-family:var(--font-ui);font-size:30px;font-weight:800;letter-spacing:7px;
+  text-transform:uppercase;color:var(--teal);text-shadow:0 0 26px rgba(61,220,200,.35)}
+.boot-bar{width:190px;height:5px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden}
+.boot-bar i{display:block;width:38%;height:100%;border-radius:99px;
+  background:linear-gradient(90deg,var(--teal-d),var(--teal));
+  animation:bootSlide 1.25s ease-in-out infinite}
+@keyframes bootSlide{
+  0%{transform:translateX(-110%)}
+  100%{transform:translateX(265%)}
+}
+.boot-note{font-size:11px;font-weight:800;letter-spacing:2.4px;text-transform:uppercase;
+  color:#8DA0A9;margin-top:2px}
+@media (prefers-reduced-motion: reduce){
+  .boot-ring,.boot-bar i,.boot-mark img{animation:none}
+}
