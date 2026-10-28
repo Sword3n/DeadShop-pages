@@ -14,18 +14,19 @@
 
 /* ============================== tokens ==============================
    The look of the game, not the look of Duolingo.
-   Teal is the energy you spend, amber is what the souls are worth, and
-   green is kept for one job only: saying that an answer was right. */
+   Teal is the energy you spend, green is what the souls are worth, and
+   the green of the spirit branch is the one that says "right". */
 :root{
   --green:#3FB950; --green-d:#2A7F38; --green-l:#DFF3E3;
   --blue:#0A74A8; --blue-d:#075C86; --blue-l:#DDF4FF;
   --red:#D63030;  --red-d:#A81F1F;  --red-l:#FFDFE0;
   --gold:#FFC800; --gold-d:#A97A00;
   --orange:#FF9600;
-  /* the Deadlock accents: the teal of the game's energy and the amber of
-     the souls you spend */
+  /* the Deadlock accents: the teal of the game's energy */
   --teal:#3DDCC8; --teal-d:#1FA795; --teal-l:#D8F7F2;
   --amber:#F5A524; --amber-d:#C67B08; --amber-l:#FDEBCC;
+  /* the souls are green now, and the ink on them is dark */
+  --souls-fill:#3FB950; --souls-d:#2A7F38; --on-souls:#06231F;
   /* the ink that sits on a bright fill: every button of the site uses it,
      so no white text is ever put on a light colour. The red is the one
      exception - it is too dark to carry dark ink (the best it could do
@@ -49,6 +50,7 @@
        backgrounds, and the light-theme values are unreadable there */
     --green-d:#5FD16B; --red-d:#FF6B6B; --blue-d:#6FCDF7;
     --on-red:#FFFFFF;
+    --souls-fill:#5FD16B; --souls-d:#3FB950;
     --ring:#25333A; --ring-on:#5FD16B;
   }
 }
@@ -59,6 +61,7 @@
   --teal-l:#123C3A; --amber-l:#3E2D0D;
   --green-d:#5FD16B; --red-d:#FF6B6B; --blue-d:#6FCDF7;
   --on-red:#FFFFFF;
+  --souls-fill:#5FD16B; --souls-d:#3FB950;
   --ring:#25333A; --ring-on:#5FD16B;
 }
 
@@ -77,6 +80,23 @@ body{
    around it wasted a third of a desktop screen on nothing. */
 #app{width:100%;height:100%;position:relative;background:var(--bg)}
 @media(min-width:540px){#app{border-left:1px solid var(--line);border-right:1px solid var(--line)}}
+
+/* ---- the phone has its own geometry -------------------------------
+   On a phone the window is not the window: the browser bar comes and
+   goes, and the keyboard takes half of the screen away. A layout that
+   was measured once floats - the bottom of the lesson slides under the
+   keyboard and the page itself starts to scroll.
+
+   So the phone is told the truth about its own height by script: the
+   visual viewport is written into --app-h and the app is exactly that
+   tall. Nothing scrolls but the screen that is meant to scroll, and
+   the check button stays where the thumb is. */
+@media(max-width:899px){
+  html,body{overflow:hidden;overscroll-behavior:none;position:fixed;inset:0;width:100%}
+  body{height:auto;min-height:100%}
+  #app{height:var(--app-h,100dvh);position:fixed;top:0;left:0;right:0;
+    padding-bottom:env(safe-area-inset-bottom)}
+}
 button{font-family:inherit;font-weight:800;cursor:pointer}
 /* the display face carries the Deadlock feel: headings, item names,
    buttons, labels and numbers */
@@ -96,7 +116,11 @@ h1,h2,h3,.hero h1,.topbar-title,.unit-title,.ic-name,.ih-name,.modal-title,
   opacity:0;visibility:hidden;pointer-events:none;
   transition:opacity .18s ease,visibility .18s ease}
 .screen.on{opacity:1;visibility:visible;pointer-events:auto}
-.scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 16px 24px}
+.scroll{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 16px 24px}
+/* min-height:0 is what makes the screen scroll instead of grow: without it
+   a flex item refuses to be smaller than its content, the screen becomes
+   taller than the window, and the page itself starts to scroll - which is
+   how a piece of gradient ends up under the app. */
 
 /* ============================ top bar ============================== */
 .topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;
@@ -278,8 +302,11 @@ textarea.answer-input{min-height:130px;resize:vertical;font-size:15px;font-weigh
 @keyframes floatUp{from{opacity:0;transform:translate(-50%,8px) scale(.75)}
   18%{opacity:1;transform:translate(-50%,-4px) scale(1.05)}
   to{opacity:0;transform:translate(-50%,-38px) scale(1.1)}}
-.feedback{position:absolute;inset:0;background:rgba(0,0,0,.45);opacity:0;pointer-events:none;
-  transition:opacity .18s;z-index:20}
+/* the sheet that slides in from the bottom is cut off outside the screen:
+   without this it hangs under the app and the page itself starts to
+   scroll - and the piece of gradient under the app is what is seen. */
+.feedback{position:absolute;inset:0;overflow:hidden;background:rgba(0,0,0,.45);opacity:0;
+  pointer-events:none;transition:opacity .18s;z-index:20}
 .feedback.on{opacity:1;pointer-events:auto}
 .feedback-inner{position:absolute;left:0;right:0;bottom:0;background:var(--card);
   border-top:2px solid var(--line);border-radius:0;padding:18px 16px calc(env(safe-area-inset-bottom) + 16px);
@@ -637,6 +664,9 @@ textarea.answer-input{min-height:130px;resize:vertical;font-size:15px;font-weigh
 .keys-row kbd{background:var(--soft);border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;
   padding:2px 7px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;font-weight:800;color:var(--ink)}
 
+/* the souls wear the colour of the souls */
+#r-souls{color:var(--green-d)}
+:root[data-theme="dark"] #r-souls{color:var(--green-d)}
 .ri-box.good{color:var(--green-d)}
 .ri-box.bad{color:var(--red-d)}
 
@@ -759,7 +789,7 @@ textarea.answer-input{min-height:130px;resize:vertical;font-size:15px;font-weigh
 :root{
   --chamfer:12px;
   --energy:linear-gradient(90deg,var(--teal-d) 0%,var(--teal) 100%);
-  --souls:linear-gradient(90deg,var(--amber-d) 0%,var(--amber) 100%);
+  --souls:linear-gradient(90deg,var(--souls-d) 0%,var(--souls-fill) 100%);
 }
 
 /* a cut-corner panel: the shape the game uses for every framed surface.
@@ -1052,7 +1082,8 @@ textarea.answer-input{min-height:130px;resize:vertical;font-size:15px;font-weigh
   .tabbar{display:none}
   /* the toast belongs over the content, not over the menu */
   .toast{left:calc(50% + 136px)}
-  .path-scroll{grid-template-columns:300px minmax(0,1fr);gap:28px}
+  .path-scroll{grid-template-columns:300px minmax(0,1fr);gap:28px;min-height:0}
+  .path-side,.path-main{min-height:0}
 }
 
 /* the page must not scroll behind the open menu on a phone */
@@ -1077,22 +1108,25 @@ body.nav-locked{overflow:hidden}
 .chip-streak.hot .flame-ico{animation:firePulse 1.8s ease-in-out infinite}
 
 /* ---- souls ---- */
-.chip-souls{color:var(--amber-d)}
-:root[data-theme="dark"] .chip-souls{color:var(--amber)}
-.chip-souls .ico{width:20px;height:20px;object-fit:contain}
+/* the chip of the header is a green plate with dark ink on it - see the
+   header block above. Here it is the same green in the profile. */
 .souls-card{
   background:var(--card);border:2px solid var(--line);border-radius:var(--r);
   padding:14px;box-shadow:var(--shadow);margin-bottom:4px
 }
 .souls-balance{display:flex;align-items:center;gap:12px}
-.souls-mark{width:40px;height:40px;object-fit:contain;flex:none;
-  filter:drop-shadow(0 2px 6px rgba(245,165,36,.35))}
+.souls-mark{width:40px;height:40px;flex:none;
+  -webkit-mask:url('assets/soul.svg') center/contain no-repeat;
+  mask:url('assets/soul.svg') center/contain no-repeat;
+  background:var(--souls-fill);
+  filter:drop-shadow(0 2px 6px rgba(63,185,80,.35))}
 .souls-txt{flex:1;min-width:0}
 .souls-num{font-family:var(--font-ui);font-size:26px;line-height:1.05;color:var(--ink)}
 .souls-lbl{font-size:12px;color:var(--ink-2);font-weight:800;letter-spacing:.6px;
   text-transform:uppercase}
 .souls-why{margin-top:10px;font-size:13px;color:var(--ink-2);font-weight:700;line-height:1.5}
-.souls-why b{color:var(--amber-d)}
+.souls-why b{color:var(--green-d)}
+:root[data-theme="dark"] .souls-why b{color:var(--green-d)}
 
 /* ---- the cosmetics shop ---- */
 .cos-group{margin-bottom:14px}
@@ -1439,13 +1473,53 @@ body.acc-crimson{--teal:#F87171;--teal-d:#991B1B}
 /* the level badge already carries a number, so it sits next to the XP */
 .chip-level{flex-direction:row;flex-wrap:wrap;justify-content:center;gap:4px;min-width:40px}
 .chip-level .chip-lbl{flex-basis:100%;text-align:center}
-.chip-goal{color:var(--amber-d)}
-:root[data-theme="dark"] .chip-goal{color:var(--amber)}
-.chip-goal .chip-num{color:inherit}
 .chip-limit{color:var(--teal-d);border:0;background:none;border-radius:0;padding:1px 2px 0}
 :root[data-theme="dark"] .chip-limit{color:var(--teal)}
 .chip-limit .chip-num{color:inherit}
-.chip-goal,.chip-limit{border:0;background:none}
+.chip-limit{border:0;background:none}
+
+/* ---- the souls: a green plate with dark ink on it ---- */
+.chip-souls{
+  background:var(--souls-fill); color:var(--on-souls);
+  border-radius:10px; padding:4px 9px 5px;
+  box-shadow:0 2px 0 rgba(0,0,0,.28);
+}
+.chip-souls .chip-num,.chip-souls .chip-lbl{color:var(--on-souls)}
+.chip-souls .chip-lbl{opacity:.85}
+.chip-souls .soul-ico{
+  width:20px;height:20px;display:block;flex:none;
+  -webkit-mask:url('assets/soul.svg') center/contain no-repeat;
+  mask:url('assets/soul.svg') center/contain no-repeat;
+  background:var(--on-souls);
+}
+
+/* ---- a small explanation under the numbers of the header ----
+   A bare number is a puzzle. The cursor over it brings a line that says
+   what the number is and what it is good for. */
+.chip[data-tip]{position:relative;cursor:help}
+.chip[data-tip]::after{
+  content:attr(data-tip);
+  position:absolute;top:calc(100% + 10px);left:50%;
+  transform:translateX(-50%) translateY(-5px);
+  width:max-content;max-width:236px;
+  background:var(--ink);color:var(--bg);
+  border:1px solid var(--line-d);border-radius:10px;
+  padding:8px 11px;
+  font-size:11px;font-weight:700;line-height:1.4;letter-spacing:.2px;
+  text-align:left;white-space:normal;
+  opacity:0;pointer-events:none;
+  transition:opacity .15s ease,transform .15s ease;
+  z-index:80;box-shadow:0 8px 22px rgba(0,0,0,.3);
+}
+.chip[data-tip]:hover::after,
+.chip[data-tip]:focus-visible::after{opacity:1;transform:translateX(-50%) translateY(0)}
+/* the first and the last chip keep their note inside the screen */
+#streak-chip[data-tip]::after{left:0;transform:translateX(-6px) translateY(-5px)}
+#streak-chip[data-tip]:hover::after,#streak-chip[data-tip]:focus-visible::after{
+  transform:translateX(-6px) translateY(0)}
+#limit-chip[data-tip]::after{left:auto;right:0;transform:translateX(6px) translateY(-5px)}
+#limit-chip[data-tip]:hover::after,#limit-chip[data-tip]:focus-visible::after{
+  transform:translateX(6px) translateY(0)}
 
 /* ---- A4: the bell of the updates, with a dot while there is news ---- */
 .wn-btn{position:relative}
@@ -1618,18 +1692,20 @@ body.acc-crimson{--teal:#F87171;--teal-d:#991B1B}
 
 /* ---- F4: the three branches of the game have three colours ---- */
 :root{
-  --br-gun:#F5A524; --br-gun-d:#A9700A;
-  --br-spirit:#A78BFA; --br-spirit-d:#7C3AED;
-  --br-vital:#4FB3E8; --br-vital-d:#1B7FBF;
+  /* the three branches of the shop: the weapon in orange, the spirit in
+     the green that says "right", the vitality in the deeper green */
+  --br-gun:#F5A524; --br-gun-d:#8A5608;
+  --br-spirit:#3FB950; --br-spirit-d:#1E6330;
+  --br-vital:#12A15A; --br-vital-d:#0A6E3E;
 }
 :root[data-theme="dark"]{
   --br-gun-d:#FFC96B;
-  --br-spirit-d:#C4B0FF;
-  --br-vital-d:#8FD2FF;
+  --br-spirit-d:#5FD16B;
+  --br-vital-d:#3FD189;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --br-gun-d:#FFC96B; --br-spirit-d:#C4B0FF; --br-vital-d:#8FD2FF;
+    --br-gun-d:#FFC96B; --br-spirit-d:#5FD16B; --br-vital-d:#3FD189;
   }
 }
 .ic-slot-gun{border-left:3px solid var(--br-gun)}
@@ -1646,8 +1722,8 @@ body.acc-crimson{--teal:#F87171;--teal-d:#991B1B}
 .stat-chip{font-weight:800;white-space:nowrap;border-radius:5px;padding:0 3px;
   background:var(--soft);color:var(--ink-2)}
 .stat-chip.stat-gun{color:var(--br-gun-d);background:rgba(245,165,36,.14)}
-.stat-chip.stat-spirit{color:var(--br-spirit-d);background:rgba(167,139,250,.16)}
-.stat-chip.stat-vital{color:var(--br-vital-d);background:rgba(79,179,232,.14)}
+.stat-chip.stat-spirit{color:var(--br-spirit-d);background:rgba(63,185,80,.15)}
+.stat-chip.stat-vital{color:var(--br-vital-d);background:rgba(18,161,90,.15)}
 .feedback-body .stat-chip{background:rgba(255,255,255,.25)}
 
 /* ==================================================================
@@ -1689,3 +1765,90 @@ body.acc-crimson{--teal:#F87171;--teal-d:#991B1B}
 @media (prefers-reduced-motion: reduce){
   .boot-ring,.boot-bar i,.boot-mark img{animation:none}
 }
+
+/* ==================================================================
+   THE FOOTER
+   The bottom of the page used to be a piece of gradient and nothing
+   else. Now it says what build this is, what it knows, and where the
+   people who keep it are - one tap away, instead of three menus deep.
+   ================================================================== */
+.app-foot{
+  margin-top:22px;padding:16px 2px 10px;
+  border-top:1px solid var(--line);
+}
+.app-foot-top{
+  display:flex;align-items:baseline;justify-content:space-between;
+  gap:10px;flex-wrap:wrap
+}
+.app-foot-ver{
+  font-family:var(--font-ui);font-size:12px;font-weight:800;letter-spacing:.5px;
+  color:var(--ink)
+}
+.app-foot-meta{font-size:11.5px;color:var(--ink-3);font-weight:700}
+.app-foot-links{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.foot-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  background:var(--card);border:1px solid var(--line);border-radius:10px;
+  padding:8px 12px;font-family:var(--font-ui);font-size:11px;font-weight:800;
+  letter-spacing:.5px;text-transform:uppercase;color:var(--ink-2);
+  cursor:pointer;-webkit-user-select:none;user-select:none;
+}
+.foot-btn:hover{border-color:var(--teal-d);color:var(--ink)}
+.foot-btn .ico{width:15px;height:15px;flex:none}
+.app-foot-note{margin-top:12px;font-size:11px;color:var(--ink-3);line-height:1.55}
+.app-foot-note b{color:var(--ink-2)}
+
+/* ==================================================================
+   THE REJUVENATOR
+   One plate, four lines, one price. The old page was a shop window
+   with a list of perks and a price in two currencies; the money of the
+   project is not the point, the server is.
+   ================================================================== */
+.sub-plate{
+  background:var(--card);border:2px solid var(--line);border-radius:var(--r);
+  box-shadow:var(--shadow);overflow:hidden;margin:12px 0
+}
+.sub-plate-top{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:12px 14px;border-bottom:1px solid var(--line)
+}
+.sub-plate-name{
+  font-family:var(--font-ui);font-size:15px;letter-spacing:.6px;color:var(--ink)
+}
+.sub-plate-state{
+  font-family:var(--font-ui);font-size:11px;font-weight:800;letter-spacing:1px;
+  text-transform:uppercase;padding:4px 9px;border-radius:99px;
+  background:var(--soft);color:var(--ink-2)
+}
+.sub-plate-state.on{background:rgba(63,185,80,.18);color:var(--green-d)}
+:root[data-theme="dark"] .sub-plate-state.on{color:var(--green-d)}
+.sub-list{list-style:none;margin:0;padding:0}
+.sub-list li{
+  display:flex;gap:10px;align-items:flex-start;
+  padding:11px 14px;border-bottom:1px solid var(--line);
+  font-size:13px;font-weight:700;color:var(--ink-2);line-height:1.45
+}
+.sub-list li:last-child{border-bottom:0}
+.sub-list li::before{
+  content:"";width:7px;height:7px;margin-top:6px;flex:none;
+  background:var(--teal);transform:rotate(45deg)
+}
+.sub-list b{color:var(--ink);font-family:var(--font-ui);font-weight:800}
+.sub-price{
+  display:flex;align-items:baseline;gap:8px;justify-content:center;
+  background:var(--soft);border-radius:12px;padding:12px;margin-bottom:12px
+}
+.sub-price-n{font-family:var(--font-ui);font-size:22px;color:var(--ink)}
+.sub-price-m{font-size:12px;color:var(--ink-2);font-weight:800;text-transform:uppercase;
+  letter-spacing:.6px}
+.sub-actions{display:flex;flex-direction:column;gap:2px}
+.sub-steps{margin:16px 0 4px}
+.sub-step{display:flex;gap:10px;align-items:flex-start;padding:8px 0}
+.sub-step-n{
+  font-family:var(--font-ui);font-size:12px;color:var(--card);background:var(--ink-2);
+  width:22px;height:22px;border-radius:50%;flex:none;display:flex;align-items:center;
+  justify-content:center;margin-top:1px
+}
+.sub-step-b{flex:1;min-width:0}
+.sub-step-t{font-family:var(--font-ui);font-size:13.5px;color:var(--ink)}
+.sub-step-d{font-size:12px;color:var(--ink-2);font-weight:700;line-height:1.5}

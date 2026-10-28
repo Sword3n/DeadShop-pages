@@ -8,7 +8,7 @@
 <!-- the build of the page itself. The script reads it and compares it with
      its own version: a page from an older build next to a newer script is
      a site that throws, so the two are put back together. -->
-<meta name="ds-version" content="0.12.0">
+<meta name="ds-version" content="0.13.0">
 <!-- a private test build: it stays out of the search engines, the link is
      the only way in. Remove this line when the site goes public on purpose. -->
 <meta name="robots" content="noindex, nofollow">
@@ -36,7 +36,7 @@
 <link rel="mask-icon" href="assets/icon.svg" color="#3DDCC8">
 <link rel="apple-touch-icon" href="assets/icon-180.png">
 <link rel="preload" href="assets/fonts/saira-var.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="app.css?v=10">
+<link rel="stylesheet" href="app.css?v=11">
 </head>
 <body>
 <!-- ========================== THE BOOT SCREEN ==========================
@@ -187,6 +187,8 @@
         </div>
         <div class="goal-bar"><i id="home-goal-fill"></i></div>
       </div>
+
+      <div class="foot-slot" id="foot-home"></div>
     </div>
   </section>
 
@@ -220,28 +222,28 @@
   <section class="screen" id="screen-path">
     <header class="topbar">
       <div class="topbar-stats">
-        <div class="chip chip-streak" id="streak-chip" title="Daily streak">
+        <div class="chip chip-streak" id="streak-chip" tabindex="0"
+             data-tip="The day streak: one lesson or one daily run a day, every day in a row. At eight days the hero starts to glow.">
           <img class="ico flame-ico" src="assets/flame.svg" alt="">
           <span class="chip-num" id="streak-val">0</span>
           <span class="chip-lbl">streak</span>
         </div>
-        <div class="chip chip-level" id="level-chip" title="Your level">
+        <div class="chip chip-level" id="level-chip" tabindex="0"
+             data-tip="Your level. The XP fills the ring of the badge; every league needs a little more of it than the last one.">
           <span id="level-badge"></span>
           <span class="chip-num" id="xp-val">0</span>
           <span class="chip-lbl">xp</span>
         </div>
-        <div class="chip chip-souls" id="souls-chip" title="Souls">
-          <img class="ico" src="assets/soul.svg" alt="">
+        <div class="chip chip-souls" id="souls-chip" tabindex="0"
+             data-tip="The souls: the currency of the shop. A lesson pays two, a flawless one five, the daily run three.">
+          <span class="soul-ico" aria-hidden="true"></span>
           <span class="chip-num" id="souls-val">0</span>
           <span class="chip-lbl">souls</span>
         </div>
-        <div class="chip chip-limit" id="limit-chip" title="Lessons left today" hidden>
+        <div class="chip chip-limit" id="limit-chip" tabindex="0" hidden
+             data-tip="The lessons that are left today. The limit is lifted for the people who support the server.">
           <span class="chip-num" id="limit-left">5</span>
           <span class="chip-lbl chip-limit-l">left</span>
-        </div>
-        <div class="chip chip-goal" id="goal-chip" title="Questions today">
-          <span class="chip-num" id="goal-chip-text">0/12</span>
-          <span class="chip-lbl">today</span>
         </div>
       </div>
       <div class="topbar-right">
@@ -314,6 +316,8 @@
         </div>
 
         <div class="path" id="path-list"></div>
+
+        <div class="foot-slot" id="foot-path"></div>
       </div>
     </div>
 
@@ -541,10 +545,6 @@
       </button>
     </header>
     <div class="scroll">
-      <div class="bh-hero">
-        <div class="bh-kicker">Rejuvenator</div>
-        <div class="bh-sub">The paid tier. It takes the ads away, takes the daily limit off, and keeps your progress on every device.</div>
-      </div>
       <div id="sub-body"></div>
     </div>
   </section>
@@ -756,7 +756,7 @@
       <h3 class="section-h">Souls <span class="h-note" id="souls-earned">0 earned</span></h3>
       <div class="souls-card">
         <div class="souls-balance">
-          <img class="souls-mark" src="assets/soul.svg" alt="">
+          <span class="souls-mark" aria-hidden="true"></span>
           <div class="souls-txt">
             <div class="souls-num" id="souls-balance">0</div>
             <div class="souls-lbl">souls to spend</div>
@@ -882,24 +882,10 @@
     </div>
   </div>
 
-  <!-- ======================= LEAVE THE LESSON ======================= -->
-  <div class="modal" id="quit-modal" aria-hidden="true">
-    <div class="modal-card quit-card">
-      <div class="modal-head">
-        <div>
-          <div class="modal-title">Leave the lesson?</div>
-          <div class="modal-meta">Your place is kept - you can pick it up where you stopped</div>
-        </div>
-      </div>
-      <div class="limit-body">
-        <p class="limit-note" id="quit-note">The questions you have already answered stay counted. The one in front of you goes back into the pack.</p>
-        <div class="limit-actions">
-          <button class="btn btn-green btn-block" id="quit-yes">LEAVE THE LESSON</button>
-          <button class="btn btn-ghost btn-block btn-plain" id="quit-no">KEEP GOING</button>
-        </div>
-      </div>
-    </div>
-  </div>
+  <!-- ======================= LEAVE THE LESSON =======================
+       There is no question any more: the button on the left of the
+       lesson puts the lesson down, and the path offers it back. The
+       question was only ever in the way. -->
 
   <!-- ========================= ONBOARDING ========================== -->
   <div class="modal" id="onboard-modal" aria-hidden="true">    <div class="modal-card onboard-card">
@@ -932,9 +918,9 @@
 <script src="data/updates.js?v=1"></script>
 <script src="data/heroes.js?v=1"></script>
 <script src="data/config.js?v=1"></script>
-<script src="core.js?v=9"></script>
+<script src="core.js?v=10"></script>
 <script src="auth.js?v=9"></script>
 <script src="api.js?v=1"></script>
-<script src="app.js?v=9"></script>
+<script src="app.js?v=10"></script>
 </body>
 </html>

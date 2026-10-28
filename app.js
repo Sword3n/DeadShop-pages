@@ -227,7 +227,6 @@
     rank: 0,
     serverUser: null,
     ownerKey: '',
-    priceRub: 199,
     priceUsd: 3
   };
   try { cloud.ownerKey = localStorage.getItem('deadshop-owner-key-v1') || ''; } catch (e) { }
@@ -237,7 +236,6 @@
     if (cfg.dailyLimit) cloud.limit = cfg.dailyLimit;
     if (cfg.ads) cloud.ads = cfg.ads;
     if (cfg.subscription) {
-      if (cfg.subscription.priceRub) cloud.priceRub = cfg.subscription.priceRub;
       if (cfg.subscription.priceUsd) cloud.priceUsd = cfg.subscription.priceUsd;
       if (cfg.subscription.url) cloud.subUrl = cfg.subscription.url;
     }
@@ -823,42 +821,51 @@
     var box = $('#sub-body');
     if (!box) return;
     box.innerHTML = '';
-    var status = el('div', 'sub-status');
-    if (cloud.sub) {
-      status.appendChild(el('div', 'sub-on', 'Rejuvenator is on'));
-      if (cloud.subUntil) {
-        status.appendChild(el('div', 'sub-until',
-          'until ' + new Date(cloud.subUntil * 1000).toLocaleDateString()));
-      }
-      status.appendChild(el('div', 'sub-off', 'No ads, no daily limit. Enjoy.'));
-    } else {
-      status.appendChild(el('div', 'sub-off', 'Rejuvenator is not on'));
-      if (!cloud.ready) {
-        status.appendChild(el('div', 'sub-until',
-          'The subscription needs the DeadShop server. This copy runs alone, ' +
-          'so there is nothing to pay for — and nothing to switch off either.'));
-      }
-    }
-    box.appendChild(status);
 
-    var perks = el('ul', 'sub-perks');
-    var perkList = [
-      ['No ads, ever', 'The banner slots disappear completely'],
-      ['No daily limit', 'Learn as much as you like, mistakes included'],
-      ['Your name on the board', 'Seen by the other players'],
-      ['Your progress follows you', 'Every device, every browser'],
-      ['The live shop check works', 'The server is what makes it possible']
-    ];
-    perkList.forEach(function (p) {
-      var li = el('li', '');
-      li.appendChild(el('b', '', p[0]));
-      li.appendChild(el('span', 'sub-perk-note', p[1]));
-      perks.appendChild(li);
+    /* One plate, one list, one price. The old page was a shop window:
+       a card per perk, a price in two currencies and a paragraph under
+       every line. The server is what the money pays for, and that is
+       the only thing worth saying twice. */
+    var plate = el('div', 'sub-plate');
+    var top = el('div', 'sub-plate-top');
+    top.appendChild(el('div', 'sub-plate-name', 'REJUVENATOR'));
+    var state = el('div', 'sub-plate-state' + (cloud.sub ? ' on' : ''),
+      cloud.sub ? 'ON' : 'OFF');
+    top.appendChild(state);
+    plate.appendChild(top);
+
+    var list = el('ul', 'sub-list');
+    [
+      ['No ads', 'the slots are gone'],
+      ['No daily limit', 'as many lessons as you like'],
+      ['Your name on the board', 'the other players see it'],
+      ['Your progress follows you', 'every device, every browser'],
+      ['The live shop check', 'the server makes it possible']
+    ].forEach(function (p) {
+      var li = el('li');
+      var b = el('b', '', p[0]);
+      li.appendChild(b);
+      li.appendChild(document.createTextNode(' — ' + p[1]));
+      list.appendChild(li);
     });
-    box.appendChild(perks);
+    plate.appendChild(list);
+    box.appendChild(plate);
 
+    if (cloud.sub && cloud.subUntil) {
+      var until = el('div', 'sub-until', 'until ' +
+        new Date(cloud.subUntil * 1000).toLocaleDateString());
+      box.appendChild(until);
+    }
+    if (!cloud.sub && !cloud.ready) {
+      var alone = el('div', 'sub-until',
+        'This copy runs alone. There is no server behind it, so there is ' +
+        'nothing to pay for — and nothing to switch off either.');
+      box.appendChild(alone);
+    }
+
+    /* the price: one currency, the one that works everywhere */
     var price = el('div', 'sub-price');
-    price.appendChild(el('span', 'sub-price-n', cloud.priceRub + ' ₽ / ' + cloud.priceUsd + ' $'));
+    price.appendChild(el('span', 'sub-price-n', cloud.priceUsd + ' $'));
     price.appendChild(el('span', 'sub-price-m', 'per month'));
     box.appendChild(price);
 
@@ -1186,7 +1193,7 @@
   // ------------------------------------------------------------- support
   /* Everything a tester might want to tell us, in one block they can copy.
      This is the only place that knows where feedback goes. */
-  var APP_VERSION = '0.12.0';
+  var APP_VERSION = '0.13.0';
   var BUILD_DATE = '2026-10-28';
   // Where "report a problem" goes. Two options, both need no server:
   //   ISSUES_URL  a GitHub issue with the diagnostics already filled in
@@ -1206,15 +1213,23 @@
     : 'api/shop';
 
   var WHATS_NEW = [
+    ['The souls are green', 'The chip of the header is a green plate with dark ink on it, the spiral is drawn in the ink of that plate, and the bar of the goal of the day is green too.'],
+    ['The page does not scroll any more', 'The app is the window at every size. The piece of gradient that hung under it is gone.'],
+    ['The phone is measured, not guessed', 'The visual viewport tells the app how tall it is, so the keyboard no longer slides the check button under itself.'],
+    ['A comma is a decimal point', 'The card says 7.5 and the finger says 7,5. Both are the same answer now.'],
+    ['The next lesson is one tap away', 'When the mistakes are fixed, the result screen carries the button that opens the door.'],
+    ['The numbers explain themselves', 'The cursor over the streak, the level or the souls brings a line that says what it is and what it is for.'],
+    ['The owl has no eyes', 'The mark of the site is the owl and nothing else.'],
+    ['A footer', 'Which build this is, what it knows, and where the people who keep it are: report a problem, help, what is new.'],
     ['The home screen', 'The site opens on one screen: a big button for the daily run and four doors out — the lessons, the test, the shop and the profile. The logo in the menu is the way home.'],
     ['The daily run happens once a day', 'The same questions for everybody, picked by the date. A second go is only possible for what you missed, and it pays nothing — the run cannot be farmed any more.'],
     ['A long think pays less', 'XP falls as a question sits on the screen, down to a third of the price. A slow answer is still an answer, but it is worth less.'],
-    ['Leaving a lesson asks first', 'A slip of the finger no longer throws the run away: the question asks whether you really mean to go.'],
+    ['Leaving a lesson asks nothing', 'The lesson is put down and the path offers it back. A paused lesson is not a lost lesson.'],
     ['What is new moved into the header', 'A bell with a dot while there is something to read. The menu does not repeat the profile, the notes or the counters any more.'],
     ['The counter library', 'Nine lists of what answers what — against healing, against gun damage, against the tanks — built from the shop itself. And a quiz that asks which item answers which hero.'],
     ['Heroes instead of icons', 'The avatar of the profile is a portrait of a hero now, and the streak decides how it looks: hurt, steady, or glowing.'],
     ['A shut lesson shows what is inside it', 'The icons of the items and the reason it is shut — finish the lesson before, or get the missed ones right.'],
-    ['The Deadlock palette', 'Teal energy, amber souls, a cold vault. Green now only ever says "right", and every button passes the contrast test.'],
+    ['The Deadlock palette', 'Teal energy, green souls, a cold vault. The weapon is orange, the spirit is the green that says "right", and every button passes the contrast test.'],
     ['The loading screen of the game', 'The owl, a turning energy ring and a bar of light while the shop is read.'],
     ['A cloud account', 'Sign in with an e-mail and a password. The progress follows you to every device — and it is encrypted on the server, not kept in your browser.'],
     ['The friends board', 'A table of the people who play. Only the names people put up themselves are there, and the e-mail never is.'],
@@ -1274,6 +1289,78 @@
     setTimeout(function () {
       if (b.parentNode) b.parentNode.removeChild(b);
     }, 500);
+  }
+
+  /* ---------------------------------------------------------- the phone
+     On a phone the window is not the window. The browser bar comes and
+     goes, and the keyboard takes half of the screen away. A layout that
+     was measured once floats: the bottom of the lesson slides under the
+     keyboard and the page itself starts to scroll.
+
+     So the phone is told the truth about its own size. The visual
+     viewport is written into --app-h and the app is exactly that tall;
+     the desktop keeps the plain height of the window, where nothing
+     moves. */
+  function fitViewport() {
+    if (window.innerWidth >= 900) return;
+    var vv = window.visualViewport;
+    var h = vv ? vv.height : window.innerHeight;
+    if (!h) return;
+    document.documentElement.style.setProperty('--app-h', Math.round(h) + 'px');
+  }
+  function wireViewport() {
+    fitViewport();
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', fitViewport);
+      window.visualViewport.addEventListener('scroll', fitViewport);
+    }
+    window.addEventListener('resize', fitViewport);
+    window.addEventListener('orientationchange', function () {
+      setTimeout(fitViewport, 120);
+    });
+  }
+
+  /* ------------------------------------------------------------ the footer
+     The bottom of the page used to be a piece of gradient and nothing
+     else. Now it says what build this is and where the people who keep
+     it are. */
+  function renderFooter(host) {
+    if (!host) return;
+    host.innerHTML = '';
+    var foot = el('div', 'app-foot');
+
+    var top = el('div', 'app-foot-top');
+    var ver = el('div', 'app-foot-ver', 'DeadShop ' + APP_VERSION);
+    var meta = el('div', 'app-foot-meta');
+    var counts = DS.meta || {};
+    meta.textContent = (counts.items || 156) + ' items · ' + (counts.units || 64) +
+      ' lessons · data ' + ((counts.snapshot) || '2026-10-15');
+    top.appendChild(ver);
+    top.appendChild(meta);
+    foot.appendChild(top);
+
+    var links = el('div', 'app-foot-links');
+    function link(label, icon, fn) {
+      var b = el('button', 'foot-btn');
+      b.type = 'button';
+      b.innerHTML = icon + '<span>' + label + '</span>';
+      b.addEventListener('click', fn);
+      links.appendChild(b);
+    }
+    var ICON_REPORT = '<svg viewBox="0 0 24 24" class="ico"><path d="M4 4h16v12H7l-3 4V4zm4 4h8v2H8V8zm0 4h6v2H8v-2z"/></svg>';
+    var ICON_HELP = '<svg viewBox="0 0 24 24" class="ico"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm.9 15.4v1.3h-1.8v-1.3h1.8zm1.9-6.6l-.9.9c-.5.5-.7.9-.7 1.6h-1.7v-.5c0-.7.2-1.1.7-1.6l1.2-1.2c.4-.3.5-.7.5-1.2 0-.9-.7-1.5-1.5-1.5s-1.5.6-1.6 1.5H8.5c0-1.8 1.4-3.2 3.4-3.2s3.4 1.4 3.4 3.1c0 .9-.3 1.5-1 2.1z"/></svg>';
+    var ICON_NEW = '<svg viewBox="0 0 24 24" class="ico"><path d="M12 22a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2zm6-6v-5l3-3V6l-3 3V6a6 6 0 0 0-5-5.9V0h-2v1.1A6 6 0 0 0 6 6v3l-3-3v2l3 3v5a6 6 0 0 0 5 5.9V22h2v-1.1a6 6 0 0 0 5-5z"/></svg>';
+    link('Report a problem', ICON_REPORT, function () { GO.bughunt(); });
+    link('Help', ICON_HELP, function () { GO.help(); });
+    link("What's new", ICON_NEW, function () { showWhatsNew(); });
+    foot.appendChild(links);
+
+    var note = el('div', 'app-foot-note');
+    note.innerHTML = 'Everything runs on this device: no account, no ads, ' +
+      'works offline. <b>A fan project</b> - Deadlock belongs to Valve.';
+    foot.appendChild(note);
+
+    host.appendChild(foot);
   }
 
   function diagnostics() {
@@ -1437,8 +1524,6 @@
       if (st > lastStreak) toast('<img class="toast-flame" src="assets/flame.svg" alt=""> ' + st + ' day streak', true);
     }
     setText('#league-val', lg);
-    var goalChip = $('#goal-chip-text');
-    if (goalChip) goalChip.textContent = (S.todayCount || 0) + '/' + (Number(S.settings.goal) || 12);
     if (lastLeague && lg !== lastLeague) {
       toast('⬆ ' + lg);
       sfxDone();
@@ -3138,6 +3223,14 @@
     /* ---- a drill: fixing the mistakes, or the review ------------------- */
     if (L.drill) {
       var fixed = L.wrong === 0;
+      /* the lesson behind the drill: the door that this drill opens */
+      var gateUnitId = (S.gate && S.gate.unit) || '';
+      var afterUnit = null;
+      if (gateUnitId) {
+        for (var gu = 0; gu < DS.units.length; gu++) {
+          if (DS.units[gu].id === gateUnitId) afterUnit = DS.units[gu];
+        }
+      }
       save();
       setText('#r-xp', L.right + '/' + L.qs.length);
       setText('#r-acc', acc + '%');
@@ -3168,9 +3261,21 @@
           sfxUnlock();
           setText('#result-emoji', '✅');
           setText('#result-title', 'All fixed!');
-          setText('#result-note', 'The next lesson is open. Well done — that is the part that sticks.');
-          drillBtn.hidden = true;
-          drillBtn.onclick = null;
+          setText('#result-note', afterUnit
+            ? 'The door is open. Next: ' + afterUnit.title +
+              ' — that is the part that sticks.'
+            : 'The next lesson is open. Well done — that is the part that sticks.');
+          /* the mistakes are fixed, so the next lesson is one tap away and
+             not one menu deep */
+          if (afterUnit) {
+            drillBtn.hidden = false;
+            drillBtn.className = 'btn btn-green btn-block';
+            drillBtn.textContent = 'NEXT LESSON · ' + afterUnit.title.toUpperCase();
+            drillBtn.onclick = function () { drillBtn.hidden = true; startLesson(afterUnit.id); };
+          } else {
+            drillBtn.hidden = true;
+            drillBtn.onclick = null;
+          }
         } else {
           setText('#result-emoji', '🔒');
           setText('#result-title', 'Not yet');
@@ -4541,7 +4646,20 @@
     heroBySlug: heroBySlug,
     groupCats: GROUP_CATS,
     renderHome: renderHome,
-    renderPath: renderPath
+    renderPath: renderPath,
+    // the third pass — the checks of the ten changes
+    gradeNumber: function (input, accept) { return DSC.gradeNumber(input, accept); },
+    num: function (v) { return DSC.num(v); },
+    pauseLesson: pauseLesson,
+    startFixMistakes: startFixMistakes,
+    renderFooter: renderFooter,
+    fitViewport: fitViewport,
+    appHeight: function () {
+      return getComputedStyle(document.documentElement).getPropertyValue('--app-h');
+    },
+    token: function (name) {
+      return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    }
   };
 
   document.addEventListener('DOMContentLoaded', function () {
@@ -4550,8 +4668,12 @@
     if (buildMismatch() && reloadOnce()) return;
     // the loading screen goes away as soon as the app is alive
     hideBoot();
+    // the phone is measured by its own visual viewport, not by the window
+    wireViewport();
     // the progress of the previous storage format goes away for good
     wipeOldProfiles();
+    renderFooter($('#foot-home'));
+    renderFooter($('#foot-path'));
     wireNav();
     $$('.tab').forEach(function (t) {
       t.addEventListener('click', function () {
@@ -4602,20 +4724,12 @@
       }
     });
     $('#continue-btn').addEventListener('click', next);
-    // leaving a lesson asks first: the progress is kept, but a slip of the
-    // finger should not throw the run away
+    /* Leaving a lesson asks nothing: the button puts the lesson down and
+       the path offers it back. The question was only ever in the way, and
+       a lesson that is paused is not a lesson that is lost. */
     $('#quit-btn').addEventListener('click', function () {
-      var m = $('#quit-modal');
-      if (m) m.classList.add('on');
-    });
-    $('#quit-yes').addEventListener('click', function () {
-      var m = $('#quit-modal');
-      if (m) m.classList.remove('on');
       pauseLesson();
-    });
-    $('#quit-no').addEventListener('click', function () {
-      var m = $('#quit-modal');
-      if (m) m.classList.remove('on');
+      toast('The lesson is waiting for you on the path');
     });
     $('#resume-btn').addEventListener('click', resumeLesson);
     $('#resume-drop').addEventListener('click', function () {
@@ -4876,9 +4990,8 @@
     if (current === 'lesson' && L) {
       if (e.key === 'Escape') {
         e.preventDefault();
-        var qm = $('#quit-modal');
-        if (qm && !qm.classList.contains('on')) { qm.classList.add('on'); return; }
         pauseLesson();
+        toast('The lesson is waiting for you on the path');
         return;
       }
       if (e.key === 'Enter') {

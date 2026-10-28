@@ -2,9 +2,13 @@
 window.DSC = (function () {
   'use strict';
 
+  /* A number as a learner would write it. The card of the game says "7.5",
+     the finger of the learner says "7,5" - and both have to be the same
+     answer, or the app looks broken to the person typing. */
   function num(v) {
-    var m = String(v).match(/-?[\d.]+/);
-    return m ? parseFloat(m[0]) : NaN;
+    var m = String(v).match(/-?(?:\d+[.,]?\d*|[.,]\d+)/);
+    if (!m) return NaN;
+    return parseFloat(m[0].replace(',', '.'));
   }
   function norm(v) { return String(v).toLowerCase().replace(/[^a-z0-9]/g, ''); }
 
