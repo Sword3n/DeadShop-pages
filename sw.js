@@ -1,7 +1,18 @@
 /* DeadShop service worker — offline shell + runtime cache for item icons.
    Only registers in a secure context (https:// or localhost); on a plain-http
    LAN address the browser refuses it, so the app must degrade gracefully. */
-var CACHE = 'deadshop-v13';
+var CACHE = 'deadshop-v14';
+
+/* Where the site lives. On GitHub Pages the service worker sits in
+   /DeadShop-pages/, so every path in the site starts there. Without this
+   the key of a page ("/DeadShop-pages/") would not match the key of the
+   shell ("./index.html"), and a page would be served from the cache while
+   the scripts next to it came fresh from the network — a broken build. */
+var BASE = (function () {
+  var p = self.location.pathname || '/';
+  return p.slice(0, p.lastIndexOf('/') + 1);
+})();
+
 var SHELL = [
   './',
   './index.html',
@@ -31,8 +42,9 @@ var SHELL = [
 
 /* './data/data.js' for every path we care about */
 function shellPath(pathname) {
-  var p = String(pathname || '/').replace(/^\/+/, '');
-  return './' + p;
+  var p = String(pathname || '/');
+  if (BASE !== '/' && p.indexOf(BASE) === 0) p = p.slice(BASE.length);
+  return './' + p.replace(/^\/+/, '');
 }
 
 self.addEventListener('install', function (e) {
@@ -66,7 +78,29 @@ self.addEventListener('fetch', function (e) {
      daily limit change every minute — a cached answer would show yesterday's
      state, and a cached "you may start a lesson" would be a hole in the
      limit. These requests go straight to the network. */
-  if (url.pathname.indexOf('/api/') === 0) return;
+  /* The check has to look anywhere in the path, not only at its start:
+     the site lives in a folder on GitHub Pages, so the door of the API is
+     "/DeadShop-pages/api/shop". */
+  if (url.pathname.indexOf('/api/') >= 0) return;
+
+  /* A page is always asked for from the network first. The page and the
+     scripts beside it have to be of the same build: a cached page with a
+     fresh script is a site that throws on the first click. The cache is
+     the answer only when there is no network. */
+  if (req.mode === 'navigate') {
+    e.respondWith(
+      fetch(req).then(function (res) {
+        var copy = res.clone();
+        caches.open(CACHE).then(function (c) { c.put(req, copy); });
+        return res;
+      }).catch(function () {
+        return caches.match(req).then(function (r) {
+          return r || caches.match('./index.html');
+        });
+      })
+    );
+    return;
+  }
 
   var key = shellPath(url.pathname);
   var isShell = SHELL.indexOf(key) >= 0;
