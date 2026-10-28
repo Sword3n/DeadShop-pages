@@ -15,6 +15,9 @@
       return window.DSS.labels[k];
     }));
   }
+  /* the icons of the game come with the data: every stat wears the sprite
+     the game puts on its card */
+  if (window.DSSICONS) DSC.setIcons(window.DSSICONS, window.DSSICON_BASE);
 
   /* Where a profile lives. The suffix is the storage format: bump it and
      every device starts from a clean profile, and the old entries are
@@ -1193,7 +1196,7 @@
   // ------------------------------------------------------------- support
   /* Everything a tester might want to tell us, in one block they can copy.
      This is the only place that knows where feedback goes. */
-  var APP_VERSION = '0.13.1';
+  var APP_VERSION = '0.14.0';
   var BUILD_DATE = '2026-10-28';
   // Where "report a problem" goes. Two options, both need no server:
   //   ISSUES_URL  a GitHub issue with the diagnostics already filled in
@@ -1213,6 +1216,7 @@
     : 'api/shop';
 
   var WHATS_NEW = [
+    ['The icons of the game are on every stat', 'The star of the spirit, the boot of the sprint, the heart of the health — the sprites the game puts on its own card now stand on the left of every stat: in the list of the items, in the card of an item, in the answers of a question and in the result of a lesson.'],
     ['The souls are green', 'The chip of the header is a green plate with dark ink on it, the spiral is drawn in the ink of that plate, and the bar of the goal of the day is green too.'],
     ['The page does not scroll any more', 'The app is the window at every size. The piece of gradient that hung under it is gone.'],
     ['The phone is measured, not guessed', 'The visual viewport tells the app how tall it is, so the keyboard no longer slides the check button under itself.'],
@@ -2087,8 +2091,9 @@
       row.appendChild(im);
       var b = el('div', 'cnt-item-b');
       b.appendChild(el('div', 'cnt-item-n', it.name));
-      var stats = it.innate.concat(it.active).map(function (r) { return r.label + ' ' + r.value; }).join(' · ');
-      b.appendChild(el('div', 'cnt-item-m', stats || it.desc || ''));
+      var stats = it.innate.concat(it.active);
+      b.appendChild(elHTML('div', 'cnt-item-m',
+        stats.length ? DSC.statLine(stats) : decorate(it.desc || '')));
       row.appendChild(b);
       row.appendChild(el('div', 'ic-tier t' + it.tier, 'T' + it.tier));
       list.appendChild(row);
@@ -2223,8 +2228,9 @@
       var img = el('img'); img.src = it.icon; img.alt = ''; img.loading = 'lazy';
       var body = el('div', 'ic-body');
       body.appendChild(el('div', 'ic-name', it.name));
-      var stats = it.innate.concat(it.active).map(function (r) { return r.label + ' ' + r.value; }).join(' · ');
-      body.appendChild(elHTML('div', 'ic-meta', decorate(stats || it.desc || '')));
+      var stats = it.innate.concat(it.active);
+      body.appendChild(elHTML('div', 'ic-meta',
+        stats.length ? DSC.statLine(stats) : decorate(it.desc || '')));
       row.appendChild(img);
       row.appendChild(body);
       var right = el('div', 'ic-right');
@@ -2248,7 +2254,7 @@
     if (it.desc) h += '<div class="modal-desc">' + decorate(it.desc) + '</div>';
     if (rows.length) {
       h += '<div class="modal-sec">Stats</div><table class="stat-table">';
-      rows.forEach(function (r) { h += '<tr><td>' + esc(r.label) + '</td><td>' + esc(r.value) + '</td></tr>'; });
+      rows.forEach(function (r) { h += '<tr><td>' + DSC.statRow(r.label) + '</td><td>' + esc(r.value) + '</td></tr>'; });
       h += '</table>';
     }
     if (it.upgrades_to.length) h += '<div class="modal-sec">Upgrades into</div><div>' + it.upgrades_to.map(function (n) { return '→ ' + esc(n); }).join('<br>') + '</div>';
@@ -2876,7 +2882,7 @@
     if (q.options) {
       var opts = el('div', 'opts');
       q.options.forEach(function (o) {
-        var b = elHTML('button', 'opt', '<span>' + decorate(o) + '</span>');
+        var b = elHTML('button', 'opt', '<span>' + DSC.decorateStat(o) + '</span>');
         b.dataset.raw = o;
         b.addEventListener('click', function () {
           if (L.answered) return;
@@ -2908,7 +2914,8 @@
           rt.appendChild(hrow);
         }
         var tr = el('tr');
-        tr.appendChild(el('td', 'recall-label', r.label));
+        var lcell = elHTML('td', 'recall-label', DSC.statRow(r.label));
+        tr.appendChild(lcell);
         var td = el('td');
         var inp = el('input', 'recall-input');
         inp.type = 'text';
@@ -3004,7 +3011,9 @@
     var t = el('table', 'stat-table');
     (rows || []).forEach(function (r) {
       var tr = el('tr');
-      tr.appendChild(el('td', null, r.label));
+      var td0 = el('td');
+      td0.innerHTML = DSC.statRow(r.label);
+      tr.appendChild(td0);
       var td = el('td');
       if (r.value === '' || r.value === undefined) { td.className = 'blank-cell'; }
       else td.textContent = r.value;
@@ -3150,8 +3159,7 @@
       var recap = '<div class="recap">';
       q.rows.forEach(function (r, i) {
         var good = g && g.per && g.per[i];
-        recap += '<div class="' + (good ? 'ok' : 'no') + '">' + esc(r.label) +
-          ' &nbsp;<b>' + esc(r.value) + '</b></div>';
+        recap += '<div class="' + (good ? 'ok' : 'no') + '">' + DSC.statRow(r.label, r.value) + '</div>';
       });
       recap += '</div>';
       body.innerHTML += recap;
@@ -4607,6 +4615,7 @@
     grantCode: grantCode,
     startLesson: startLesson,
     show: show,
+    openItem: openItem,
     audioState: function () {
       return {
         state: AC ? AC.state : 'none',

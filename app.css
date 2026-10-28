@@ -1726,6 +1726,21 @@ body.acc-crimson{--teal:#F87171;--teal-d:#991B1B}
 .stat-chip.stat-vital{color:var(--br-vital-d);background:rgba(18,161,90,.15)}
 .feedback-body .stat-chip{background:rgba(255,255,255,.25)}
 
+/* ---- the icons of the game, next to the name of the stat:
+   the star of the spirit, the boot of the sprint, the heart of the health */
+.stat-ico{width:15px;height:15px;vertical-align:-3px;margin-right:4px;
+  object-fit:contain}
+.stat-chip.has-ico{padding:0 2px 0 1px}
+.stat-table .stat-ico{width:16px;height:16px;vertical-align:-3px}
+.ic-meta .stat-ico{width:13px;height:13px;vertical-align:-2px;margin-right:3px}
+.cnt-item-m .stat-ico{width:12px;height:12px;vertical-align:-2px;margin-right:3px}
+.opt .stat-ico{width:17px;height:17px;vertical-align:-3px}
+.recall-label .stat-ico{width:14px;height:14px;vertical-align:-2px;margin-right:3px}
+.stat-sep{color:var(--ink-2);opacity:.5;font-weight:700}
+/* in the recap the colour means right or wrong, not the branch */
+.recap .stat-chip{background:transparent;color:inherit;padding:0}
+.recap .stat-ico{margin-right:3px}
+
 /* ==================================================================
    THE BOOT SCREEN
    The loading screen of the game, borrowed: the owl in the middle of a
