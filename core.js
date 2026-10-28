@@ -10,6 +10,7 @@ window.DSC = (function () {
 
   /* tolerant numeric grading: "0.75m", "+20%", "20" all accepted */
   function gradeNumber(input, accept) {
+    if (!accept || !accept.length) return false;
     var v = num(input);
     if (isNaN(v)) return false;
     for (var i = 0; i < accept.length; i++) {

@@ -1136,8 +1136,8 @@
   // ------------------------------------------------------------- support
   /* Everything a tester might want to tell us, in one block they can copy.
      This is the only place that knows where feedback goes. */
-  var APP_VERSION = '0.11.0';
-  var BUILD_DATE = '2026-10-27';
+  var APP_VERSION = '0.11.1';
+  var BUILD_DATE = '2026-10-28';
   // Where "report a problem" goes. Two options, both need no server:
   //   ISSUES_URL  a GitHub issue with the diagnostics already filled in
   //   SUPPORT_EMAIL  a mailbox (mailto:). Leave it empty to skip it.
@@ -2444,15 +2444,20 @@
     }
     /* A drill — fixing the mistakes of a lesson, or the review from the
        stats screen. The mastery moves, but the pay does not: the XP was
-       already given for the lesson, and the streak must not be touched. */
+       already given for the lesson, and the streak must not be touched.
+       The mastery record is fetched here and not further down: further down
+       it is only reached on the way to the XP, and a drill returns before
+       that - which used to leave the record undefined and threw on
+       "m.right", so CHECK did nothing at all. */
     if (L.drill) {
+      var dm = mst(q.item);
       if (ok) {
-        L.right++; S.right++; m.right++;
-        m.box = Math.min(5, m.box + 1);
+        L.right++; S.right++; dm.right++;
+        dm.box = Math.min(5, dm.box + 1);
         sfxOk();
       } else {
-        L.wrong++; S.wrong++; m.wrong++;
-        m.box = Math.max(0, m.box - 1);
+        L.wrong++; S.wrong++; dm.wrong++;
+        dm.box = Math.max(0, dm.box - 1);
         if (!L.wrongItems) L.wrongItems = [];
         if (L.wrongItems.indexOf(q.item) < 0) L.wrongItems.push(q.item);
         if (!L.wrongQs) L.wrongQs = [];
@@ -3969,7 +3974,16 @@
     $('#updates-profile').addEventListener('click', function () { openProfile(); });
     $('#bughunt-profile').addEventListener('click', function () { openProfile(); });
     $('#profile-back').addEventListener('click', function () { show(profileFrom); });    $('#item-search').addEventListener('input', function (e) { renderItems(e.target.value); });
-    $('#check-btn').addEventListener('click', check);
+    // A broken question must never leave the player staring at a dead
+    // button: whatever goes wrong, the player is told and the trace is kept.
+    $('#check-btn').addEventListener('click', function () {
+      try {
+        check();
+      } catch (e) {
+        console.error(e);
+        toast('Something went wrong with this question');
+      }
+    });
     $('#continue-btn').addEventListener('click', next);
     $('#quit-btn').addEventListener('click', pauseLesson);
     $('#resume-btn').addEventListener('click', resumeLesson);
