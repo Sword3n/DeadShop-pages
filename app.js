@@ -1224,7 +1224,7 @@
     ['Side menu', 'One column of collapsible modules — Learn, Reference, You. It stands next to the app on a desktop and slides in on a phone.'],
     ['Your mistakes hold the door', 'Finish a lesson with a wrong answer and the next one stays shut until you get it right. The drill asks exactly what you missed.'],
     ['The full recall says which row is which', 'Two rows can share a name. The card now groups them by the block they sit in and tells them apart.'],
-    ['Souls', 'The shop pays you back: a lesson is worth souls, a flawless one more. Spend them on the colour of the shop, the owl\'s aura and the avatar frame.'],
+    ['Souls', 'The shop pays you back: a lesson is worth souls, a flawless one more. The cosmetics shop is closed for now — the balance keeps until it is worth doing properly.'],
     ['A blue flame', 'The streak flame is blue now. Cold light, like the spirit side of the game.'],
     ['A level badge', 'The star was only ever XP. Now the top bar shows your level, in a badge like the one in the game.'],
     ['Bughunt', 'Found a bug? Send a report. A report we can act on earns souls — the reward code comes back the same way.'],
@@ -2116,7 +2116,7 @@
       var body = el('div', 'ic-body');
       body.appendChild(el('div', 'ic-name', it.name));
       var stats = it.innate.concat(it.active).map(function (r) { return r.label + ' ' + r.value; }).join(' · ');
-      body.appendChild(el('div', 'ic-meta', stats || it.desc || ''));
+      body.appendChild(elHTML('div', 'ic-meta', decorate(stats || it.desc || '')));
       row.appendChild(img);
       row.appendChild(body);
       var right = el('div', 'ic-right');
@@ -2306,7 +2306,7 @@
     tier: 'Tier', counter: 'Counter pick'
   };
   var ACT_NAME = { facts: 'Facts', structure: 'Structure', judgment: 'Judgment',
-    counter: 'Counter pick' };
+    counter: 'Heroes' };
 
   function startLesson(unitId) {
     gateLesson('unit', function () { startLessonNow(unitId); });

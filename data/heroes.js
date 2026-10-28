@@ -103,7 +103,7 @@ window.DSH = {
       groups: ['Cooldown', 'Charges', 'Duration']
     },
     {
-      id: 'sustain', lead: 'bullet-lifesteal', title: 'Against sustain',
+      id: 'sustain', lead: 'bullet-lifesteal', title: 'Against lifesteal',
       note: 'They heal from what they hit. Take it back from them.',
       groups: ['Lifesteal', 'Healing', 'Revitalization']
     }
