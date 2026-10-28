@@ -27,8 +27,10 @@
   --teal:#3DDCC8; --teal-d:#1FA795; --teal-l:#D8F7F2;
   --amber:#F5A524; --amber-d:#C67B08; --amber-l:#FDEBCC;
   /* the ink that sits on a bright fill: every button of the site uses it,
-     so no white text is ever put on a light colour */
-  --on-teal:#06231F; --on-amber:#2E1B00; --on-red:#FFF1F1;
+     so no white text is ever put on a light colour. The red is the one
+     exception - it is too dark to carry dark ink (the best it could do
+     is 3.59:1), so it takes white: 4.86:1, which passes AA. */
+  --on-teal:#06231F; --on-amber:#2E1B00; --on-red:#FFFFFF;
   --ink:#22282B; --ink-2:#5E6A70; --line:#DAD4C7; --line-d:#C6BEAD;
   --bg:#F2EFE8; --card:#FFFDF9; --soft:#EAE6DC; --shadow:0 2px 0 var(--line-d);
   --r:16px;
@@ -46,7 +48,7 @@
     /* brighter text colours: green and red sit on their own tinted
        backgrounds, and the light-theme values are unreadable there */
     --green-d:#5FD16B; --red-d:#FF6B6B; --blue-d:#6FCDF7;
-    --on-red:#3A0505;
+    --on-red:#FFFFFF;
     --ring:#25333A; --ring-on:#5FD16B;
   }
 }
@@ -56,7 +58,7 @@
   --green-l:#1E3D26; --red-l:#4E1B1E; --blue-l:#12303F; --gold-l:#3A2C10;
   --teal-l:#123C3A; --amber-l:#3E2D0D;
   --green-d:#5FD16B; --red-d:#FF6B6B; --blue-d:#6FCDF7;
-  --on-red:#3A0505;
+  --on-red:#FFFFFF;
   --ring:#25333A; --ring-on:#5FD16B;
 }
 
