@@ -1241,6 +1241,29 @@
     ['Email accounts', 'Sign up with an email and a confirmation code. Everything still stays on your device.']
   ];
 
+  /* The page and the script can be of different builds: the browser may
+     show a page it has cached while the script beside it comes fresh from
+     the network. The page carries its own build in a meta tag; when it is
+     not the build of the script, the page is reloaded once and the two
+     are back together. */
+  function buildMismatch() {
+    var m = document.querySelector('meta[name="ds-version"]');
+    /* No tag at all means the page is older than the tag itself: that is
+       exactly the case that has to be reloaded. */
+    if (!m) return true;
+    var v = m.getAttribute('content');
+    return v !== APP_VERSION;
+  }
+  function reloadOnce() {
+    var key = 'ds-reload-' + APP_VERSION;
+    try {
+      if (sessionStorage.getItem(key)) return false;
+      sessionStorage.setItem(key, '1');
+    } catch (e) { return false; }
+    location.reload();
+    return true;
+  }
+
   /* The loading screen of the game. It stands in front of the site while
      the big data file is read, and it goes away as soon as the app is
      alive. */
@@ -4462,6 +4485,7 @@
   /* A small door for the in-page tests: they need to reach the souls
      arithmetic and the diff engine without clicking through the UI. */
   window.DS_TEST = {
+    version: APP_VERSION,
     souls: souls,
     awardSouls: awardSouls,
     spendSouls: spendSouls,
@@ -4521,6 +4545,9 @@
   };
 
   document.addEventListener('DOMContentLoaded', function () {
+    /* A page of another build: reload it once and let the network bring
+       the two together. The loader stays on the screen while it happens. */
+    if (buildMismatch() && reloadOnce()) return;
     // the loading screen goes away as soon as the app is alive
     hideBoot();
     // the progress of the previous storage format goes away for good
