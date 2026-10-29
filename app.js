@@ -1260,7 +1260,7 @@
   // ------------------------------------------------------------- support
   /* Everything a tester might want to tell us, in one block they can copy.
      This is the only place that knows where feedback goes. */
-  var APP_VERSION = '0.15.0';
+  var APP_VERSION = '0.15.1';
   var BUILD_DATE = '2026-10-28';
   // Where "report a problem" goes. Two options, both need no server:
   //   ISSUES_URL  a GitHub issue with the diagnostics already filled in
@@ -3053,8 +3053,12 @@
       card.appendChild(numInput(q));
     }
 
-    // a hint for the number questions — it never gives the number away
-    if (!q.options) {
+    /* A hint for every question — it never gives the answer away.
+       The old version showed it only for the number questions, so in the new
+       tracks (where the questions come with options) the hint never showed at
+       all. The free recall question carries its advice in its own text, so it
+       gets no second one. */
+    if (q.type !== 'freeRecall') {
       var htext = q.hint ? q.hint : hintFor(q, item);
       if (htext) {
         var hbtn = el('button', 'hint-btn', '💡 Hint');
