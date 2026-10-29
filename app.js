@@ -196,7 +196,7 @@
 
   var DEFAULTS = {
     xp: 0, streak: 0, lastDay: null, dailyDay: null, mastery: {}, right: 0, wrong: 0,
-    lessons: 0, unitsDone: [], unlocked: {}, seen: {}, onboarded: false, paused: null,
+    lessons: 0, unitsDone: {}, unlocked: {}, seen: {}, onboarded: false, paused: null,
     display: '', avatar: '', todayCount: 0, todayDay: null, history: {},
     // the questions that were missed in the daily run: they may be repeated,
     // but a repeat pays nothing
@@ -233,16 +233,57 @@
            the vault (dark) is the default now. A player who picks a theme
            afterwards keeps it — the switch runs once and never again. */
         if (!d.themeV) { d.settings.theme = 'dark'; d.themeV = 1; }
-        d.unitsDone = (p.unitsDone || []).filter(function (id) {
-          return !!UNIT_IDS[id];   // drop anything that is not a real lesson
-        });
+        /* The mastery used to be one record for the whole shop. Now every
+           track keeps its own: a newcomer must not be marked as knowing what
+           only the shopkeeper was asked about. The old record goes to the
+           shopkeeper track — the one the app was asking before. */
+        d.mastery = migrateMastery(p.mastery || {});
+        d.unitsDone = migrateUnits(p.unitsDone);
         d.unlocked = p.unlocked || {};
         d.seen = p.seen || {};
         d.paused = p.paused || null;
-        d.mastery = p.mastery || {};
       }
     } catch (e) { }
     return d;
+  }
+  function migrateMastery(old) {
+    var out = {};
+    TRACK_ORDER.forEach(function (t) { out[t] = {}; });
+    if (!old || typeof old !== 'object') return out;
+    var looksNew = TRACK_ORDER.some(function (t) {
+      return old[t] && typeof old[t] === 'object';
+    });
+    if (looksNew) {
+      TRACK_ORDER.forEach(function (t) {
+        var m = old[t] || {};
+        Object.keys(m).forEach(function (slug) {
+          if (m[slug] && typeof m[slug] === 'object') out[t][slug] = m[slug];
+        });
+      });
+      return out;
+    }
+    Object.keys(old).forEach(function (slug) {
+      var m = old[slug];
+      if (m && typeof m === 'object' && typeof m.box !== 'undefined') {
+        out.shopkeeper[slug] = m;
+      }
+    });
+    return out;
+  }
+  function migrateUnits(old) {
+    var out = {};
+    TRACK_ORDER.forEach(function (t) { out[t] = []; });
+    if (!old) return out;
+    if (Array.isArray(old)) {
+      out.shopkeeper = old.filter(function (id) { return !!UNIT_IDS[id]; });
+      return out;
+    }
+    Object.keys(old).forEach(function (t) {
+      if (Array.isArray(old[t])) {
+        out[t] = old[t].filter(function (id) { return !!UNIT_IDS[id]; });
+      }
+    });
+    return out;
   }
   function save() {
     try { localStorage.setItem(storageKey(), JSON.stringify(S)); } catch (e) { }
@@ -253,11 +294,45 @@
     renderAll();
   }
 
-  function mst(slug) {
-    if (!S.mastery[slug]) S.mastery[slug] = { box: 0, right: 0, wrong: 0 };
-    return S.mastery[slug];
+  /* The mastery of one track. Every track keeps its own record: the paths
+     ask different questions, so what the learner knows on one of them says
+     nothing about the other two. */
+  function trackMap(track) {
+    var t = TRACKS[track] ? track : 'shopkeeper';
+    if (!S.mastery[t] || typeof S.mastery[t] !== 'object') S.mastery[t] = {};
+    return S.mastery[t];
   }
-  function boxOf(slug) { return (S.mastery[slug] && S.mastery[slug].box) || 0; }
+  function mst(slug, track) {
+    var m = trackMap(track || trackKey());
+    if (!m[slug]) m[slug] = { box: 0, right: 0, wrong: 0 };
+    return m[slug];
+  }
+  function boxOf(slug, track) {
+    var m = S.mastery[track || trackKey()];
+    return (m && m[slug] && m[slug].box) || 0;
+  }
+  /* The lessons that are done — again, one list per track. */
+  function unitsDone(track) {
+    var u = S.unitsDone && S.unitsDone[track || trackKey()];
+    return Array.isArray(u) ? u : [];
+  }
+  function unitDone(id, track) { return unitsDone(track).indexOf(id) >= 0; }
+  function markUnitDone(id, track) {
+    var t = track || trackKey();
+    if (!S.unitsDone) S.unitsDone = {};
+    if (!Array.isArray(S.unitsDone[t])) S.unitsDone[t] = [];
+    if (S.unitsDone[t].indexOf(id) < 0) S.unitsDone[t].push(id);
+  }
+  /* How many items the learner has touched on any track. */
+  function masteryItemCount(map) {
+    var seen = {};
+    Object.keys(map || {}).forEach(function (t) {
+      var m = map[t];
+      if (!m || typeof m !== 'object') return;
+      Object.keys(m).forEach(function (slug) { seen[slug] = 1; });
+    });
+    return Object.keys(seen).length;
+  }
 
   // ------------------------------------------------------------- settings
   function applySettings() {
@@ -1260,7 +1335,7 @@
   // ------------------------------------------------------------- support
   /* Everything a tester might want to tell us, in one block they can copy.
      This is the only place that knows where feedback goes. */
-  var APP_VERSION = '0.15.1';
+  var APP_VERSION = '0.16.0';
   var BUILD_DATE = '2026-10-28';
   // Where "report a problem" goes. Two options, both need no server:
   //   ISSUES_URL  a GitHub issue with the diagnostics already filled in
@@ -1451,10 +1526,13 @@
     else if (/iPhone|iPad/.test(ua)) os = 'iOS';
     else if (/Linux/.test(ua)) os = 'Linux';
     var learned = 0, weak = 0;
-    Object.keys(S.mastery || {}).forEach(function (k) {
-      var b = (S.mastery[k] && S.mastery[k].box) || 0;
-      if (b >= 3) learned++;
-      if (b === 1 || b === 2) weak++;
+    TRACK_ORDER.forEach(function (t) {
+      var m = S.mastery[t] || {};
+      Object.keys(m).forEach(function (k) {
+        var b = (m[k] && m[k].box) || 0;
+        if (b >= 3) learned++;
+        if (b === 1 || b === 2) weak++;
+      });
     });
     var size = 0;
     try { size = (localStorage.getItem(storageKey()) || '').length; } catch (e) { }
@@ -1942,7 +2020,7 @@
         box.appendChild(head);
       }
       var locked = unitLocked(u, idx);
-      var done = S.unitsDone.indexOf(u.id) >= 0;
+      var done = unitDone(u.id);
       var row = el('div', 'unit' + (locked ? ' locked' : '') + (done ? ' done' : ''));
       row.dataset.unit = u.id;
       // the rows walk in one after another
@@ -2043,7 +2121,7 @@
     if (S.gate && S.gate.unit === u.id) return true;
     if (S.unlocked[u.id]) return false;
     var prev = DS.units[idx - 1];
-    return S.unitsDone.indexOf(prev.id) < 0;
+    return !unitDone(prev.id);
   }
   function unlockGroup(g) {
     DS.units.forEach(function (u) { if (u.group === g) S.unlocked[u.id] = true; });
@@ -2345,7 +2423,7 @@
     if (it.desc) h += '<div class="modal-desc">' + decorate(it.desc) + '</div>';
     if (rows.length) {
       h += '<div class="modal-sec">Stats</div><table class="stat-table">';
-      rows.forEach(function (r) { h += '<tr><td>' + DSC.statRow(r.label) + '</td><td>' + esc(r.value) + '</td></tr>'; });
+      DSC.rowLabels(rows).forEach(function (r) { h += '<tr><td>' + DSC.statRow(r.label) + '</td><td>' + esc(r.value) + '</td></tr>'; });
       h += '</table>';
     }
     if (it.upgrades_to.length) h += '<div class="modal-sec">Upgrades into</div><div>' + it.upgrades_to.map(function (n) { return '→ ' + esc(n); }).join('<br>') + '</div>';
@@ -2430,10 +2508,40 @@
     });
   }
 
+  /* The three paths keep their progress apart, so the statistics screen says
+     whose progress it is showing: the learner can look at the other two
+     tracks without losing the track they are on. */
+  function renderStatsTrack() {
+    var box = $('#stats-track');
+    if (!box) return;
+    box.innerHTML = '';
+    TRACK_ORDER.forEach(function (t) {
+      var m = S.mastery[t] || {};
+      var n = Object.keys(m).filter(function (s) { return DS.items[s]; }).length;
+      var b = el('button', 'track-seg-btn' + (trackKey() === t ? ' on' : ''), TRACKS[t].name);
+      b.type = 'button';
+      b.appendChild(el('span', 'track-seg-n',
+        n ? n + (n === 1 ? ' item' : ' items') : 'nothing yet'));
+      b.addEventListener('click', function () {
+        if (S.track === t) return;
+        S.track = t;
+        save();
+        renderStats();
+        renderTrackPick();
+        toast(TRACKS[t].name + ' — the progress of this path');
+      });
+      box.appendChild(b);
+    });
+  }
+
   function renderStats() {
     renderWeek();
     renderGroupProgress();
-    var touched = Object.keys(S.mastery).filter(function (s) { return DS.items[s]; });
+    renderStatsTrack();
+    /* The progress belongs to the track the learner is on: the three paths
+       ask different questions, so their progress is counted apart. */
+    var myMap = trackMap();
+    var touched = Object.keys(myMap).filter(function (s) { return DS.items[s]; });
     var mastered = touched.filter(function (s) { return boxOf(s) >= 4; }).length;
     setText('#s-mastered', mastered);
     setText('#s-correct', S.right);
@@ -2442,17 +2550,17 @@
 
     // weak items — the ones worth another look
     var weak = touched.filter(function (s) {
-      var m = S.mastery[s];
+      var m = myMap[s];
       return m.box < 3 || m.wrong > m.right;
     }).sort(function (a, b) {
-      var ma = S.mastery[a], mb = S.mastery[b];
+      var ma = myMap[a], mb = myMap[b];
       return (ma.box - mb.box) || (mb.wrong - ma.wrong);
     });
     setText('#s-review-count', weak.length ? weak.length + ' item' + (weak.length === 1 ? '' : 's') : '');
     var rb = $('#review-list');
     rb.innerHTML = '';
     weak.slice(0, 12).forEach(function (s) {
-      var it = DS.items[s], m = S.mastery[s];
+      var it = DS.items[s], m = myMap[s];
       var row = el('div', 'mrow');
       var img = el('img'); img.src = it.icon; img.alt = '';
       row.appendChild(img);
@@ -2606,17 +2714,18 @@
 
   /* a focused review of everything you keep getting wrong */
   function startReview() {
+    var myMap = trackMap();
     var weak = {};
-    Object.keys(S.mastery).forEach(function (s) {
-      var m = S.mastery[s];
+    Object.keys(myMap).forEach(function (s) {
+      var m = myMap[s];
       if (!DS.items[s]) return;
       if (m.box < 3 || m.wrong > m.right) weak[s] = 1;
     });
     var pool = [];
     DS.units.forEach(function (u) {
-      u.questions.forEach(function (q) {
+      questionsOf(u).forEach(function (q) {
         if (!weak[q.item]) return;
-        var m = S.mastery[q.item];
+        var m = myMap[q.item];
         pool.push({ q: q, score: m.box * 2 + m.wrong - m.right + Math.random() });
       });
     });
@@ -3448,8 +3557,8 @@
       var idx = DS.units.map(function (u) { return u.id; }).indexOf(L.unit.id);
       if (idx >= 0 && DS.units[idx + 1]) {
         nextUnit = DS.units[idx + 1];
-        if (S.unitsDone.indexOf(L.unit.id) < 0) {
-          S.unitsDone.push(L.unit.id);
+        if (!unitDone(L.unit.id)) {
+          markUnitDone(L.unit.id);
           /* The next lesson stays shut until the mistakes of this one are
              answered right. A wrong answer is not a mistake you can carry
              into the next lesson — you fix it here, now. */
@@ -3652,7 +3761,7 @@
 
     // offer to carry the guest progress over
     var guest = load(PROFILE_PREFIX + GUEST);
-    var guestItems = Object.keys(guest.mastery || {}).length;
+    var guestItems = masteryItemCount(guest.mastery || {});
     var old = $('#guest-import');
     if (old) old.parentNode.removeChild(old);
     if (signup && !verifying && !resetting && !changing && guestItems > 0) {
@@ -3869,7 +3978,7 @@
     var banner = $('#guest-banner');
     banner.style.display = name ? 'none' : '';
     var guest = load(PROFILE_PREFIX + GUEST);
-    var gItems = Object.keys(guest.mastery || {}).length;
+    var gItems = masteryItemCount(guest.mastery || {});
     setText('#guest-note', gItems
       ? 'You are playing as a guest with ' + gItems + ' item' + (gItems === 1 ? '' : 's') + ' studied. '
         + 'Create a profile to keep this progress.'
@@ -3955,15 +4064,17 @@
           taken++;
           return;
         }
-        if (k === 'unitsDone' && Array.isArray(p[k])) {
-          merged.unitsDone = p[k].filter(function (id) { return !!UNIT_IDS[id]; });
+        if (k === 'unitsDone') {
+          // one list per track; an old file keeps its list for the shopkeeper
+          merged.unitsDone = migrateUnits(p[k]);
           taken++;
           return;
         }
         if (typeof p[k] === 'string' || p[k] === null) { merged[k] = p[k]; taken++; }
       });
       merged.settings = Object.assign({}, DEFAULTS.settings, p.settings || {});
-      merged.unitsDone = (merged.unitsDone || []).filter(function (id) { return !!UNIT_IDS[id]; });
+      merged.mastery = migrateMastery(merged.mastery || {});
+      merged.unitsDone = migrateUnits(merged.unitsDone || {});
       if (!taken) {
         alert('That file does not contain any DeadShop progress.');
         return;

@@ -2007,3 +2007,30 @@ body.acc-crimson{--teal:#F87171;--teal-d:#991B1B}
 .sub-step-b{flex:1;min-width:0}
 .sub-step-t{font-family:var(--font-ui);font-size:13.5px;color:var(--ink)}
 .sub-step-d{font-size:12px;color:var(--ink-2);font-weight:700;line-height:1.5}
+
+/* the switch between the three paths on the statistics screen: every path
+   keeps its own progress, so the screen says whose progress it shows */
+.track-seg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:0 0 14px}
+.track-seg-btn{
+  display:flex;flex-direction:column;gap:2px;align-items:flex-start;text-align:left;
+  cursor:pointer;background:var(--card);border:2px solid var(--line);
+  padding:9px 10px 10px;box-shadow:0 3px 0 var(--line-d);
+  font-family:var(--font-ui);font-size:12.5px;font-weight:800;letter-spacing:.9px;
+  text-transform:uppercase;color:var(--ink);
+  transition:transform .08s ease,border-color .14s ease,box-shadow .08s ease
+}
+.track-seg-btn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--line-d)}
+.track-seg-btn.on{border-color:var(--teal-d);box-shadow:0 3px 0 var(--teal-d)}
+:root[data-theme="dark"] .track-seg-btn.on{border-color:var(--teal)}
+.track-seg-n{font-family:var(--font-ui);font-size:11px;font-weight:700;letter-spacing:.2px;
+  text-transform:none;color:var(--ink-2)}
+@media (max-width:640px){.track-seg{grid-template-columns:1fr}}
+
+/* the owl stands in for the house: every "go home" button wears it */
+.owl-ico{width:22px;height:22px;object-fit:contain;display:block}
+
+/* the counters of the path screen sit on the left, not in the middle of
+   the header where the eye has to hunt for them */
+#screen-path .topbar{justify-content:flex-start}
+#screen-path .topbar-stats{flex:none;justify-content:flex-start}
+#screen-path .topbar-right{margin-left:auto}

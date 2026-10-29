@@ -8,7 +8,7 @@
 <!-- the build of the page itself. The script reads it and compares it with
      its own version: a page from an older build next to a newer script is
      a site that throws, so the two are put back together. -->
-<meta name="ds-version" content="0.15.1">
+<meta name="ds-version" content="0.16.0">
 <!-- a private test build: it stays out of the search engines, the link is
      the only way in. Remove this line when the site goes public on purpose. -->
 <meta name="robots" content="noindex, nofollow">
@@ -36,7 +36,7 @@
 <link rel="mask-icon" href="assets/icon.svg" color="#3DDCC8">
 <link rel="apple-touch-icon" href="assets/icon-180.png">
 <link rel="preload" href="assets/fonts/saira-var.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="app.css?v=14">
+<link rel="stylesheet" href="app.css?v=15">
 </head>
 <body>
 <!-- ========================== THE BOOT SCREEN ==========================
@@ -344,7 +344,7 @@
   <section class="screen" id="screen-items">
     <header class="topbar">
       <button class="icon-btn" id="items-back" aria-label="Home">
-        <svg viewBox="0 0 24 24" class="ico"><path d="M3 11.2 12 3l9 8.2V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg>
+        <img class="ico owl-ico" src="assets/owl.svg" alt="">
       </button>
       <div class="search-wrap">
         <input id="item-search" type="search" placeholder="Search items…" autocomplete="off">
@@ -364,7 +364,7 @@
   <section class="screen" id="screen-stats">
     <header class="topbar">
       <button class="icon-btn" id="stats-back" aria-label="Home">
-        <svg viewBox="0 0 24 24" class="ico"><path d="M3 11.2 12 3l9 8.2V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg>
+        <img class="ico owl-ico" src="assets/owl.svg" alt="">
       </button>
       <h2 class="topbar-title">Your progress</h2>
       <button class="icon-btn" id="stats-profile" aria-label="Profile">
@@ -372,6 +372,7 @@
       </button>
     </header>
     <div class="scroll">
+      <div class="track-seg" id="stats-track" role="group" aria-label="Learning path"></div>
       <div class="stat-cards">
         <div class="stat-card"><div class="stat-num" id="s-mastered">0</div><div class="stat-lbl">items mastered</div></div>
         <div class="stat-card"><div class="stat-num" id="s-correct">0</div><div class="stat-lbl">correct answers</div></div>
@@ -410,7 +411,7 @@
   <section class="screen" id="screen-updates">
     <header class="topbar">
       <button class="icon-btn" id="updates-back" aria-label="Home">
-        <svg viewBox="0 0 24 24" class="ico"><path d="M3 11.2 12 3l9 8.2V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg>
+        <img class="ico owl-ico" src="assets/owl.svg" alt="">
       </button>
       <h2 class="topbar-title">Latest update</h2>
       <button class="icon-btn" id="updates-profile" aria-label="Profile">
@@ -440,7 +441,7 @@
   <section class="screen" id="screen-bughunt">
     <header class="topbar">
       <button class="icon-btn" id="bughunt-back" aria-label="Home">
-        <svg viewBox="0 0 24 24" class="ico"><path d="M3 11.2 12 3l9 8.2V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg>
+        <img class="ico owl-ico" src="assets/owl.svg" alt="">
       </button>
       <h2 class="topbar-title">Bughunt</h2>
       <button class="icon-btn" id="bughunt-profile" aria-label="Profile">
@@ -518,7 +519,7 @@
   <section class="screen" id="screen-friends">
     <header class="topbar">
       <button class="icon-btn" id="friends-back" aria-label="Home">
-        <svg viewBox="0 0 24 24" class="ico"><path d="M3 11.2 12 3l9 8.2V20a1 0 0 1-1 1h-5v-7H9v7H4a1 0 0 1-1-1z"/></svg>
+        <img class="ico owl-ico" src="assets/owl.svg" alt="">
       </button>
       <h2 class="topbar-title">Friends board</h2>
       <button class="icon-btn" id="friends-profile" aria-label="Profile">
@@ -539,7 +540,7 @@
   <section class="screen" id="screen-sub">
     <header class="topbar">
       <button class="icon-btn" id="sub-back" aria-label="Home">
-        <svg viewBox="0 0 24 24" class="ico"><path d="M3 11.2 12 3l9 8.2V20a1 0 0 1-1 1h-5v-7H9v7H4a1 0 0 1-1-1z"/></svg>
+        <img class="ico owl-ico" src="assets/owl.svg" alt="">
       </button>
       <h2 class="topbar-title">Rejuvenator</h2>
       <button class="icon-btn" id="sub-profile" aria-label="Profile">
@@ -555,7 +556,7 @@
   <section class="screen" id="screen-lesson">
     <header class="lesson-head">
       <button class="icon-btn" id="quit-btn" aria-label="Pause the lesson and go home">
-        <svg viewBox="0 0 24 24" class="ico"><path d="M3 11.2 12 3l9 8.2V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg>
+        <img class="ico owl-ico" src="assets/owl.svg" alt="">
       </button>
       <div class="progress"><div class="progress-fill" id="progress-fill"></div></div>
       <div class="exam-timer" id="exam-timer" hidden>0:00</div>
@@ -659,7 +660,7 @@
   <section class="screen" id="screen-profile">
     <header class="topbar">
       <button class="icon-btn" id="profile-back" aria-label="Home">
-        <svg viewBox="0 0 24 24" class="ico"><path d="M3 11.2 12 3l9 8.2V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg>
+        <img class="ico owl-ico" src="assets/owl.svg" alt="">
       </button>
       <h2 class="topbar-title">Profile</h2>
     </header>
@@ -889,16 +890,16 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 </div>
-<script src="data/data.js?v=8"></script>
+<script src="data/data.js?v=9"></script>
 <script src="data/shop_stats.js?v=1"></script>
 <script src="data/updates.js?v=1"></script>
 <script src="data/heroes.js?v=1"></script>
 <script src="data/config.js?v=1"></script>
-<script src="data/stat_icons.js?v=1"></script>
+<script src="data/stat_icons.js?v=2"></script>
 <script src="data/stat_branches.js?v=1"></script>
-<script src="core.js?v=12"></script>
+<script src="core.js?v=14"></script>
 <script src="auth.js?v=9"></script>
 <script src="api.js?v=1"></script>
-<script src="app.js?v=14"></script>
+<script src="app.js?v=16"></script>
 </body>
 </html>

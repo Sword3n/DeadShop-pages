@@ -188,11 +188,48 @@ window.DSC = (function () {
   }
 
   /* A whole line of stats, the way the card of the game writes it:
-     stat · stat · stat */
+     stat · stat · stat
+
+     A card that carries the same stat twice needs a word that tells them
+     apart: "Spirit Power +15%" and "Spirit Power +30" are two different
+     numbers, and a learner who sees both under the same name learns
+     nothing. The note that tells them apart comes with the data. */
   function statLine(rows) {
-    return (rows || []).map(function (r) {
+    return rowLabels(rows).map(function (r) {
       return statRow(r.label, r.value);
     }).join(' <span class="stat-sep">·</span> ');
+  }
+
+  /* The rows of a card with the words that tell two rows of the same stat
+     apart: "Spirit Power (flat)" next to "Spirit Power (% of your spirit
+     power)". Without them the card shows two rows with one name, and the
+     learner cannot tell which number belongs to which. */
+  function rowLabels(rows) {
+    var seen = {}, notes = {}, used = {};
+    (rows || []).forEach(function (r) {
+      seen[r.label] = (seen[r.label] || 0) + 1;
+      var n = rowNote(r);
+      notes[n] = (notes[n] || 0) + 1;
+    });
+    return (rows || []).map(function (r) {
+      var label = r.label;
+      if (seen[label] > 1) {
+        var note = rowNote(r);
+        /* two rows may carry the same note ("flat" twice) — then the block
+           of the card tells them apart, and the number if even that is the
+           same */
+        if (notes[note] > 1) note = r.sec === 'active' ? 'while the buff is up' : 'always on';
+        var key = label + '|' + note;
+        used[key] = (used[key] || 0) + 1;
+        if (notes[note] > 1 && used[key] > 1) note = note + ' ' + used[key];
+        label = label + ' (' + note + ')';
+      }
+      return { label: label, value: r.value };
+    });
+  }
+
+  function rowNote(r) {
+    return r.note || (r.sec === 'active' ? 'while the buff is up' : 'always on');
   }
 
   /* An answer of a question is the name of a stat - but the stat that are
@@ -271,6 +308,6 @@ window.DSC = (function () {
     setItems: setItems, setStats: setStats, setIcons: setIcons,
     setBranches: setBranches, baseLabel: baseLabel,
     decorate: decorate, decorateStat: decorateStat,
-    statRow: statRow, statLine: statLine, branchOf: branchOf
+    statRow: statRow, statLine: statLine, rowLabels: rowLabels, branchOf: branchOf
   };
 })();
