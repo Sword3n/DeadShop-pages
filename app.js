@@ -1366,7 +1366,7 @@
   /* Everything a tester might want to tell us, in one block they can copy.
      This is the only place that knows where feedback goes. */
   var APP_VERSION = '0.17.0';
-  var BUILD_DATE = '2026-10-28';
+  var BUILD_DATE = '2026-10-30';
   // Where "report a problem" goes. Two options, both need no server:
   //   ISSUES_URL  a GitHub issue with the diagnostics already filled in
   //   SUPPORT_EMAIL  a mailbox (mailto:). Leave it empty to skip it.
@@ -1385,6 +1385,11 @@
     : 'api/shop';
 
   var WHATS_NEW = [
+    ['The numbers say what they mean', 'A card that lasts five seconds is written "5s" and the question about it asks how long it lasts. A distance is asked in metres, a share in per cent, and the unit travels with the answer - in the question, in the field you write in and in the explanation.'],
+    ['The soul is a flame', 'A green heart inside a black outside, the way the souls of the game look. The mark is the same everywhere: the daily run on the home screen carried a symbol of its own before.'],
+    ['The voices speak at one level', 'The sting of the game used to shout over the other voices. Now the right answer is the confirmation of a soul and the wrong one the refusal of it, and every sound sits at the same level.'],
+    ['The run of the day is a warm-up', 'The daily run draws from the questions that can be answered by reading the card. The card fill and the full recall stay in the path, where they belong.'],
+    ['A name that is not allowed is not shown', 'The display name is the one thing of a player that other people see. A slur is refused on the phone, refused again by the server, and hidden on the leaderboard even when it got in before the check existed.'],
     ['Three ways through the shop', 'Newcomer, shopoholic, shopkeeper. The newcomer only learns what an item does and what it upgrades into, the shopoholic wants the numbers of the main effects as well, and the shopkeeper wants the whole card. The choice is on the path screen and it can be changed at any time.'],
     ['The daily run stands in an urn', 'The Soul Urn of the game, on the home screen and nowhere else. The run of the day is taken out of the lessons.'],
     ['Every stat wears a colour', 'The health of a card is green, the cooldown and the charges are violet, the weapon is orange. Before, only a few stats had a colour — now every one of them does.'],
@@ -1393,7 +1398,7 @@
     ['The menu starts closed', 'On a desktop as well as on a phone: the side menu is opened with the button in the top bar, and closed again with the cross or the shade.'],
     ['The site says nothing about the keyboard any more', 'Everything works with the mouse and with the fingers. The list of shortcuts is gone.'],
     ['The icons of the game are on every stat', 'The star of the spirit, the boot of the sprint, the heart of the health — the sprites the game puts on its own card now stand on the left of every stat: in the list of the items, in the card of an item, in the answers of a question and in the result of a lesson.'],
-    ['The souls are green', 'The chip of the header is a green plate with dark ink on it, the spiral is drawn in the ink of that plate, and the bar of the goal of the day is green too.'],
+    ['The souls are green', 'The chip of the header is a green plate with dark ink on it, the flame is drawn in the ink of that plate, and the bar of the goal of the day is green too.'],
     ['The page does not scroll any more', 'The app is the window at every size. The piece of gradient that hung under it is gone.'],
     ['The phone is measured, not guessed', 'The visual viewport tells the app how tall it is, so the keyboard no longer slides the check button under itself.'],
     ['A comma is a decimal point', 'The card says 7.5 and the finger says 7,5. Both are the same answer now.'],
