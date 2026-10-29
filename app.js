@@ -5355,7 +5355,7 @@
   // must keep working without it.
   // The version in the URL forces a fresh worker script on every data change,
   // otherwise the browser may keep serving a stale cached data.js.
-  var SW_VERSION = 'v11';
+  var SW_VERSION = 'v12';
   try {
     if ('serviceWorker' in navigator &&
         (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
