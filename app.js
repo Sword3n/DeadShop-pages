@@ -18,6 +18,8 @@
   /* the icons of the game come with the data: every stat wears the sprite
      the game puts on its card */
   if (window.DSSICONS) DSC.setIcons(window.DSSICONS, window.DSSICON_BASE);
+  /* every stat wears the colour of its branch */
+  if (window.DSB) DSC.setBranches(window.DSB);
 
   /* Where a profile lives. The suffix is the storage format: bump it and
      every device starts from a clean profile, and the old entries are
@@ -132,6 +134,66 @@
   }
   function storageKey() { return PROFILE_PREFIX + (profileName() || GUEST); }
 
+  /* Three ways through the shop. The owner asked for three categories of
+     learning path: a newcomer only wants to know what an item does and what
+     it upgrades into, a shopoholic wants the numbers of the main effects as
+     well, and a shopkeeper wants the whole card. The track is remembered in
+     the profile and can be changed at any time on the path screen. */
+  var TRACKS = {
+    newcomer: {
+      name: 'Newcomer', list: 'q_newcomer',
+      note: 'what the item does and what it upgrades into',
+      light: ['gives', 'which_item']
+    },
+    shopoholic: {
+      name: 'Shopoholic', list: 'q_shopoholic',
+      note: 'the item and the numbers of its main effects',
+      light: ['gives', 'value', 'compare']
+    },
+    shopkeeper: {
+      name: 'Shopkeeper', list: 'questions',
+      note: 'the whole card, number by number',
+      light: ['gives', 'value', 'compare', 'blank']
+    }
+  };
+  var TRACK_ORDER = ['newcomer', 'shopoholic', 'shopkeeper'];
+
+  function trackKey() {
+    return TRACKS[S.track] ? S.track : 'shopkeeper';
+  }
+
+  /* The questions of a unit, in the track the learner picked. A track that
+     the data does not carry falls back to the full one. */
+  function questionsOf(unit) {
+    if (!unit) return [];
+    var t = TRACKS[trackKey()];
+    var list = unit[t.list];
+    if (!list || !list.length) list = unit.questions;
+    return (list || []).slice();
+  }
+
+  /* Every question of a unit, in every track. A question is looked up by
+     its id when a lesson is resumed or when the mistakes are drilled — the
+     learner may have changed the track in between. */
+  function allQuestions(unit) {
+    if (!unit) return [];
+    var out = [], seen = {};
+    TRACK_ORDER.forEach(function (k) {
+      var list = unit[TRACKS[k].list] || [];
+      list.forEach(function (q) {
+        if (seen[q.id]) return;
+        seen[q.id] = 1;
+        out.push(q);
+      });
+    });
+    (unit.questions || []).forEach(function (q) {
+      if (seen[q.id]) return;
+      seen[q.id] = 1;
+      out.push(q);
+    });
+    return out;
+  }
+
   var DEFAULTS = {
     xp: 0, streak: 0, lastDay: null, dailyDay: null, mastery: {}, right: 0, wrong: 0,
     lessons: 0, unitsDone: [], unlocked: {}, seen: {}, onboarded: false, paused: null,
@@ -146,6 +208,8 @@
     themeV: 0,
     // how many lessons were started today — the free plan allows five
     todayLessons: 0, lessonDay: null,
+    // how deep the learner wants to go: newcomer, shopoholic, shopkeeper
+    track: 'shopkeeper',
     // the name on the leaderboard is opt-in
     board: false,
     souls: 0, soulsEarned: 0, soulsLedger: [], cosmetics: [], equipped: {},
@@ -1196,7 +1260,7 @@
   // ------------------------------------------------------------- support
   /* Everything a tester might want to tell us, in one block they can copy.
      This is the only place that knows where feedback goes. */
-  var APP_VERSION = '0.14.0';
+  var APP_VERSION = '0.15.0';
   var BUILD_DATE = '2026-10-28';
   // Where "report a problem" goes. Two options, both need no server:
   //   ISSUES_URL  a GitHub issue with the diagnostics already filled in
@@ -1216,6 +1280,13 @@
     : 'api/shop';
 
   var WHATS_NEW = [
+    ['Three ways through the shop', 'Newcomer, shopoholic, shopkeeper. The newcomer only learns what an item does and what it upgrades into, the shopoholic wants the numbers of the main effects as well, and the shopkeeper wants the whole card. The choice is on the path screen and it can be changed at any time.'],
+    ['The daily run stands in an urn', 'The Soul Urn of the game, on the home screen and nowhere else. The run of the day is taken out of the lessons.'],
+    ['Every stat wears a colour', 'The health of a card is green, the cooldown and the charges are violet, the weapon is orange. Before, only a few stats had a colour — now every one of them does.'],
+    ['The hints say something', 'A hint names the branch the stat belongs to, the kind of number it is and the window it lies in. It never gives the answer away.'],
+    ['The acts are gone', 'Facts, structure and judgement were names that meant nothing. The path has three tracks now, and every question is written for the item it asks about.'],
+    ['The menu starts closed', 'On a desktop as well as on a phone: the side menu is opened with the button in the top bar, and closed again with the cross or the shade.'],
+    ['The site says nothing about the keyboard any more', 'Everything works with the mouse and with the fingers. The list of shortcuts is gone.'],
     ['The icons of the game are on every stat', 'The star of the spirit, the boot of the sprint, the heart of the health — the sprites the game puts on its own card now stand on the left of every stat: in the list of the items, in the card of an item, in the answers of a question and in the result of a lesson.'],
     ['The souls are green', 'The chip of the header is a green plate with dark ink on it, the spiral is drawn in the ink of that plate, and the bar of the goal of the day is green too.'],
     ['The page does not scroll any more', 'The app is the window at every size. The piece of gradient that hung under it is gone.'],
@@ -1750,9 +1821,42 @@
     }
   }
 
+  /* The three doors of the path: how deep the learner wants to go. The
+     choice is remembered in the profile and can be changed at any time —
+     the lessons that were already done are not thrown away, only the
+     questions of the new track are asked from now on. */
+  function renderTrackPick() {
+    var box = $('#track-pick');
+    if (!box) return;
+    var cur = trackKey();
+    $$('.track-door', box).forEach(function (b) {
+      var on = b.dataset.track === cur;
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  }
+
+  function wireTracks() {
+    var box = $('#track-pick');
+    if (!box || box.dataset.wired) return;
+    box.dataset.wired = '1';
+    $$('.track-door', box).forEach(function (b) {
+      b.addEventListener('click', function () {
+        var k = b.dataset.track;
+        if (!TRACKS[k] || k === trackKey()) return;
+        S.track = k;
+        save();
+        renderTrackPick();
+        toast('The path is now the ' + TRACKS[k].name.toLowerCase() + ' one.');
+      });
+    });
+    renderTrackPick();
+  }
+
   function renderPath() {
     renderCounters();
     owlTip();
+    renderTrackPick();
 
     // a paused lesson waits on the path until you want it back
     var rc = $('#resume-card');
@@ -1911,38 +2015,25 @@
     });
 
     renderDailyCard();
-
-    // today's goal
-    var goal = Number(S.settings.goal) || 12;
-    var done = S.todayCount || 0;
-    var fill = $('#goal-fill');
-    if (fill) fill.style.width = Math.min(100, Math.round(done / goal * 100)) + '%';
-    var note = $('#goal-note');
-    if (note) {
-      note.textContent = done >= goal
-        ? 'Daily goal reached · ' + done + ' questions today'
-        : done + ' / ' + goal + ' questions today';
-      note.classList.toggle('done', done >= goal);
-    }
   }
 
-  /* The daily card is on the path and on the home screen, so the text is
-     written in one place: how long the run is, and whether the run of the
-     day is already behind you. */
+  /* The daily run is a thing of the home screen: the urn stands there and
+     nowhere else. The text is written in one place — how long the run is,
+     and whether the run of the day is already behind you. */
   function renderDailyCard() {
-    var sub = $('#daily-sub');
-    var btn = $('#daily-btn');
-    if (!sub || !btn) return;
+    var sub = $('#home-daily-sub');
+    var go = $('#home-daily-go');
+    if (!sub) return;
     var done = S.dailyDay === today();
     var miss = (S.dailyMiss || []).length;
     if (done) {
       sub.textContent = miss
-        ? 'Done for today · ' + miss + ' question' + (miss === 1 ? '' : 's') + ' to repeat'
-        : 'Done for today · the run was clean';
-      btn.textContent = miss ? 'Take two' : 'Done';
+        ? 'The urn is empty for today · ' + miss + ' question' + (miss === 1 ? '' : 's') + ' to repeat'
+        : 'The urn is empty for today · the run was clean';
+      if (go) go.textContent = miss ? 'Take two' : 'Done';
     } else {
       sub.textContent = dailyLength() + ' questions · the same for everyone today';
-      btn.textContent = 'Start';
+      if (go) go.textContent = 'Open';
     }
   }
 
@@ -2372,30 +2463,6 @@
     if (!weak.length) rb.appendChild(el('div', 'footnote', 'No weak items — everything you have studied is in good shape.'));
     setText('#s-review-note', weak.length ? '' : 'Nothing to review yet.');
 
-    // per-act progress — the three acts of the course
-    var acts = ['facts', 'structure', 'judgment'];
-    var actRows = $('#act-list');
-    actRows.innerHTML = '';
-    acts.forEach(function (act) {
-      var inAct = Object.keys(DS.item_acts || {}).filter(function (s) {
-        return (DS.item_acts[s] || []).indexOf(act) >= 0;
-      });
-      var started = inAct.filter(function (s) { return boxOf(s) > 0; }).length;
-      // the bar shows how far through the act you are, so it moves while you
-      // learn — the number on the right counts fully mastered items
-      var progress = inAct.reduce(function (n, s) { return n + Math.min(boxOf(s), 4) / 4; }, 0);
-      var row = el('div', 'act-row');
-      row.appendChild(el('div', 'act-label act-' + act, ACT_NAME[act]));
-      var bar = el('div', 'bar act-bar');
-      var i = el('i');
-      i.style.width = (inAct.length ? (progress / inAct.length * 100) : 0) + '%';
-      bar.appendChild(i);
-      row.appendChild(bar);
-      row.appendChild(el('div', 'ri-box', started + '/' + inAct.length));
-      actRows.appendChild(row);
-      if (!started && inAct.length) row.classList.add('dim');
-    });
-
     var box = $('#mastery-list');
     box.innerHTML = '';
     touched.sort(function (a, b) { return boxOf(b) - boxOf(a); }).forEach(function (s) {
@@ -2417,10 +2484,10 @@
   var KIND = {
     family: 'Which stat?', value: 'Exact value', blank: 'Missing stat', compare: 'Comparison',
     chain: 'Upgrade path', freeRecall: 'Full recall', valueBlind: 'Exact value',
-    tier: 'Tier', counter: 'Counter pick'
+    tier: 'Tier', counter: 'Counter pick',
+    gives: 'What it gives', which_item: 'Which item'
   };
-  var ACT_NAME = { facts: 'Facts', structure: 'Structure', judgment: 'Judgment',
-    counter: 'Heroes' };
+
 
   function startLesson(unitId) {
     gateLesson('unit', function () { startLessonNow(unitId); });
@@ -2431,13 +2498,14 @@
     var unit = null;
     for (var i = 0; i < DS.units.length; i++) if (DS.units[i].id === unitId) unit = DS.units[i];
     if (!unit) return;
-    var qs = unit.questions.slice();
+    var qs = questionsOf(unit);
 
     // spaced repetition: items you have mastered get a light refresh only
+    var light = TRACKS[trackKey()].light;
     var keep = [];
     qs.forEach(function (q) {
       var b = boxOf(q.item);
-      if (b >= 3 && ['family', 'value', 'compare'].indexOf(q.type) < 0) return;
+      if (b >= 3 && light.indexOf(q.type) < 0) return;
       keep.push(q);
     });
     if (keep.length < 4) keep = qs;
@@ -2593,7 +2661,7 @@
   function startExam() {
     var pool = [];
     DS.units.forEach(function (u) {
-      u.questions.forEach(function (q) { pool.push(q); });
+      questionsOf(u).forEach(function (q) { pool.push(q); });
     });
     // the questions you are worst at come first
     pool.sort(function (a, b) {
@@ -2630,7 +2698,7 @@
     if (!wrong.length) return;
     var pool = [];
     DS.units.forEach(function (u) {
-      u.questions.forEach(function (q) {
+      allQuestions(u).forEach(function (q) {
         if (wrong.indexOf(q.item) >= 0) pool.push(q);
       });
     });
@@ -2668,7 +2736,7 @@
   function startFixMistakesNow(ids, items) {
     var pool = [];
     DS.units.forEach(function (u) {
-      u.questions.forEach(function (q) {
+      allQuestions(u).forEach(function (q) {
         if (ids.length) {
           if (ids.indexOf(q.id) >= 0) pool.push(q);
         } else if (items.indexOf(q.item) >= 0) {
@@ -2766,7 +2834,7 @@
     for (var i = 0; i < DS.units.length; i++) if (DS.units[i].id === p.unit) unit = DS.units[i];
     var byId = {};
     DS.units.forEach(function (u) {
-      u.questions.forEach(function (q) { byId[q.id] = q; });
+      allQuestions(u).forEach(function (q) { byId[q.id] = q; });
     });
     var qs = (p.qs || []).map(function (id) { return byId[id]; }).filter(Boolean);
     if (!unit || !qs.length) { S.paused = null; save(); renderPath(); return; }
@@ -2780,8 +2848,10 @@
   }
 
   /* A hint never gives the number away. It tells the player what kind of
-     number to type (percentage, metres, seconds) and — when a card carries
-     the same stat twice — which of the two rows is meant. */
+     number to type (percentage, metres, seconds), which branch the stat
+     belongs to and — when a card carries the same stat twice — which of the
+     two rows is meant. A range that does not touch the answer narrows it
+     down without handing it over. */
   function hintFor(q, item) {
     if (!item || !q.statLabel) return '';
     var base = String(q.statLabel).replace(/\s*\(.*\)\s*$/, '').replace(/\s*%$/, '').trim();
@@ -2805,11 +2875,57 @@
     }
     var m = String(q.statValue || '').match(/([a-z%\/]+)$/i);
     var unit = m ? m[0] : '';
-    if (unit === '%') return 'The answer is a <b>percentage</b>.';
-    if (unit === 'm/s') return 'The answer is measured in <b>metres per second</b>.';
-    if (unit === 'm') return 'The answer is measured in <b>metres</b>.';
-    if (unit === 's') return 'The answer is a <b>time in seconds</b>.';
-    return 'The answer is a plain number.';
+    var kind = 'The answer is a <b>plain number</b>.';
+    if (unit === '%') kind = 'The answer is a <b>percentage</b>.';
+    else if (unit === 'm/s') kind = 'The answer is measured in <b>metres per second</b>.';
+    else if (unit === 'm') kind = 'The answer is measured in <b>metres</b>.';
+    else if (unit === 's') kind = 'The answer is a <b>time in seconds</b>.';
+    var branch = '';
+    if (DSC.branchOf) {
+      var b = DSC.branchOf(base);
+      if (b === 'gun') branch = ' It is a stat of the <b>weapon</b> — the orange one.';
+      else if (b === 'spirit') branch = ' It is a stat of the <b>spirit</b> — the violet one.';
+      else branch = ' It is a stat of the <b>vitality</b> — the green one.';
+    }
+    var range = rangeHint(q.statValue);
+    return kind + branch + (range ? ' It is <b>' + range + '</b>.' : '');
+  }
+
+  /* A window around the answer that never touches it. */
+  function rangeHint(v) {
+    var m = String(v == null ? '' : v).match(/([+-]?)(\d+(?:\.\d+)?)\s*(%|m\/s|m|s)?/);
+    if (!m) return '';
+    var n = parseFloat(m[2]);
+    if (isNaN(n)) return '';
+    var unit = m[3] || '';
+    var lo, hi;
+    if (n >= 100) { lo = Math.round(n / 50) * 50 - 50; hi = lo + 100; }
+    else if (n >= 10) { lo = Math.floor(n / 5) * 5 - 5; hi = lo + 10; }
+    else if (n >= 1) { lo = Math.floor(n) - 1; hi = lo + 3; }
+    else { lo = Math.max(0, Math.floor(n * 4) / 4 - 0.25); hi = lo + 0.5; }
+    if (lo < 0) lo = 0;
+    // the answer may never be the edge of the window
+    if (lo === n) lo = n - 1;
+    if (hi === n) hi = n + 1;
+    if (lo < 0) lo = 0;
+    if (hi <= lo) return '';
+    var f = function (x) { return String(Math.round(x * 100) / 100); };
+    return 'somewhere between ' + f(lo) + ' and ' + f(hi) + (unit ? ' ' + unit : '');
+  }
+
+  /* An answer is written either as the name of a stat ("Fire Rate") or as
+     the stat and its number ("Fire Rate|+35%"). The second form belongs to
+     the "what does this item give" question: the number is on the table,
+     the learner has to recognise the stat, not to memorise the number. */
+  function optionHtml(o) {
+    var raw = String(o === undefined || o === null ? '' : o);
+    var bar = raw.indexOf('|');
+    if (bar > 0) {
+      var label = raw.slice(0, bar);
+      var value = raw.slice(bar + 1);
+      return DSC.statRow(label) + ' <b>' + esc(value) + '</b>';
+    }
+    return DSC.decorateStat(raw);
   }
 
   function renderQ() {
@@ -2836,7 +2952,6 @@
     if (sc) sc.scrollTop = 0;
 
     card.appendChild(el('div', 'q-kind', KIND[q.type] || q.type));
-    if (q.act) card.appendChild(el('div', 'q-act act-' + q.act, ACT_NAME[q.act] || q.act));
 
     // When the item being studied is one of the answer options, its card
     // would hand the answer over — so it is left out.
@@ -2875,14 +2990,10 @@
     qtitle.innerHTML = decorate(q.question);
     card.appendChild(qtitle);
 
-    // the "pick an answer" hint only makes sense for option questions
-    var kp = $('#kbd-pick');
-    if (kp) kp.style.display = q.options ? '' : 'none';
-
     if (q.options) {
       var opts = el('div', 'opts');
       q.options.forEach(function (o) {
-        var b = elHTML('button', 'opt', '<span>' + DSC.decorateStat(o) + '</span>');
+        var b = elHTML('button', 'opt', '<span>' + optionHtml(o) + '</span>');
         b.dataset.raw = o;
         b.addEventListener('click', function () {
           if (L.answered) return;
@@ -2944,7 +3055,7 @@
 
     // a hint for the number questions — it never gives the number away
     if (!q.options) {
-      var htext = hintFor(q, item);
+      var htext = q.hint ? q.hint : hintFor(q, item);
       if (htext) {
         var hbtn = el('button', 'hint-btn', '💡 Hint');
         hbtn.type = 'button';
@@ -2968,6 +3079,14 @@
     $('#check-btn').disabled = true;
     $('#check-btn').textContent = 'CHECK';
     $('#action-bar').style.display = '';
+
+    /* the things of the question walk in one after the other: the chips,
+       the answers, the rows of a card fill */
+    var step = 0;
+    $$('.stat-chip, .opt, .stat-table tr', card).forEach(function (el) {
+      el.style.setProperty('--d', (step * 34) + 'ms');
+      step++;
+    });
 
     // The new question always starts at the top of the column. The reset
     // happens after the card is complete, otherwise a long question leaves
@@ -4661,6 +4780,14 @@
     num: function (v) { return DSC.num(v); },
     pauseLesson: pauseLesson,
     startFixMistakes: startFixMistakes,
+    questionsOf: function (unit, track) {
+      if (track) {
+        var list = unit[TRACKS[track] ? TRACKS[track].list : 'questions'];
+        return (list || []).slice();
+      }
+      return questionsOf(unit);
+    },
+    tracks: function () { return TRACK_ORDER.slice(); },
     renderFooter: renderFooter,
     fitViewport: fitViewport,
     appHeight: function () {
@@ -4681,9 +4808,10 @@
     wireViewport();
     // the progress of the previous storage format goes away for good
     wipeOldProfiles();
-    renderFooter($('#foot-home'));
-    renderFooter($('#foot-path'));
+    ['#foot-home', '#foot-path', '#foot-counters', '#foot-items', '#foot-stats',
+      '#foot-profile'].forEach(function (sel) { renderFooter($(sel)); });
     wireNav();
+    wireTracks();
     $$('.tab').forEach(function (t) {
       t.addEventListener('click', function () {
         $$('.tab').forEach(function (x) { x.classList.remove('active'); });
@@ -4691,7 +4819,6 @@
         show(t.dataset.tab);
       });
     });
-    $('#daily-btn').addEventListener('click', startDaily);
     // a tap on the owl pulls out the next line of counsel
     var tipBox = $('#owl-tip');
     if (tipBox) {
@@ -4747,15 +4874,6 @@
     $('#result-continue').addEventListener('click', function () { setActiveTab('path'); show('path'); });
     $('#item-modal').addEventListener('click', function (e) {
       if (e.target.id === 'item-modal') $('#item-modal').classList.remove('on');
-    });
-    $('#keys-modal').addEventListener('click', function (e) {
-      if (e.target.id === 'keys-modal') $('#keys-modal').classList.remove('on');
-    });
-    $('#keys-btn').addEventListener('click', function () {
-      $('#keys-modal').classList.add('on');
-    });
-    $('#keys-close').addEventListener('click', function () {
-      $('#keys-modal').classList.remove('on');
     });
 
     // help & feedback
@@ -4944,7 +5062,6 @@
     // the home screen: one big button and four tiles
     $('#home-daily').addEventListener('click', function () { startDaily(); });
     $('#home-profile').addEventListener('click', function () { openProfile(); });
-    $('#home-keys').addEventListener('click', function () { $('#keys-modal').classList.add('on'); });
     $$('.home-tile').forEach(function (t) {
       t.addEventListener('click', function () {
         var fn = NAV_ROUTES[t.dataset.go];
@@ -5037,8 +5154,6 @@
       if (sn && sn.classList.contains('on')) { e.preventDefault(); navClose(); return; }
       var im = $('#item-modal');
       if (im.classList.contains('on')) { e.preventDefault(); im.classList.remove('on'); return; }
-      var km = $('#keys-modal');
-      if (km.classList.contains('on')) { e.preventDefault(); km.classList.remove('on'); return; }
       var wn = $('#whatsnew-modal');
       if (wn && wn.classList.contains('on')) { e.preventDefault(); wn.classList.remove('on'); return; }
       var lmd = $('#limit-modal');

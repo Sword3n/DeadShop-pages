@@ -8,7 +8,7 @@
 <!-- the build of the page itself. The script reads it and compares it with
      its own version: a page from an older build next to a newer script is
      a site that throws, so the two are put back together. -->
-<meta name="ds-version" content="0.14.0">
+<meta name="ds-version" content="0.15.0">
 <!-- a private test build: it stays out of the search engines, the link is
      the only way in. Remove this line when the site goes public on purpose. -->
 <meta name="robots" content="noindex, nofollow">
@@ -36,7 +36,7 @@
 <link rel="mask-icon" href="assets/icon.svg" color="#3DDCC8">
 <link rel="apple-touch-icon" href="assets/icon-180.png">
 <link rel="preload" href="assets/fonts/saira-var.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="app.css?v=13">
+<link rel="stylesheet" href="app.css?v=14">
 </head>
 <body>
 <!-- ========================== THE BOOT SCREEN ==========================
@@ -87,7 +87,6 @@
         </button>
         <div class="nav-items">
           <button class="nav-item on" type="button" data-go="path">Lesson path</button>
-          <button class="nav-item" type="button" data-go="daily">Daily run</button>
           <button class="nav-item" type="button" data-go="exam">Test yourself</button>
           <button class="nav-item" type="button" data-go="counters">Counter library</button>
           <button class="nav-item" type="button" data-go="friends">Friends board</button>
@@ -140,9 +139,6 @@
         <span class="home-brand-txt">Dead<em>Shop</em></span>
       </button>
       <div class="topbar-right">
-        <button class="icon-btn" id="home-keys" aria-label="Keyboard shortcuts">
-          <svg viewBox="0 0 24 24" class="ico"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm.9 15.4v1.3h-1.8v-1.3h1.8zm1.9-6.6-.9.9c-.5.5-.7.9-.7 1.6h-1.7v-.5c0-.7.2-1.1.7-1.6l1.2-1.2c.4-.3.5-.7.5-1.2 0-.9-.7-1.5-1.5-1.5s-1.5.6-1.6 1.5H8.5c0-1.8 1.4-3.2 3.4-3.2s3.4 1.4 3.4 3.1c0 .9-.3 1.5-1 2.1z"/></svg>
-        </button>
         <button class="icon-btn" id="home-profile" aria-label="Profile">
           <svg viewBox="0 0 24 24" class="ico"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-4 0-8 2-8 5v1h16v-1c0-3-4-5-8-5z"/></svg>
         </button>
@@ -156,9 +152,13 @@
         <p class="home-sub">Learn the shop. Buy with confidence.</p>
       </div>
 
-      <button class="home-main" id="home-daily" type="button">
-        <span class="home-main-k">DAILY RUN</span>
-        <span class="home-main-s" id="home-daily-sub">the same questions for everyone today</span>
+      <button class="home-main urn-run" id="home-daily" type="button">
+        <img class="urn-mark" src="assets/soul-urn.png" alt="" width="64" height="64">
+        <span class="urn-body">
+          <span class="urn-k">DAILY RUN</span>
+          <span class="urn-s" id="home-daily-sub">the same questions for everyone today</span>
+        </span>
+        <span class="urn-go" id="home-daily-go">Open</span>
       </button>
 
       <div class="home-tiles">
@@ -215,6 +215,7 @@
       <button class="btn btn-block cnt-quiz" id="counters-quiz">PICK THE RIGHT COUNTER</button>
       <div id="counter-list"></div>
       <div id="counter-items" hidden></div>
+      <div class="foot-slot" id="foot-counters"></div>
     </div>
   </section>
 
@@ -250,9 +251,6 @@
         <div class="league" title="League">
           <span class="league-ico">◆</span><span id="league-val">Item Cadet</span>
         </div>
-        <button class="icon-btn" id="keys-btn" aria-label="Keyboard shortcuts">
-          <svg viewBox="0 0 24 24" class="ico"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm.9 15.4v1.3h-1.8v-1.3h1.8zm1.9-6.6l-.9.9c-.5.5-.7.9-.7 1.6h-1.7v-.5c0-.7.2-1.1.7-1.6l1.2-1.2c.4-.3.5-.7.5-1.2 0-.9-.7-1.5-1.5-1.5s-1.5.6-1.6 1.5H8.5c0-1.8 1.4-3.2 3.4-3.2s3.4 1.4 3.4 3.1c0 .9-.3 1.5-1 2.1z"/></svg>
-        </button>
         <button class="icon-btn" id="profile-btn" aria-label="Profile">
           <svg viewBox="0 0 24 24" class="ico"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-4 0-8 2-8 5v1h16v-1c0-3-4-5-8-5z"/></svg>
         </button>
@@ -272,16 +270,6 @@
       <div class="owl-tip" id="owl-tip">
         <img src="assets/owl.svg" alt="" width="34" height="34">
         <p id="owl-tip-text">Grey Talon's owl is watching. Every stat you learn is a souls saved.</p>
-      </div>
-
-      <div class="daily-card" id="daily-card">
-        <div class="daily-left">
-          <div class="daily-title">Daily Shop Run</div>
-          <div class="daily-sub" id="daily-sub">6 questions · your streak is on the line</div>
-          <div class="goal-bar"><i id="goal-fill"></i></div>
-          <div class="goal-note" id="goal-note">0 / 12 questions today</div>
-        </div>
-        <button class="btn btn-green daily-btn" id="daily-btn">Start</button>
       </div>
 
       <div class="daily-card exam-card">
@@ -304,6 +292,21 @@
       </aside>
 
       <div class="path-main">
+        <div class="track-pick" id="track-pick">
+          <div class="track-pick-h">How deep do you want to go?</div>
+          <div class="track-pick-row">
+            <button class="track-door" type="button" data-track="newcomer">
+              <b>Newcomer</b><span>what the item does and what it upgrades into</span>
+            </button>
+            <button class="track-door" type="button" data-track="shopoholic">
+              <b>Shopoholic</b><span>the item and the numbers of its main effects</span>
+            </button>
+            <button class="track-door" type="button" data-track="shopkeeper">
+              <b>Shopkeeper</b><span>the whole card, number by number</span>
+            </button>
+          </div>
+        </div>
+
         <div class="resume-card" id="resume-card" hidden>
           <div class="resume-left">
             <div class="resume-title">Lesson paused</div>
@@ -353,6 +356,7 @@
     <div class="scroll" id="items-scroll">
       <div class="filter-row" id="item-filters"></div>
       <div class="item-list" id="item-list"></div>
+      <div class="foot-slot" id="foot-items"></div>
     </div>
   </section>
 
@@ -380,9 +384,6 @@
           <div class="week-chart" id="week-chart"></div>
           <div class="week-note" id="week-note"></div>
 
-          <h3 class="section-h">By act</h3>
-          <div class="mastery-list" id="act-list"></div>
-          <div class="footnote">Facts are the exact numbers. Structure is what feeds what. Judgement is which item is actually better — and that survives a patch.</div>
         </section>
 
         <section class="col">
@@ -401,6 +402,7 @@
       <div class="group-grid" id="group-list"></div>
 
       <div class="ad-slot" data-slot="stats"></div>
+      <div class="foot-slot" id="foot-stats"></div>
     </div>
   </section>
 
@@ -563,12 +565,6 @@
 
     <div class="scroll lesson-scroll">
       <div class="q-card" id="q-card"></div>
-      <div class="kbd-hint" aria-hidden="true">
-        <span id="kbd-pick"><kbd>1</kbd>–<kbd>9</kbd> pick an answer</span>
-        <span><kbd>H</kbd> hint</span>
-        <span><kbd>Enter</kbd> check</span>
-        <span><kbd>Esc</kbd> leave</span>
-      </div>
     </div>
 
     <footer class="action-bar" id="action-bar">
@@ -812,6 +808,7 @@
       </div>
       </section>
       </div>
+      <div class="foot-slot" id="foot-profile"></div>
     </div>
   </section>
   </div>
@@ -819,27 +816,6 @@
   <!-- ======================== ITEM DETAIL ========================== -->
   <div class="modal" id="item-modal" aria-hidden="true">
     <div class="modal-card" id="modal-card"></div>
-  </div>
-
-  <!-- ====================== KEYBOARD HELP ========================== -->
-  <div class="modal" id="keys-modal" aria-hidden="true">
-    <div class="modal-card keys-card">
-      <div class="modal-head">
-        <div>
-          <div class="modal-title">Keyboard</div>
-          <div class="modal-meta">Everything works without the mouse</div>
-        </div>
-      </div>
-      <div class="keys-list">
-        <div class="keys-row"><span><kbd>1</kbd>–<kbd>9</kbd></span><b>pick an answer</b></div>
-        <div class="keys-row"><span><kbd>H</kbd></span><b>open a hint</b></div>
-        <div class="keys-row"><span><kbd>Enter</kbd></span><b>check the answer, then continue</b></div>
-        <div class="keys-row"><span><kbd>Esc</kbd></span><b>leave the lesson, close a popup</b></div>
-        <div class="keys-row"><span><kbd>/</kbd></span><b>jump to the item search</b></div>
-        <div class="keys-row"><span><kbd>↑</kbd> <kbd>↓</kbd></span><b>move through the answer options</b></div>
-      </div>
-      <button class="btn btn-green btn-block" id="keys-close">CLOSE</button>
-    </div>
   </div>
 
   <!-- ========================= WHATS NEW ============================ -->
@@ -894,9 +870,9 @@
       <p class="onboard-text"><span id="onboard-counts">156 shop items. 64 short lessons.</span>
         Every stat is checked against the game files.</p>
       <ul class="onboard-list">
-        <li><b>Facts</b> — the exact stat values</li>
-        <li><b>Structure</b> — what feeds what, and what upgrades into what</li>
-        <li><b>Judgment</b> — which item is really better, even after a patch</li>
+        <li><b>Newcomer</b> — what an item does and what it upgrades into</li>
+        <li><b>Shopoholic</b> — the item and the numbers of its main effects</li>
+        <li><b>Shopkeeper</b> — the whole card, number by number</li>
       </ul>
       <p class="onboard-reassure">
         No account, no sign-up, nothing sent anywhere — your progress stays in this
@@ -919,9 +895,10 @@
 <script src="data/heroes.js?v=1"></script>
 <script src="data/config.js?v=1"></script>
 <script src="data/stat_icons.js?v=1"></script>
-<script src="core.js?v=11"></script>
+<script src="data/stat_branches.js?v=1"></script>
+<script src="core.js?v=12"></script>
 <script src="auth.js?v=9"></script>
 <script src="api.js?v=1"></script>
-<script src="app.js?v=12"></script>
+<script src="app.js?v=13"></script>
 </body>
 </html>

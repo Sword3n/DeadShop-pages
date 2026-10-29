@@ -613,6 +613,93 @@ textarea.answer-input{min-height:130px;resize:vertical;font-size:15px;font-weigh
 @keyframes unitIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 .no-anim .unit{animation:none}
 
+/* ==================================================================
+   MORE MOTION
+   The shop of a game should move like a game: things arrive, they
+   light up, they settle. Every animation here is short, eased and
+   comes to rest — and every one of them is switched off when the
+   reader asks for less motion.
+   ================================================================== */
+
+/* the stat chips of a question arrive one after the other, with their
+   icon popping in a moment before the name */
+@keyframes chipIn{
+  from{opacity:0;transform:translateY(5px) scale(.94)}
+  to{opacity:1;transform:none}
+}
+@keyframes icoIn{
+  from{opacity:0;transform:scale(.5) rotate(-14deg)}
+  to{opacity:1;transform:none}
+}
+.q-card .stat-chip{animation:chipIn .28s cubic-bezier(.2,.9,.3,1) backwards;
+  animation-delay:var(--d,0ms)}
+.q-card .stat-chip .stat-ico{animation:icoIn .34s cubic-bezier(.2,1.5,.4,1) backwards;
+  animation-delay:calc(var(--d,0ms) + 60ms)}
+
+/* the answers of a question walk in */
+@keyframes optIn{
+  from{opacity:0;transform:translateX(-10px)}
+  to{opacity:1;transform:none}
+}
+.q-card .opt{animation:optIn .3s cubic-bezier(.2,.85,.25,1) backwards;
+  animation-delay:var(--d,0ms)}
+.q-card .opt:hover{transform:translateX(2px)}
+
+/* the mark of a right or a wrong answer pops */
+@keyframes markPop{
+  0%{transform:scale(.2) rotate(-25deg);opacity:0}
+  60%{transform:scale(1.25) rotate(6deg);opacity:1}
+  100%{transform:scale(1) rotate(0);opacity:1}
+}
+.opt-mark{animation:markPop .34s cubic-bezier(.2,1.5,.4,1) both}
+
+/* the rows of a card fill come in one by one */
+@keyframes rowIn{
+  from{opacity:0;transform:translateY(6px)}
+  to{opacity:1;transform:none}
+}
+.stat-table tbody tr, .stat-table > tr{animation:rowIn .26s cubic-bezier(.2,.9,.3,1) backwards;
+  animation-delay:var(--d,0ms)}
+.recall-input:focus{box-shadow:0 0 0 3px rgba(61,220,200,.18)}
+
+/* the three doors of the path: the chosen one breathes, the others wait */
+@keyframes doorGlow{
+  0%,100%{box-shadow:0 3px 0 var(--teal-d)}
+  50%{box-shadow:0 3px 0 var(--teal-d),0 0 16px rgba(61,220,200,.35)}
+}
+.track-door.on{animation:doorGlow 2.6s ease-in-out infinite}
+.track-door:hover{transform:translateY(-2px)}
+@media (hover:hover){.track-door:hover{box-shadow:0 5px 0 var(--line-d)}}
+
+/* the urn of the daily run glows and the light in it breathes */
+@keyframes urnGlow{
+  0%,100%{filter:drop-shadow(0 4px 10px rgba(0,0,0,.5)) drop-shadow(0 0 0 rgba(61,220,200,0))}
+  50%{filter:drop-shadow(0 4px 10px rgba(0,0,0,.5)) drop-shadow(0 0 12px rgba(61,220,200,.55))}
+}
+.urn-mark{animation:urnFloat 4.5s ease-in-out infinite,urnGlow 3.2s ease-in-out infinite}
+@keyframes urnOpen{
+  0%,100%{opacity:.75}
+  50%{opacity:1}
+}
+.urn-go{animation:urnOpen 2.4s ease-in-out infinite}
+.urn-run:hover .urn-go{animation-duration:1.2s}
+
+/* the tiles of the home screen answer the cursor */
+.home-tile{transition:transform .14s ease,box-shadow .14s ease,border-color .14s ease}
+@media (hover:hover){.home-tile:hover{transform:translateY(-3px);border-color:var(--teal-d)}}
+
+/* the footer comes in when the screen is done */
+@keyframes footIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.app-foot{animation:footIn .5s cubic-bezier(.2,.85,.25,1) both}
+
+/* the counters of the path count up in colour */
+@keyframes chipPop{
+  0%{transform:scale(1)}
+  45%{transform:scale(1.14)}
+  100%{transform:scale(1)}
+}
+.chip.bump{animation:chipPop .45s cubic-bezier(.2,1.6,.3,1)}
+
 /* ========================= reduced motion =========================== */
 .reduce-motion *,.reduce-motion *::before,.reduce-motion *::after{
   animation-duration:.001ms !important;animation-iteration-count:1 !important;
@@ -1068,20 +1155,24 @@ textarea.answer-input{min-height:130px;resize:vertical;font-size:15px;font-weigh
 .nav-toggle{display:flex}
 .nav-toggle .ico{width:22px;height:22px}
 
-/* ---- desktop: the menu stands next to the app ---- */
+/* ---- desktop: the menu is a drawer too ----
+   The owner asked for the side menu to be closed when the page opens, so
+   on a desktop it is a drawer as well: the hamburger in the top bar opens
+   it, and it closes again on the scrim or with the cross. */
 @media (min-width:1000px){
-  #app{width:100%;display:grid;grid-template-columns:272px minmax(0,1fr);
-    grid-template-rows:100%}
-  .side-nav{position:relative;transform:none;visibility:visible;width:auto;max-width:none;
-    border-right:1px solid var(--line);box-shadow:none;z-index:auto}
-  .nav-close{display:none}
-  .nav-scrim{display:none}
+  #app{width:100%;display:block}
+  .side-nav{position:fixed;left:0;top:0;bottom:0;width:290px;max-width:86vw;
+    transform:translateX(-102%);visibility:hidden;z-index:60;
+    border-right:1px solid var(--line);box-shadow:14px 0 40px rgba(0,0,0,.35)}
+  .side-nav.on{transform:none;visibility:visible}
+  .nav-close{display:flex}
+  .nav-scrim{display:block}
   .nav-brand{padding-top:18px}
-  .nav-toggle{display:none}
+  .nav-toggle{display:flex}
   /* the side menu replaces the floating tab pills */
   .tabbar{display:none}
   /* the toast belongs over the content, not over the menu */
-  .toast{left:calc(50% + 136px)}
+  .toast{left:50%}
   .path-scroll{grid-template-columns:300px minmax(0,1fr);gap:28px;min-height:0}
   .path-side,.path-main{min-height:0}
 }
@@ -1572,6 +1663,55 @@ body.acc-crimson{--teal:#F87171;--teal-d:#991B1B}
 .home-main-k{font-family:var(--font-ui);font-size:25px;font-weight:800;letter-spacing:4px;
   text-transform:uppercase;color:var(--teal);line-height:1.1}
 .home-main-s{font-size:12.5px;font-weight:700;color:var(--ink-2)}
+
+/* ---- the daily run stands in an urn ----
+   The Soul Urn of the game: a teal vessel that holds the run of the day.
+   The lid is the button, the light behind it is the energy of the run. */
+.urn-run{
+  position:relative;display:flex;flex-direction:row;align-items:center;gap:14px;width:100%;
+  border:2px solid var(--teal-d);background:
+    radial-gradient(120% 90% at 18% 12%,rgba(61,220,200,.26),rgba(9,20,24,.6));
+  padding:16px 16px 16px 14px;cursor:pointer;text-align:left;
+  clip-path:polygon(14px 0,calc(100% - 14px) 0,100% 14px,100% calc(100% - 14px),
+    calc(100% - 14px) 100%,14px 100%,0 calc(100% - 14px),0 14px);
+  box-shadow:0 4px 0 var(--teal-d);transition:transform .08s ease,box-shadow .08s ease
+}
+.urn-run:active{transform:translateY(3px);box-shadow:0 1px 0 var(--teal-d)}
+.urn-mark{width:58px;height:58px;object-fit:contain;flex:none;filter:drop-shadow(0 4px 10px rgba(0,0,0,.5))}
+@keyframes urnFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+.urn-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.urn-k{font-family:var(--font-ui);font-size:22px;font-weight:800;letter-spacing:3.4px;
+  text-transform:uppercase;color:var(--teal);line-height:1.1}
+.urn-s{font-size:12.5px;font-weight:700;color:var(--ink-2);line-height:1.35}
+.urn-go{font-family:var(--font-ui);font-size:12px;font-weight:800;letter-spacing:1.6px;
+  text-transform:uppercase;color:var(--teal-d);border:2px solid var(--teal-d);
+  padding:7px 12px;flex:none;
+  clip-path:polygon(7px 0,calc(100% - 7px) 0,100% 7px,100% calc(100% - 7px),
+    calc(100% - 7px) 100%,7px 100%,0 calc(100% - 7px),0 7px)}
+:root[data-theme="dark"] .urn-go{color:var(--teal)}
+
+/* ---- the three doors of the path ----
+   Newcomer, shopoholic, shopkeeper: how deep the learner wants to go. */
+.track-pick{margin:0 0 14px}
+.track-pick-h{font-family:var(--font-ui);font-size:12px;font-weight:800;letter-spacing:1.6px;
+  text-transform:uppercase;color:var(--ink-2);margin-bottom:8px}
+.track-pick-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.track-door{display:flex;flex-direction:column;gap:3px;text-align:left;cursor:pointer;
+  background:var(--card);border:2px solid var(--line);padding:11px 11px 12px;
+  clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),
+    calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);
+  box-shadow:0 3px 0 var(--line-d);
+  transition:transform .08s ease,border-color .14s ease,box-shadow .08s ease}
+.track-door:active{transform:translateY(2px);box-shadow:0 1px 0 var(--line-d)}
+.track-door b{font-family:var(--font-ui);font-size:13.5px;font-weight:800;letter-spacing:.9px;
+  text-transform:uppercase;color:var(--ink)}
+.track-door span{font-size:11.5px;font-weight:700;color:var(--ink-2);line-height:1.35}
+.track-door.on{border-color:var(--teal-d);box-shadow:0 3px 0 var(--teal-d)}
+.track-door.on b{color:var(--teal-d)}
+:root[data-theme="dark"] .track-door.on b{color:var(--teal)}
+@media (max-width:640px){
+  .track-pick-row{grid-template-columns:1fr}
+}
 
 .home-tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .home-tile{display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;
