@@ -1207,9 +1207,7 @@ body.nav-locked{overflow:hidden}
 }
 .souls-balance{display:flex;align-items:center;gap:12px}
 .souls-mark{width:40px;height:40px;flex:none;
-  -webkit-mask:url('assets/soul.svg') center/contain no-repeat;
-  mask:url('assets/soul.svg') center/contain no-repeat;
-  background:var(--souls-fill);
+  background:url('assets/soul.svg') center/contain no-repeat;
   filter:drop-shadow(0 2px 6px rgba(63,185,80,.35))}
 .souls-txt{flex:1;min-width:0}
 .souls-num{font-family:var(--font-ui);font-size:26px;line-height:1.05;color:var(--ink)}
@@ -2034,3 +2032,13 @@ body.acc-crimson{--teal:#F87171;--teal-d:#991B1B}
 #screen-path .topbar{justify-content:flex-start}
 #screen-path .topbar-stats{flex:none;justify-content:flex-start}
 #screen-path .topbar-right{margin-left:auto}
+
+/* The white bar of the browser on the right of a tablet sits in the middle
+   of the page and says nothing: the app scrolls on its own. */
+html, body, .scroll, .modal-body{
+  scrollbar-width:none;
+  -ms-overflow-style:none;
+}
+html::-webkit-scrollbar, body::-webkit-scrollbar,
+.scroll::-webkit-scrollbar, .modal-body::-webkit-scrollbar,
+#screen-path::-webkit-scrollbar, #screen-items::-webkit-scrollbar{display:none}

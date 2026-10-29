@@ -903,7 +903,7 @@
     cloud.board.forEach(function (p, i) {
       var row = el('div', 'board-row');
       row.appendChild(el('span', 'board-place', String(i + 1)));
-      row.appendChild(el('span', 'board-name', p.name || 'unnamed'));
+      row.appendChild(el('span', 'board-name', safeName(p.name) || 'unnamed'));
       row.appendChild(el('span', 'board-xp', p.xp + ' XP'));
       row.appendChild(el('span', 'board-lessons', p.lessons + ' lessons'));
       list.appendChild(row);
@@ -1205,20 +1205,28 @@
     if (c && c.state !== 'running') { try { c.resume(); } catch (e) { } }
   });
 
-  /* right: a bright metal ping with a ring on top */
+  /* All the sounds of the app speak one voice: the soul of the game.
+     They also share one level. The sting of the game used to play at 0.85
+     while the rest of the voices sat around 0.1 — one answer was three
+     times as loud as another. */
+  var SFX_FILE_LEVEL = 0.22;
+
+  /* right: the soul confirms — a soft green chime that opens upwards */
   var sfxOk = function () {
     var c = audio(); if (!c) return;
     var t = c.currentTime;
-    ping(784, t, 0.24, 0.10, 'triangle');
-    ping(1568, t + 0.015, 0.20, 0.045, 'sine');
-    hiss(t, 0.05, 0.03, 3400, 2.2);
+    ping(659.25, t, 0.44, 0.085, 'sine');
+    ping(987.77, t + 0.045, 0.40, 0.045, 'sine');
+    ping(1318.51, t + 0.09, 0.30, 0.020, 'sine');
+    hiss(t, 0.07, 0.018, 3200, 1.9);
   };
-  /* wrong: a dull knock that falls away */
+  /* wrong: the soul is refused — a dull knock that sinks away */
   var sfxNo = function () {
     var c = audio(); if (!c) return;
     var t = c.currentTime;
-    ping(200, t, 0.30, 0.13, 'triangle', 0.5);
-    hiss(t, 0.14, 0.05, 380, 0.8);
+    ping(165, t, 0.34, 0.10, 'triangle', 0.55);
+    ping(82, t + 0.02, 0.40, 0.06, 'sine', 0.7);
+    hiss(t, 0.12, 0.035, 320, 0.7);
   };
   /* finished: the real sting of the game, recorded.
      It is a file, not a synth voice, so it plays through an <audio> element.
@@ -1234,7 +1242,7 @@
         var el = new Audio('assets/sfx/lesson-done.m4a');
         el.preload = 'auto';
         el.setAttribute('playsinline', '');
-        el.volume = 0.85;
+        el.volume = SFX_FILE_LEVEL;
         doneEl = el;
       } catch (e) { doneEl = false; }
     }
@@ -1245,10 +1253,10 @@
     var c = audio(); if (!c) return;
     var t = c.currentTime;
     [392, 523, 659, 784].forEach(function (f, i) {
-      ping(f, t + i * 0.075, 0.32, 0.085, 'triangle');
-      ping(f * 2, t + i * 0.075, 0.18, 0.025, 'sine');
+      ping(f, t + i * 0.075, 0.32, 0.070, 'triangle');
+      ping(f * 2, t + i * 0.075, 0.18, 0.020, 'sine');
     });
-    ping(98, t, 0.55, 0.11, 'sine');
+    ping(98, t, 0.55, 0.09, 'sine');
   };
   var sfxDone = function () {
     var el = doneAudio();
@@ -1263,12 +1271,34 @@
   var sfxUnlock = function () {
     var c = audio(); if (!c) return;
     var t = c.currentTime;
-    hiss(t, 0.12, 0.05, 1400, 1.4);
+    hiss(t, 0.12, 0.045, 1400, 1.4);
     [523, 784, 1046].forEach(function (f, i) {
-      ping(f, t + 0.05 + i * 0.07, 0.34, 0.085, 'triangle');
+      ping(f, t + 0.05 + i * 0.07, 0.34, 0.075, 'triangle');
     });
   };
   function buzz(ms) { try { if (S.settings.haptics && navigator.vibrate) navigator.vibrate(ms); } catch (e) { } }
+
+  /* --------------------------------------------------------------- names
+     A display name is the one thing of the player that other people see.
+     A slur is not a name: it is refused here, on the server, and it is
+     hidden on the leaderboard even when it got in by another way. */
+  var BAD_NAMES = ['nigger', 'nigga', 'negro', 'faggot', 'fag', 'retard', 'retarded',
+    'tranny', 'chink', 'kike', 'spic', 'wetback', 'cunt', 'twat', 'rape', 'rapist',
+    'kys', 'suicide'];
+  function offensiveName(name) {
+    var n = String(name || '').toLowerCase().replace(/[^a-z]/g, '');
+    if (!n) return false;
+    for (var i = 0; i < BAD_NAMES.length; i++) {
+      var b = BAD_NAMES[i];
+      if (n === b || n.indexOf(b) >= 0) return true;
+    }
+    return false;
+  }
+  /* a name that is not allowed is not shown either */
+  function safeName(name) {
+    if (!name) return name;
+    return offensiveName(name) ? '—' : name;
+  }
 
   // ------------------------------------------------------------- motion
   /* The counters roll up instead of jumping, the chips bounce when a number
@@ -1335,7 +1365,7 @@
   // ------------------------------------------------------------- support
   /* Everything a tester might want to tell us, in one block they can copy.
      This is the only place that knows where feedback goes. */
-  var APP_VERSION = '0.16.0';
+  var APP_VERSION = '0.17.0';
   var BUILD_DATE = '2026-10-28';
   // Where "report a problem" goes. Two options, both need no server:
   //   ISSUES_URL  a GitHub issue with the diagnostics already filled in
@@ -2655,11 +2685,18 @@
       return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     };
   }
+  /* The run of the day is the warm-up of the day: the questions that can be
+     answered by reading the card, not by writing the whole card from memory.
+     The card fill and the full recall stay for the path — in the run of the
+     day they only make the learner give up. */
+  var DAILY_TYPES = { gives: 1, value: 1, compare: 1, which_item: 1 };
   function dailyQuestions() {
     var rnd = seededRandom(daySeed());
     var pool = [];
     DS.units.forEach(function (u) {
-      u.questions.forEach(function (q) { pool.push(q); });
+      u.questions.forEach(function (q) {
+        if (DAILY_TYPES[q.type]) pool.push(q);
+      });
     });
     for (var i = pool.length - 1; i > 0; i--) {
       var j = Math.floor(rnd() * (i + 1));
@@ -3140,8 +3177,10 @@
         var inp = el('input', 'recall-input');
         inp.type = 'text';
         inp.inputMode = 'decimal';
-        inp.placeholder = '?';
-        inp.setAttribute('aria-label', r.label);
+        /* The field says what to write: "value in s", "value in %". A learner
+           who is asked for five seconds should see that it is seconds. */
+        inp.placeholder = unitPlaceholder(r.unit);
+        inp.setAttribute('aria-label', r.label + (r.unit ? ' in ' + r.unit : ''));
         inp.addEventListener('input', function () {
           L.fields = $$('.recall-input').map(function (x) { return x.value; });
           $('#check-btn').disabled = !L.fields.some(function (v) { return String(v).trim(); });
@@ -3236,6 +3275,15 @@
     if (u === 'm/s') return 'value in m/s';
     if (u === 'm') return 'value in m';
     if (u === 's') return 'value in s';
+    return 'value';
+  }
+
+  /* The same words for a unit that is already known. */
+  function unitPlaceholder(unit) {
+    if (unit === '%') return 'value in %';
+    if (unit === 'm/s') return 'value in m/s';
+    if (unit === 'm') return 'value in m';
+    if (unit === 's') return 'value in s';
     return 'value';
   }
 
@@ -4862,6 +4910,9 @@
     currentQuestion: function () { return (L && L.qs) ? L.qs[L.i] : null; },
     lesson: function () { return L; },
     state: function () { return S; },
+    offensiveName: offensiveName,
+    safeName: safeName,
+    dailyQuestions: dailyQuestions,
     save: save,
     // the cloud — so the checks can drive it without a server
     cloud: function () { return cloud; },
@@ -5088,6 +5139,15 @@
     $('#profile-display-save').addEventListener('click', function () {
       var v = String($('#profile-display').value || '').trim().replace(/\s+/g, ' ').slice(0, 20);
       if (v && v.length < 2) { $('#profile-display').focus(); return; }
+      /* The name is shown to other people on the leaderboard, so it may not
+         be a slur. The check is here as well as on the server: the server is
+         the one that is hard to get at, this one is the one that answers
+         right away. */
+      if (v && offensiveName(v)) {
+        $('#profile-display').focus();
+        toast('That name is not allowed — pick another one');
+        return;
+      }
       S.display = v;
       var n = profileName();
       if (n) DSA.setDisplay(n, v);
@@ -5295,7 +5355,7 @@
   // must keep working without it.
   // The version in the URL forces a fresh worker script on every data change,
   // otherwise the browser may keep serving a stale cached data.js.
-  var SW_VERSION = 'v9';
+  var SW_VERSION = 'v10';
   try {
     if ('serviceWorker' in navigator &&
         (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
