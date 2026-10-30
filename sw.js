@@ -1,7 +1,7 @@
 /* DeadShop service worker — offline shell + runtime cache for item icons.
    Only registers in a secure context (https:// or localhost); on a plain-http
    LAN address the browser refuses it, so the app must degrade gracefully. */
-var CACHE = 'deadshop-v24';
+var CACHE = 'deadshop-v25';
 
 /* Where the site lives. On GitHub Pages the service worker sits in
    /DeadShop-pages/, so every path in the site starts there. Without this
@@ -29,11 +29,14 @@ var SHELL = [
   './data/heroes.js',
   './data/stat_icons.js',
   './data/stat_branches.js',
+  './data/counter_quiz.js',
+  './data/counter_answers.js',
   './assets/icon.svg',
   './assets/owl.svg',
   './assets/flame.svg',
   './assets/soul.svg',
-  './assets/soul-urn.png',
+  './assets/soul-mark.svg',
+  './assets/soul-urn-render.png',
   './assets/icon-192.png',
   './assets/icon-512.png',
   './assets/icon-180.png',

@@ -67,6 +67,40 @@
     if (html !== undefined) e.innerHTML = html;
     return e;
   }
+  /* The picture of an item.
+     The shop is a hundred and fifty-six pictures, and the browser asks for
+     every one of them as soon as the path is drawn. A picture of the game
+     at its own size is fifty kilobytes, so the whole shop weighed eight
+     megabytes. The icon is now drawn twice: once as a WebP the browser
+     knows, once as a small PNG for the browsers that do not. The picture
+     that goes into the page is a <picture>, so the browser takes the WebP
+     and never looks at the PNG. */
+  function iconEl(slug, alt, cls) {
+    var pic = el('picture');
+    if (cls) pic.className = cls;
+    var src = el('source');
+    src.type = 'image/webp';
+    src.srcset = 'assets/icons/' + slug + '-64.webp 64w, assets/icons/' + slug + '-128.webp 128w';
+    src.sizes = '64px';
+    pic.appendChild(src);
+    var im = el('img');
+    im.src = 'assets/icons/' + slug + '.png';
+    im.alt = alt || '';
+    im.loading = 'lazy';
+    im.decoding = 'async';
+    im.width = 64;
+    im.height = 64;
+    pic.appendChild(im);
+    return pic;
+  }
+  /* The same picture, as a piece of markup — for the places that build the
+     page as a string instead of as nodes. */
+  function iconHTML(slug, alt) {
+    return '<picture><source type="image/webp" srcset="assets/icons/' + slug +
+      '-64.webp 64w, assets/icons/' + slug + '-128.webp 128w" sizes="64px">' +
+      '<img src="assets/icons/' + slug + '.png" alt="' + esc(alt || '') +
+      '" loading="lazy" decoding="async" width="64" height="64"></picture>';
+  }
   function setText(sel, txt) { var n = $(sel); if (n) n.textContent = txt; }
 
   // ---- the owl ---------------------------------------------------------
@@ -344,9 +378,18 @@
       b.classList.toggle('on', b.dataset.theme === t);
     });
     var st = $('#sound-toggle'), ht = $('#haptic-toggle'), mt = $('#motion-toggle');
-    if (st) st.classList.toggle('on', !!S.settings.sound);
-    if (ht) ht.classList.toggle('on', !!S.settings.haptics);
-    if (mt) mt.classList.toggle('on', !!S.settings.motion);
+    if (st) {
+      st.classList.toggle('on', !!S.settings.sound);
+      st.setAttribute('aria-checked', S.settings.sound ? 'true' : 'false');
+    }
+    if (ht) {
+      ht.classList.toggle('on', !!S.settings.haptics);
+      ht.setAttribute('aria-checked', S.settings.haptics ? 'true' : 'false');
+    }
+    if (mt) {
+      mt.classList.toggle('on', !!S.settings.motion);
+      mt.setAttribute('aria-checked', S.settings.motion ? 'true' : 'false');
+    }
   }
 
   // --------------------------------------------------------------- the cloud
@@ -579,7 +622,9 @@
 
     var box = el('div', 'settings');
     var nameRow = el('div', 'set-row set-row-col');
-    nameRow.appendChild(el('div', 'set-label', 'Name on the board'));
+    var nameLabel = el('label', 'set-label', 'Name on the board');
+    nameLabel.setAttribute('for', 'cloud-board-name');
+    nameRow.appendChild(nameLabel);
     var input = el('input', 'set-input');
     input.type = 'text';
     input.maxLength = 20;
@@ -594,6 +639,7 @@
     var t = el('button', 'toggle' + (u.public ? ' on' : ''));
     t.id = 'cloud-public';
     t.setAttribute('role', 'switch');
+    t.setAttribute('aria-label', 'Put me on the board');
     t.setAttribute('aria-checked', u.public ? 'true' : 'false');
     t.appendChild(el('span', ''));
     pubRow.appendChild(t);
@@ -716,7 +762,9 @@
       return;
     }
     var row = el('div', 'set-row set-row-col');
-    row.appendChild(el('div', 'set-label', 'Owner key'));
+    var keyLabel = el('label', 'set-label', 'Owner key');
+    keyLabel.setAttribute('for', 'owner-key');
+    row.appendChild(keyLabel);
     var input = el('input', 'set-input');
     input.type = 'password';
     input.id = 'owner-key';
@@ -964,16 +1012,47 @@
     if (!box) return;
     box.innerHTML = '';
 
+    /* The page of the subscription is the pit of the Midboss.
+       The crystal of the game hangs over the pit: a dark shard with a green
+       light inside it. It falls for six seconds, and a heavy blow on it
+       gives the team a credit — a second life. That is what the money buys
+       here, so the page wears the crystal, and the words of the game sit
+       next to it. */
+    var hero = el('div', 'sub-hero');
+    var art = el('div', 'sub-crystal');
+    var crystal = el('img');
+    crystal.src = 'assets/rejuvenator-crystal.svg';
+    crystal.alt = 'The Rejuvenator crystal';
+    crystal.width = 96;
+    crystal.height = 144;
+    crystal.loading = 'lazy';
+    crystal.decoding = 'async';
+    art.appendChild(crystal);
+    var glow = el('div', 'sub-crystal-glow');
+    art.appendChild(glow);
+    hero.appendChild(art);
+
+    var words = el('div', 'sub-hero-b');
+    var title = el('div', 'sub-hero-t', 'REJUVENATOR');
+    words.appendChild(title);
+    var state = el('div', 'sub-plate-state' + (cloud.sub ? ' on' : ''),
+      cloud.sub ? 'ACTIVE' : 'INACTIVE');
+    words.appendChild(state);
+    var lead = el('p', 'sub-hero-s', cloud.sub
+      ? 'The crystal is lit. The server remembers you, and the limit is gone.'
+      : 'A crystal falls in the pit every few minutes. Hit it with a heavy '
+        + 'blow and the team comes back to life. This is the same idea, paid for.');
+    words.appendChild(lead);
+    hero.appendChild(words);
+    box.appendChild(hero);
+
     /* One plate, one list, one price. The old page was a shop window:
        a card per perk, a price in two currencies and a paragraph under
        every line. The server is what the money pays for, and that is
        the only thing worth saying twice. */
     var plate = el('div', 'sub-plate');
     var top = el('div', 'sub-plate-top');
-    top.appendChild(el('div', 'sub-plate-name', 'REJUVENATOR'));
-    var state = el('div', 'sub-plate-state' + (cloud.sub ? ' on' : ''),
-      cloud.sub ? 'ON' : 'OFF');
-    top.appendChild(state);
+    top.appendChild(el('div', 'sub-plate-name', 'WHAT THE MONEY BUYS'));
     plate.appendChild(top);
 
     var list = el('ul', 'sub-list');
@@ -1004,6 +1083,30 @@
         'nothing to pay for — and nothing to switch off either.');
       box.appendChild(alone);
     }
+
+    /* What the crystal is, in the words of the game. The numbers are the
+       ones of the wiki, so a person who knows the game can check them. */
+    var lore = el('div', 'sub-lore');
+    lore.appendChild(el('div', 'sub-lore-h', 'THE CRYSTAL OF THE PIT'));
+    var loreList = el('ul', 'sub-lore-list');
+    [
+      ['13 000', 'health of the Midboss, and it grows by 195 every minute'],
+      ['35', 'the shield that has to be broken first, and it comes back by 5 a minute'],
+      ['3', 'the credits one Midboss gives — one heavy blow each'],
+      ['6 seconds', 'the fall of the crystal before it can be claimed'],
+      ['3 minutes', 'how long a credit lives']
+    ].forEach(function (row) {
+      var li = el('li');
+      li.appendChild(el('b', 'sub-lore-n', row[0]));
+      li.appendChild(el('span', 'sub-lore-d', row[1]));
+      loreList.appendChild(li);
+    });
+    lore.appendChild(loreList);
+    var loreNote = el('p', 'sub-lore-note',
+      'The Midboss wakes up again seven minutes after the first kill, six '
+      + 'after the second, five after the third.');
+    lore.appendChild(loreNote);
+    box.appendChild(lore);
 
     /* the price: one currency, the one that works everywhere */
     var price = el('div', 'sub-price');
@@ -1365,7 +1468,7 @@
   // ------------------------------------------------------------- support
   /* Everything a tester might want to tell us, in one block they can copy.
      This is the only place that knows where feedback goes. */
-  var APP_VERSION = '0.17.0';
+  var APP_VERSION = '0.18.0';
   var BUILD_DATE = '2026-10-30';
   // Where "report a problem" goes. Two options, both need no server:
   //   ISSUES_URL  a GitHub issue with the diagnostics already filled in
@@ -1385,6 +1488,15 @@
     : 'api/shop';
 
   var WHATS_NEW = [
+    ['The site weighs five times less', 'The whole shop used to be eight and a half megabytes of pictures. Now it is one and a half: every icon of the game is drawn at the size it is shown, in the format the browser understands best, and the pictures that are below the fold are not fetched at all. The page opens five times faster on a phone.'],
+    ['The account can be deleted', 'In the profile there is a button that takes the account away: the progress, the streak, the souls, the name on the board and the subscription. The password is asked for, and nothing of it stays behind.'],
+    ['The menu explains itself', 'The side menu is three groups now, and every line says what it does: what is left of the path, what answers what, what the daily run is, how many items there are. It is a list of doors, not a list of names.'],
+    ['The counters have a desk of their own', 'Fifty-nine questions about what answers what, and the owner answers them himself: which of the offered items is the counter that works. Until he has answered a question it is not asked in the quiz — a quiz that guesses is worse than no quiz.'],
+    ['The questions stopped lying', 'A limit is not a gift: "Cooldown" and "Max Stacks" are no longer the answer to "what does this give you". The comparisons of the limits say which is longer and which is shorter. The hint of the upgrade no longer promises a tier that the game does not keep.'],
+    ['The subscription is a crystal', 'The panel of Rejuvenator is built around the crystal of the midboss, and it tells what the boss of the lane really is: 13000 health, a shield of 35, three credits, a buff of three minutes and a respawn of seven, six or five minutes.'],
+    ['The soul keeps its outline', 'The green heart of the soul and the black rim around it — on the light screen and on the dark one. In the plate of the header the soul is now a flame and not a blank disc.'],
+    ['The daily run is timed by the urn', 'The blue Soul Urn of the game stands next to the clock of the run and on the home screen. It is the real model of the game, not a drawing of it.'],
+    ['The site can be read aloud', 'Every field has a name, every icon button says what it does, there is one headline on the page, and the small buttons are big enough for a finger. The colours were measured, not guessed.'],
     ['The numbers say what they mean', 'A card that lasts five seconds is written "5s" and the question about it asks how long it lasts. A distance is asked in metres, a share in per cent, and the unit travels with the answer - in the question, in the field you write in and in the explanation.'],
     ['The soul is a flame', 'A green heart inside a black outside, the way the souls of the game look. The mark is the same everywhere: the daily run on the home screen carried a symbol of its own before.'],
     ['The voices speak at one level', 'The sting of the game used to shout over the other voices. Now the right answer is the confirmation of a soul and the wrong one the refusal of it, and every sound sits at the same level.'],
@@ -1686,7 +1798,7 @@
       renderItems();
     }
     if (name === 'stats') renderStats();
-    if (name === 'profile') renderProfile();
+    if (name === 'profile') { renderProfile(); renderAvatarPicker(); }
     if (name === 'updates') renderUpdates();
     if (name === 'bughunt') renderBughunt();
     if (name === 'friends') renderFriends();
@@ -1694,6 +1806,7 @@
     var lm = $('#limit-modal');
     if (lm) lm.classList.remove('on');
     syncNavActive(name);
+    syncNavCounts();
   }
   var lastXp = null, lastStreak = null, lastLeague = null;
   function renderCounters() {
@@ -1733,6 +1846,7 @@
   function renderAll() {
     renderCounters();
     renderPath(); renderStats(); renderProfile();
+    syncNavCounts();
   }
 
   /* the tab bar lives on the path screen — keep it in sync when we come back */
@@ -1805,6 +1919,27 @@
     $$('.nav-item').forEach(function (it) {
       it.classList.toggle('on', !!map[screen] && map[screen] === it.dataset.go);
     });
+  }
+
+  /* What the menu says about the state of the player.
+     "Lesson path" alone does not tell a person whether there is anything
+     left to do; "18 of 64 lessons" does. */
+  function syncNavCounts() {
+    var total = (DS.units || []).length;
+    var done = unitsDone(trackKey()).length;
+    var n = $('#nav-path-n');
+    if (n) n.textContent = done + '/' + total;
+    var note = $('#nav-path-note');
+    if (note) {
+      note.textContent = done === 0
+        ? total + ' lessons, one after another'
+        : (done >= total ? 'every lesson is done' : total - done + ' lessons left');
+    }
+    var tag = $('#nav-sub-tag');
+    if (tag) {
+      tag.textContent = cloud.sub ? 'ON' : 'OFF';
+      tag.classList.toggle('on', !!cloud.sub);
+    }
   }
 
   function navOpen() {
@@ -2068,13 +2203,11 @@
            The old padlock told the player nothing except "no". */
         var firstItem = DS.items[u.items[0]];
         if (firstItem) {
-          var img0 = el('img'); img0.src = firstItem.icon; img0.alt = ''; img0.loading = 'lazy';
-          ic.appendChild(img0);
+          ic.appendChild(iconEl(firstItem.slug, ''));
         }
         ic.appendChild(el('div', 'unit-lock', '🔒'));
       } else {
-        var img = el('img'); img.src = u.icon; img.alt = ''; img.loading = 'lazy';
-        ic.appendChild(img);
+        ic.appendChild(iconEl(u.icon, ''));
         if (done) ic.appendChild(el('div', 'unit-check', '✓'));
       }
       var body = el('div', 'unit-body');
@@ -2086,8 +2219,8 @@
         u.items.forEach(function (slug) {
           var it = DS.items[slug];
           if (!it) return;
-          var im = el('img'); im.src = it.icon; im.alt = it.name; im.title = it.name;
-          im.loading = 'lazy';
+          var im = iconEl(it.slug, it.name);
+          im.querySelector('img').title = it.name;
           strip.appendChild(im);
         });
         body.appendChild(strip);
@@ -2248,15 +2381,36 @@
     });
     return out;
   }
-  function counterLead(cat) {
-    var items = counterItems(cat);
-    for (var i = 0; i < items.length; i++) if (items[i].slug === cat.lead) return items[i];
-    return items[0] || null;
+  /* How many of the counter questions the owner has answered. The quiz only
+     asks the ones that are answered, and the number is shown here so that it
+     is clear that the rest are still waiting. */
+  function renderCounterProgress() {
+    var box = $('#counter-progress');
+    if (!box) return;
+    box.innerHTML = '';
+    var total = COUNTER_QUIZ.length;
+    var done = counterBank().length;
+    var btn = $('#counters-quiz');
+    if (btn) {
+      btn.disabled = done === 0;
+      btn.textContent = done
+        ? 'PICK THE RIGHT COUNTER — ' + done + ' READY'
+        : 'THE COUNTER ANSWERS ARE NOT FILLED IN YET';
+    }
+    if (!total) return;
+    var line = el('div', 'cnt-progress-line');
+    line.innerHTML = '<b>' + done + '</b> of ' + total +
+      ' counter questions have the answer of the owner. ' +
+      (done < total
+        ? 'Only the answered ones are asked.'
+        : 'All of them are asked.');
+    box.appendChild(line);
   }
   function renderCounterLibrary() {
     var box = $('#counter-list');
     if (!box) return;
     box.innerHTML = '';
+    renderCounterProgress();
     COUNTERS.forEach(function (c) {
       var items = counterItems(c);
       var row = el('button', 'cnt-row');
@@ -2265,7 +2419,8 @@
       row.appendChild(el('div', 'cnt-row-n', items.length + ' items · ' + c.note));
       var imgs = el('div', 'cnt-row-icons');
       items.slice(0, 5).forEach(function (it) {
-        var im = el('img'); im.src = it.icon; im.alt = it.name; im.title = it.name; im.loading = 'lazy';
+        var im = iconEl(it.slug, it.name);
+        im.querySelector('img').title = it.name;
         imgs.appendChild(im);
       });
       row.appendChild(imgs);
@@ -2291,7 +2446,7 @@
     var list = el('div', 'cnt-items');
     counterItems(c).forEach(function (it) {
       var row = el('div', 'cnt-item');
-      var im = el('img'); im.src = it.icon; im.alt = ''; im.loading = 'lazy';
+      var im = iconEl(it.slug, '');
       row.appendChild(im);
       var b = el('div', 'cnt-item-b');
       b.appendChild(el('div', 'cnt-item-n', it.name));
@@ -2307,69 +2462,86 @@
     if (sc) sc.scrollTop = sc.scrollHeight;
   }
 
-  /* The quiz: a hero is shown, four items are offered, one of them is the
-     answer. The wrong ones come from other lists, so there is exactly one
-     right answer on the table. */
-  function counterQuestion(hero, cat, correct, distractors) {
-    var pool = counterItems(cat).map(function (it) { return it.name; });
-    var opts = [correct.name].concat(distractors.map(function (d) { return d.name; }));
-    // a small shuffle of the four
+  /* The quiz of the counter library.
+     The questions live in data/counter_quiz.js and the answers of the owner
+     in data/counter_answers.js. A question the owner has not answered is not
+     asked at all: nobody may know the right answer of it, and a quiz that
+     guesses is worse than no quiz.
+
+     The answers are read when the quiz is built, not when the page is
+     loaded: the file of the owner may have been rewritten since. */
+  var COUNTER_QUIZ = (window.DSCQ && window.DSCQ.questions) || [];
+
+  function counterAnswers() {
+    return (window.DSCA && window.DSCA.answers) || {};
+  }
+  function counterRetired() {
+    return (window.DSCA && window.DSCA.retired) || {};
+  }
+
+  function counterAnswered(q) {
+    if (counterRetired()[q.id]) return false;
+    var slug = counterAnswers()[q.id];
+    if (slug === undefined || slug === null) return false;
+    if (slug === '') return true;      // "none of them fits"
+    return (q.choices || []).indexOf(slug) >= 0;
+  }
+  function counterBank() {
+    return COUNTER_QUIZ.filter(counterAnswered);
+  }
+  /* The name of an item, with the little picture of the game next to it. */
+  function counterLabel(slug) {
+    var it = DS.items[slug];
+    return it ? it.name : slug;
+  }
+  function counterQuestion(q) {
+    var choices = (q.choices || []).slice();
+    var answerSlug = counterAnswers()[q.id];
+    var isNone = answerSlug === '';
+    // the owner's answer is always on the table, and the others are the
+    // candidates of the question
+    var opts = choices.map(counterLabel);
+    if (isNone) opts.push('None of them fits');
+    // a small shuffle, so the right answer is not always in the same place
     for (var i = opts.length - 1; i > 0; i--) {
       var j = Math.floor(Math.random() * (i + 1));
       var t = opts[i]; opts[i] = opts[j]; opts[j] = t;
     }
-    var why = {
-      heal: 'keeps the team alive',
-      gun: 'kills with bullets',
-      bullet: 'soaks bullets and walks through them',
-      spirit: 'burns with spirit',
-      control: 'is fast and cannot be held still',
-      melee: 'kills with its fists',
-      burst: 'deletes you before you can react'
-    }[hero.w] || 'is hard to kill';
+    var answer = isNone ? 'None of them fits' : counterLabel(answerSlug);
+    var explain = '';
+    if (isNone) {
+      explain = 'None of the items above answers <b>' + (q.catTitle || 'this') + '</b>. ' +
+        (q.why || '');
+    } else {
+      var right = DS.items[answerSlug];
+      explain = 'The answer is <b>' + counterLabel(answerSlug) + '</b>' +
+        (right && right.desc ? ' — ' + right.desc : '') + '. ' + (q.why || '');
+    }
     return {
-      type: 'counter', act: 'counter', item: correct.slug, hero: hero.slug,
-      question: 'Which item answers ' + hero.name + '?',
-      options: opts, answer: correct.name,
-      explain: hero.name + ' ' + why + '. The answer is <b>' + correct.name + '</b> — ' +
-        'the item belongs to the list “' + cat.title + '”. In that list: ' +
-        pool.slice(0, 6).join(', ') + '.',
-      id: 'counter-' + hero.slug + '-' + cat.id,
+      type: 'counter', act: 'counter', item: answerSlug || (choices[0] || ''),
+      hero: q.kind === 'hero' ? q.hero : null,
+      question: q.question,
+      options: opts,
+      answer: answer,
+      explain: explain,
+      id: q.id,
       weight: 1
     };
   }
   function startCounterQuiz() {
-    var ready = HEROES.filter(function (h) {
-      var c = counterById(h.w);
-      return c && counterItems(c).length >= 2;
-    });
-    if (!ready.length) { toast('The counter lists are empty'); return; }
-    // ten heroes, taken at random
-    var picks = ready.slice();
+    var bank = counterBank();
+    if (!bank.length) {
+      toast('The counter answers are not filled in yet');
+      return;
+    }
+    // ten questions, taken at random
+    var picks = bank.slice();
     for (var i = picks.length - 1; i > 0; i--) {
       var j = Math.floor(Math.random() * (i + 1));
       var t = picks[i]; picks[i] = picks[j]; picks[j] = t;
     }
     picks = picks.slice(0, 10);
-    var otherItems = [];
-    COUNTERS.forEach(function (c) {
-      counterItems(c).forEach(function (it) { otherItems.push(it); });
-    });
-    var qs = picks.map(function (h) {
-      var cat = counterById(h.w);
-      var correct = counterLead(cat);
-      var wrong = [];
-      while (wrong.length < 3) {
-        var cand = otherItems[Math.floor(Math.random() * otherItems.length)];
-        if (!cand) break;
-        if (cand.slug === correct.slug) continue;
-        if (cand.name === correct.name) continue;
-        var dup = false;
-        wrong.forEach(function (w) { if (w.slug === cand.slug) dup = true; });
-        if (!dup) wrong.push(cand);
-      }
-      return counterQuestion(h, cat, correct, wrong);
-    });
+    var qs = picks.map(counterQuestion);
     startMixed(qs, 'Counter pick', 'ten heroes, ten right answers', 'review');
   }
 
@@ -2429,7 +2601,7 @@
     }
     list.forEach(function (it) {
       var row = el('div', 'item-card ic-slot-' + slotClass(it.slot));
-      var img = el('img'); img.src = it.icon; img.alt = ''; img.loading = 'lazy';
+      var img = iconEl(it.slug, '');
       var body = el('div', 'ic-body');
       body.appendChild(el('div', 'ic-name', it.name));
       var stats = it.innate.concat(it.active);
@@ -2451,7 +2623,8 @@
     var card = $('#modal-card');
     var rows = it.innate.concat(it.active);
     var b = boxOf(it.slug);
-    var h = '<div class="modal-head"><img src="' + it.icon + '" alt=""><div><div class="modal-title">' +
+    var h = '<div class="modal-head">' + iconHTML(it.slug, '') +
+      '<div><div class="modal-title">' +
       esc(it.name) + '</div><div class="modal-meta">' + esc(it.slot) + ' · Tier ' + it.tier + ' · ' +
       it.cost.toLocaleString() + ' souls · ' + esc(it.activation) + '</div></div>' +
       '<div class="modal-ring">' + ring(b) + '<span>L' + b + '</span></div></div>';
@@ -2597,7 +2770,7 @@
     weak.slice(0, 12).forEach(function (s) {
       var it = DS.items[s], m = myMap[s];
       var row = el('div', 'mrow');
-      var img = el('img'); img.src = it.icon; img.alt = '';
+      var img = iconEl(it.slug, '');
       row.appendChild(img);
       row.appendChild(el('div', 'mname', it.name));
       row.appendChild(el('div', 'ri-box', m.wrong + ' wrong'));
@@ -2611,7 +2784,7 @@
     touched.sort(function (a, b) { return boxOf(b) - boxOf(a); }).forEach(function (s) {
       var it = DS.items[s], b = boxOf(s);
       var row = el('div', 'mrow');
-      var img = el('img'); img.src = it.icon; img.alt = '';
+      var img = iconEl(it.slug, '');
       row.appendChild(img);
       row.appendChild(el('div', 'mname', it.name));
       var bar = el('div', 'bar'); var i = el('i'); i.style.width = (b / 5 * 100) + '%'; bar.appendChild(i);
@@ -2795,6 +2968,7 @@
     if (examTimerId) { clearInterval(examTimerId); examTimerId = null; }
     var t = $('#exam-timer');
     if (t) t.hidden = true;
+    stopUrnTimer();
   }
   function startExamTimer() {
     stopExamTimer();
@@ -2807,6 +2981,17 @@
     }
     tick();
     examTimerId = setInterval(tick, 1000);
+  }
+
+  /* The clock of the run of the day.
+     The run stands in the Soul Urn of the game, and the urn is the thing
+     that keeps the time in the game too — so the clock sits next to a
+     little urn, and it only shows while the run lasts. */
+  var urnTimerId = null;
+  function stopUrnTimer() {
+    if (urnTimerId) { clearInterval(urnTimerId); urnTimerId = null; }
+    var t = $('#urn-timer');
+    if (t) t.hidden = true;
   }
 
   function startExam() {
@@ -2925,18 +3110,22 @@
   }
 
   /* The clock of a run. The exam had one already; the daily run gets it
-     too, because a run you can time is a run you want to beat. */
+     too, because a run you can time is a run you want to beat. The run of
+     the day stands in the Soul Urn of the game, so its clock stands in one
+     too — a little turquoise jar with the time inside it. */
   function startRunClock() {
     stopExamTimer();
-    var t = $('#exam-timer');
+    stopUrnTimer();
+    var t = $('#urn-timer');
     if (!t) return;
     t.hidden = false;
     function tick() {
       var s = Math.floor((Date.now() - (L.startedAt || Date.now())) / 1000);
-      t.textContent = Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2);
+      var out = $('#urn-timer-t');
+      if (out) out.textContent = Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2);
     }
     tick();
-    examTimerId = setInterval(tick, 1000);
+    urnTimerId = setInterval(tick, 1000);
   }
 
   /* how many of the questions of the run are already right */
@@ -3114,7 +3303,7 @@
       // The head only names the subject. It is deliberately not a link:
       // opening the full card would show every stat and hand over the answer.
       var head = el('div', 'item-head ic-slot-' + slotClass(item.slot));
-      var img = el('img'); img.src = item.icon; img.alt = item.name;
+      var img = iconEl(item.slug, item.name);
       head.appendChild(img);
       var hb = el('div');
       hb.appendChild(el('div', 'ih-name', item.name));
@@ -3489,7 +3678,7 @@
         var it = DS.items[s];
         var missed = (L.wrongItems || []).indexOf(s) >= 0;
         var row = el('div', 'ri');
-        var img = el('img'); img.src = it.icon; img.alt = '';
+        var img = iconEl(it.slug, '');
         row.appendChild(img);
         row.appendChild(el('div', 'ri-name', it.name));
         row.appendChild(el('div', 'ri-box ' + (missed ? 'bad' : 'good'), missed ? 'missed' : 'got it'));
@@ -3541,7 +3730,7 @@
         var it = DS.items[s];
         var missed = (L.wrongItems || []).indexOf(s) >= 0;
         var row = el('div', 'ri');
-        var img = el('img'); img.src = it.icon; img.alt = '';
+        var img = iconEl(it.slug, '');
         row.appendChild(img);
         row.appendChild(el('div', 'ri-name', it.name));
         row.appendChild(el('div', 'ri-box ' + (missed ? 'bad' : 'good'), missed ? 'missed' : 'got it'));
@@ -3667,7 +3856,7 @@
     Object.keys(seen).forEach(function (s) {
       var it = DS.items[s], m = mst(s);
       var row = el('div', 'ri');
-      var img = el('img'); img.src = it.icon; img.alt = '';
+      var img = iconEl(it.slug, '');
       row.appendChild(img);
       row.appendChild(el('div', 'ri-name', it.name));
       var bar = el('div', 'bar'); var i2 = el('i'); i2.style.width = (Math.min(1, m.box / 5) * 100) + '%'; bar.appendChild(i2);
@@ -3969,6 +4158,26 @@
     return n ? DSA.displayName(n) : 'Guest';
   }
 
+  /* The portraits of the heroes, drawn only when the profile is on the
+     screen: forty-four pictures that nobody asked for yet. */
+  function renderAvatarPicker() {
+    var pick = $('#avatar-picker');
+    if (!pick) return;
+    pick.innerHTML = '';
+    var list = ['owl'].concat(HEROES.map(function (h) { return h.slug; }));
+    list.forEach(function (slug) {
+      var b = el('button', 'ava' + ((S.avatar || 'owl') === slug ? ' on' : ''));
+      b.type = 'button';
+      var h = heroBySlug(slug);
+      b.title = h ? h.name : 'Guided Owl';
+      b.innerHTML = '<img src="' + avatarUrl(slug) + '" alt="' +
+        (h ? h.name : 'Guided Owl') + '" loading="lazy" decoding="async" width="72" height="120">';
+      b.addEventListener('click', function () {
+        S.avatar = slug; save(); renderProfile(); renderAvatarPicker();
+      });
+      pick.appendChild(b);
+    });
+  }
   function renderProfile() {
     var name = profileName();
     var lessons = S.lessons;
@@ -4008,24 +4217,9 @@
       as.className = 'set-meta' + (st === 'running' ? ' ok' : '');
     }
 
-    // avatar picker: the owl and the heroes of the game
-    var pick = $('#avatar-picker');
-    if (pick) {
-      pick.innerHTML = '';
-      var list = ['owl'].concat(HEROES.map(function (h) { return h.slug; }));
-      list.forEach(function (slug) {
-        var b = el('button', 'ava' + ((S.avatar || 'owl') === slug ? ' on' : ''));
-        b.type = 'button';
-        var h = heroBySlug(slug);
-        b.title = h ? h.name : 'Guided Owl';
-        b.innerHTML = '<img src="' + avatarUrl(slug) + '" alt="' +
-          (h ? h.name : 'Guided Owl') + '">';
-        b.addEventListener('click', function () {
-          S.avatar = slug; save(); renderProfile();
-        });
-        pick.appendChild(b);
-      });
-    }
+    // the picker of the avatars is drawn by the screen itself, not by
+    // this function: forty-four portraits are eight hundred kilobytes of
+    // picture, and they are behind a screen that most people never open.
 
     // guest banner
     var banner = $('#guest-banner');
@@ -5079,6 +5273,69 @@
       if (e.target.id === 'limit-modal') $('#limit-modal').classList.remove('on');
     });
 
+    /* ---- delete the account -----------------------------------------
+       The player asks to be forgotten. Two things have to happen: the
+       server has to forget the account, and this browser has to forget
+       the progress that belongs to it. The progress goes first — a
+       browser that still holds the progress of a deleted account is a
+       browser that has not deleted anything. */
+    var delModal = $('#delete-modal');
+    function closeDelete() {
+      if (delModal) delModal.classList.remove('on');
+      setText('#delete-error', '');
+      var p = $('#delete-pass');
+      if (p) p.value = '';
+    }
+    $('#delete-acc-btn').addEventListener('click', function () {
+      var name = profileName();
+      if (!name) {
+        toast('There is no account to delete — this is a guest');
+        return;
+      }
+      setText('#delete-error', '');
+      var p = $('#delete-pass');
+      if (p) { p.value = ''; p.focus(); }
+      delModal.classList.add('on');
+    });
+    $('#delete-cancel').addEventListener('click', closeDelete);
+    delModal.addEventListener('click', function (e) {
+      if (e.target.id === 'delete-modal') closeDelete();
+    });
+    $('#delete-go').addEventListener('click', function () {
+      var pass = $('#delete-pass').value;
+      if (!pass) { setText('#delete-error', 'Write the password of this account'); return; }
+      var btn = $('#delete-go');
+      btn.disabled = true;
+      btn.textContent = 'DELETING…';
+      DSCLOUD.deleteAccount(pass).then(function (r) {
+        /* the account is gone from the server; now this browser must let
+           go of it as well */
+        try { localStorage.removeItem(storageKey()); } catch (e) { }
+        try { localStorage.removeItem('deadshop-nav-v1'); } catch (e) { }
+        closeDelete();
+        btn.disabled = false;
+        btn.textContent = 'DELETE THE ACCOUNT';
+        if (r && r.ok) {
+          S = load(storageKey());
+          applySettings();
+          renderAll();
+          show('home');
+          toast('The account is gone');
+        } else {
+          setText('#delete-error', (r && r.error) || 'The server refused');
+        }
+      }).catch(function (e) {
+        btn.disabled = false;
+        btn.textContent = 'DELETE THE ACCOUNT';
+        /* the server says what is wrong: a wrong password, or no server */
+        var msg = (e && e.data && e.data.error) || (e && e.message) || 'The server is not reachable';
+        setText('#delete-error', msg);
+      });
+    });
+    $('#delete-pass').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); $('#delete-go').click(); }
+    });
+
     // bughunt
     $('#bh-submit').addEventListener('click', bhSubmit);
     $('#bh-apply').addEventListener('click', bhApplyCode);
@@ -5360,7 +5617,7 @@
   // must keep working without it.
   // The version in the URL forces a fresh worker script on every data change,
   // otherwise the browser may keep serving a stale cached data.js.
-  var SW_VERSION = 'v12';
+  var SW_VERSION = 'v13';
   try {
     if ('serviceWorker' in navigator &&
         (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {

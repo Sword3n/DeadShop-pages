@@ -8,7 +8,7 @@
 <!-- the build of the page itself. The script reads it and compares it with
      its own version: a page from an older build next to a newer script is
      a site that throws, so the two are put back together. -->
-<meta name="ds-version" content="0.17.0">
+<meta name="ds-version" content="0.18.0">
 <!-- a private test build: it stays out of the search engines, the link is
      the only way in. Remove this line when the site goes public on purpose. -->
 <meta name="robots" content="noindex, nofollow">
@@ -31,12 +31,14 @@
 <meta name="twitter:description" content="156 shop items, 64 lessons, 755 questions. Memorise every stat so you buy with confidence.">
 <meta name="twitter:image" content="https://sword3n.github.io/DeadShop-pages/assets/og.png">
 <link rel="manifest" href="manifest.webmanifest">
+<!-- the one address of this site: the published build lives here -->
+<link rel="canonical" href="https://sword3n.github.io/DeadShop-pages/">
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
 <link rel="icon" href="assets/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="mask-icon" href="assets/icon.svg" color="#3DDCC8">
 <link rel="apple-touch-icon" href="assets/icon-180.png">
 <link rel="preload" href="assets/fonts/saira-var.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="app.css?v=16">
+<link rel="stylesheet" href="app.css?v=17">
 </head>
 <body>
 <!-- ========================== THE BOOT SCREEN ==========================
@@ -63,9 +65,10 @@
 <div id="app">
 
   <!-- ========================== SIDE MENU ========================== -->
-  <!-- The whole navigation lives in one column of collapsible modules.
-       On a phone it slides in from the left, on a desktop it is always
-       there. The bottom tab bar stays for quick jumps on a phone. -->
+  <!-- The whole navigation in one column. Every entry says what it does
+       under its name, and the ones that have a number in them show it:
+       a menu that says "12 of 64 lessons" is understood at a glance, a menu
+       that says "Lesson path" is not. -->
   <nav class="side-nav" id="side-nav" aria-label="Main menu">
     <button class="nav-brand" id="nav-home" type="button" aria-label="DeadShop - home">
       <img class="nav-brand-mark" src="assets/owl.svg" alt="" width="32" height="32">
@@ -86,23 +89,73 @@
           <svg viewBox="0 0 24 24" class="nav-chev"><path d="M6 9l6 6 6-6"/></svg>
         </button>
         <div class="nav-items">
-          <button class="nav-item on" type="button" data-go="path">Lesson path</button>
-          <button class="nav-item" type="button" data-go="exam">Test yourself</button>
-          <button class="nav-item" type="button" data-go="counters">Counter library</button>
-          <button class="nav-item" type="button" data-go="friends">Friends board</button>
+          <button class="nav-item on" type="button" data-go="path">
+            <span class="nav-item-ico"><svg viewBox="0 0 24 24"><path d="M4 19c3.6 0 3.4-7 8-7s4.4 7 8 7"/><circle cx="4" cy="19" r="2"/><circle cx="20" cy="19" r="2"/></svg></span>
+            <span class="nav-item-b">
+              <span class="nav-item-t">Lesson path</span>
+              <span class="nav-item-s" id="nav-path-note">64 lessons, one after another</span>
+            </span>
+            <span class="nav-item-n" id="nav-path-n">0/64</span>
+          </button>
+          <button class="nav-item" type="button" data-go="daily">
+            <span class="nav-item-ico"><svg viewBox="0 0 24 24"><path d="M12 3v9l5 3"/><circle cx="12" cy="12" r="9"/></svg></span>
+            <span class="nav-item-b">
+              <span class="nav-item-t">Daily run</span>
+              <span class="nav-item-s">12 questions, the same for everyone</span>
+            </span>
+          </button>
+          <button class="nav-item" type="button" data-go="exam">
+            <span class="nav-item-ico"><svg viewBox="0 0 24 24"><path d="M5 3h14v18l-7-4-7 4z"/></svg></span>
+            <span class="nav-item-b">
+              <span class="nav-item-t">Test yourself</span>
+              <span class="nav-item-s">10 questions on the clock</span>
+            </span>
+          </button>
+          <button class="nav-item" type="button" data-go="counters">
+            <span class="nav-item-ico"><svg viewBox="0 0 24 24"><path d="M12 3l8 4v5c0 4.4-3.2 8.4-8 9.6C7.2 20.4 4 16.4 4 12V7z"/></svg></span>
+            <span class="nav-item-b">
+              <span class="nav-item-t">What answers what</span>
+              <span class="nav-item-s">The counters to every kind of hero</span>
+            </span>
+          </button>
         </div>
       </section>
 
       <section class="nav-group" data-group="reference">
         <button class="nav-head" type="button" aria-expanded="false">
           <svg viewBox="0 0 24 24" class="nav-ico"><path d="M4 5h7v7H4zM13 5h7v7h-7zM4 14h7v7H4zM13 14h7v7h-7z"/></svg>
-          <span class="nav-head-txt">Reference</span>
+          <span class="nav-head-txt">Look it up</span>
           <svg viewBox="0 0 24 24" class="nav-chev"><path d="M6 9l6 6 6-6"/></svg>
         </button>
         <div class="nav-items">
-          <button class="nav-item" type="button" data-go="items">Item browser</button>
-          <button class="nav-item" type="button" data-go="stats">Statistics</button>
-          <button class="nav-item" type="button" data-go="updates">Latest update</button>
+          <button class="nav-item" type="button" data-go="items">
+            <span class="nav-item-ico"><svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg></span>
+            <span class="nav-item-b">
+              <span class="nav-item-t">Every item</span>
+              <span class="nav-item-s">All 156, searchable</span>
+            </span>
+          </button>
+          <button class="nav-item" type="button" data-go="stats">
+            <span class="nav-item-ico"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span>
+            <span class="nav-item-b">
+              <span class="nav-item-t">Your progress</span>
+              <span class="nav-item-s">What you know and what is still weak</span>
+            </span>
+          </button>
+          <button class="nav-item" type="button" data-go="updates">
+            <span class="nav-item-ico"><svg viewBox="0 0 24 24"><path d="M12 8v5M12 16h.01"/><circle cx="12" cy="12" r="9"/></svg></span>
+            <span class="nav-item-b">
+              <span class="nav-item-t">What changed</span>
+              <span class="nav-item-s">The shop of the latest patch</span>
+            </span>
+          </button>
+          <button class="nav-item" type="button" data-go="friends">
+            <span class="nav-item-ico"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.4"/><path d="M2.5 20c0-3.6 2.9-5.8 6.5-5.8s6.5 2.2 6.5 5.8"/><path d="M17 5.5a3.4 3.4 0 010 6.4M18.5 14.6c2 .8 3.3 2.7 3.3 5.4"/></svg></span>
+            <span class="nav-item-b">
+              <span class="nav-item-t">Friends board</span>
+              <span class="nav-item-s">Who is learning with you</span>
+            </span>
+          </button>
         </div>
       </section>
 
@@ -113,9 +166,35 @@
           <svg viewBox="0 0 24 24" class="nav-chev"><path d="M6 9l6 6 6-6"/></svg>
         </button>
         <div class="nav-items">
-          <button class="nav-item" type="button" data-go="bughunt">Bughunt</button>
-          <button class="nav-item" type="button" data-go="sub">Rejuvenator</button>
-          <button class="nav-item" type="button" data-go="help">Help &amp; feedback</button>
+          <button class="nav-item" type="button" data-go="profile">
+            <span class="nav-item-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 21c0-4 3.4-6.4 7.5-6.4s7.5 2.4 7.5 6.4"/></svg></span>
+            <span class="nav-item-b">
+              <span class="nav-item-t">Profile</span>
+              <span class="nav-item-s">Your name, your data, your account</span>
+            </span>
+          </button>
+          <button class="nav-item" type="button" data-go="sub">
+            <span class="nav-item-ico"><svg viewBox="0 0 24 24"><path d="M12 2l7 6v9l-7 5-7-5V8z"/><path d="M12 8v8M8.5 11h7"/></svg></span>
+            <span class="nav-item-b">
+              <span class="nav-item-t">Rejuvenator</span>
+              <span class="nav-item-s">Support the project, take the ads away</span>
+            </span>
+            <span class="nav-item-tag" id="nav-sub-tag">OFF</span>
+          </button>
+          <button class="nav-item" type="button" data-go="bughunt">
+            <span class="nav-item-ico"><svg viewBox="0 0 24 24"><path d="M8 3v3M16 3v3M4 9h16M6 5h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2z"/><path d="M9 14h2M13 14h2"/></svg></span>
+            <span class="nav-item-b">
+              <span class="nav-item-t">Report a bug</span>
+              <span class="nav-item-s">Tell the owner what is wrong</span>
+            </span>
+          </button>
+          <button class="nav-item" type="button" data-go="help">
+            <span class="nav-item-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.6 2.6 0 015 .9c0 1.8-2.5 2-2.5 3.6M12 17h.01"/></svg></span>
+            <span class="nav-item-b">
+              <span class="nav-item-t">Help</span>
+              <span class="nav-item-s">How the trainer works</span>
+            </span>
+          </button>
         </div>
       </section>
     </div>
@@ -153,7 +232,12 @@
       </div>
 
       <button class="home-main urn-run" id="home-daily" type="button">
-        <img class="urn-mark" src="assets/soul-urn.png" alt="" width="64" height="64">
+        <picture class="urn-mark-pic">
+          <source type="image/webp"
+                  srcset="assets/soul-urn-render-96.webp 96w, assets/soul-urn-render-192.webp 192w"
+                  sizes="96px">
+          <img class="urn-mark" src="assets/soul-urn-render.png" alt="The Soul Urn of the game" width="96" height="195">
+        </picture>
         <span class="urn-body">
           <span class="urn-k">DAILY RUN</span>
           <span class="urn-s" id="home-daily-sub">the same questions for everyone today</span>
@@ -213,6 +297,7 @@
         <div class="cnt-hero-s">Nine lists, built from the shop itself. Open one to see the items.</div>
       </div>
       <button class="btn btn-block cnt-quiz" id="counters-quiz">PICK THE RIGHT COUNTER</button>
+      <div class="cnt-progress" id="counter-progress"></div>
       <div id="counter-list"></div>
       <div id="counter-items" hidden></div>
       <div class="foot-slot" id="foot-counters"></div>
@@ -262,7 +347,7 @@
       <div class="hero">
         <img class="hero-mark owl-mark owl-float" src="assets/owl.svg" alt="Grey Talon's owl" width="52" height="52">
         <div>
-          <h1>DeadShop</h1>
+          <h2>DeadShop</h2>
           <p class="hero-sub">Memorise the shop. Buy with confidence.</p>
         </div>
       </div>
@@ -347,7 +432,8 @@
         <img class="ico owl-ico" src="assets/owl.svg" alt="">
       </button>
       <div class="search-wrap">
-        <input id="item-search" type="search" placeholder="Search items…" autocomplete="off">
+        <input id="item-search" type="search" placeholder="Search items…" autocomplete="off"
+               aria-label="Search items">
       </div>
       <button class="icon-btn" id="items-profile" aria-label="Profile">
         <svg viewBox="0 0 24 24" class="ico"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm0 2c-4 0-8 2-8 5v1h16v-1c0-3-4-5-8-5z"/></svg>
@@ -465,22 +551,22 @@
           </div>
         </div>
         <div class="set-row set-row-col">
-          <div class="set-label">Where did it happen?</div>
+          <label class="set-label" for="bh-where">Where did it happen?</label>
           <input class="set-input" id="bh-where" type="text" maxlength="120"
                  placeholder="e.g. Item browser → Rapid Rounds">
         </div>
         <div class="set-row set-row-col">
-          <div class="set-label">What happened?</div>
+          <label class="set-label" for="bh-what">What happened?</label>
           <textarea class="set-input" id="bh-what" rows="4" maxlength="2000"
                     placeholder="What is wrong, and what should it be instead?"></textarea>
         </div>
         <div class="set-row set-row-col">
-          <div class="set-label">How to reproduce</div>
+          <label class="set-label" for="bh-steps">How to reproduce</label>
           <textarea class="set-input" id="bh-steps" rows="3" maxlength="1200"
                     placeholder="Steps, if you have them"></textarea>
         </div>
         <div class="set-row set-row-col">
-          <div class="set-label">Your name or e-mail (optional)</div>
+          <label class="set-label" for="bh-contact">Your name or e-mail (optional)</label>
           <input class="set-input" id="bh-contact" type="text" maxlength="120"
                  placeholder="So the souls can find you">
         </div>
@@ -495,7 +581,7 @@
       <h3 class="section-h">I have a code</h3>
       <div class="settings">
         <div class="set-row set-row-col">
-          <div class="set-label">Report code or soul reward</div>
+          <label class="set-label" for="bh-code">Report code or soul reward</label>
           <textarea class="set-input" id="bh-code" rows="3" maxlength="4000"
                     placeholder="Paste a DSB1-… report code or a DSG1-… reward code"></textarea>
         </div>
@@ -560,6 +646,13 @@
       </button>
       <div class="progress"><div class="progress-fill" id="progress-fill"></div></div>
       <div class="exam-timer" id="exam-timer" hidden>0:00</div>
+      <div class="urn-timer" id="urn-timer" hidden>
+        <picture class="urn-timer-pic">
+          <source type="image/webp" srcset="assets/soul-urn-render-96.webp 96w" sizes="30px">
+          <img src="assets/soul-urn-render.png" alt="" width="15" height="30">
+        </picture>
+        <span id="urn-timer-t">0:00</span>
+      </div>
       <div class="run-score" id="run-score" hidden>0 ✓</div>
       <div class="lesson-count" id="lesson-count">1/1</div>
     </header>
@@ -681,17 +774,17 @@
         <div id="cloud-state"></div>
         <div class="settings" id="cloud-form" hidden>
           <div class="set-row set-row-col">
-            <div class="set-label">E-mail</div>
+            <label class="set-label" for="cloud-email">E-mail</label>
             <input class="set-input" id="cloud-email" type="email" maxlength="120"
                    placeholder="you@example.com" autocomplete="username" inputmode="email">
           </div>
           <div class="set-row set-row-col">
-            <div class="set-label">Password</div>
+            <label class="set-label" for="cloud-pass">Password</label>
             <input class="set-input" id="cloud-pass" type="password" maxlength="80"
                    placeholder="at least 8 characters" autocomplete="current-password">
           </div>
           <div class="set-row set-row-col">
-            <div class="set-label">Name on the board (optional)</div>
+            <label class="set-label" for="cloud-name">Name on the board (optional)</label>
             <input class="set-input" id="cloud-name" type="text" maxlength="20"
                    placeholder="How should the board call you?">
           </div>
@@ -720,7 +813,7 @@
       <h3 class="section-h">Your profile</h3>
       <div class="settings">
         <div class="set-row set-row-col">
-          <div class="set-label">Display name</div>
+          <label class="set-label" for="profile-display">Display name</label>
           <div class="set-inline">
             <input class="set-input" id="profile-display" type="text" maxlength="20"
                    placeholder="How should we call you?" autocomplete="nickname">
@@ -773,18 +866,18 @@
           </div>
         </div>
         <div class="set-row">
-          <div class="set-label">Sound effects</div>
+          <label class="set-label" for="sound-toggle">Sound effects</label>
           <div class="set-meta" id="audio-state">idle</div>
           <button class="btn btn-ghost btn-sm" id="sound-test" type="button">TEST</button>
-          <button class="toggle" id="sound-toggle" role="switch"><span></span></button>
+          <button class="toggle" id="sound-toggle" role="switch" aria-label="Sound effects"><span></span></button>
         </div>
         <div class="set-row">
-          <div class="set-label">Vibration</div>
-          <button class="toggle" id="haptic-toggle" role="switch"><span></span></button>
+          <label class="set-label" for="haptic-toggle">Vibration</label>
+          <button class="toggle" id="haptic-toggle" role="switch" aria-label="Vibration"><span></span></button>
         </div>
         <div class="set-row">
-          <div class="set-label">Reduce motion</div>
-          <button class="toggle" id="motion-toggle" role="switch"><span></span></button>
+          <label class="set-label" for="motion-toggle">Reduce motion</label>
+          <button class="toggle" id="motion-toggle" role="switch" aria-label="Reduce motion"><span></span></button>
         </div>
       </div>
 
@@ -801,6 +894,7 @@
         <button class="set-action" id="export-btn">Export progress as JSON</button>
         <button class="set-action" id="import-btn">Import progress from JSON</button>
         <button class="set-action danger" id="reset-btn">Reset this profile's progress</button>
+        <button class="set-action danger" id="delete-acc-btn">Delete this account</button>
       </div>
       <input type="file" id="import-file" accept="application/json,.json" hidden>
 
@@ -859,6 +953,39 @@
     </div>
   </div>
 
+  <!-- ======================= DELETE THE ACCOUNT =======================
+       The player asks to be forgotten. The window says what goes away,
+       asks for the password again and offers the way back: export the
+       progress first, if it is wanted. -->
+  <div class="modal" id="delete-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="delete-title">
+    <div class="modal-card limit-card">
+      <div class="modal-head">
+        <div>
+          <div class="modal-title" id="delete-title">Delete this account</div>
+          <div class="modal-meta">This cannot be undone</div>
+        </div>
+      </div>
+      <div class="limit-body">
+        <p class="limit-note">Everything of this account goes away at once:
+          the progress, the streak, the souls, the name on the board and the
+          subscription. The server forgets the account and the e-mail with it.</p>
+        <ul class="sub-perks">
+          <li>Export the progress as JSON first, if you want to keep it</li>
+          <li>The learning works without an account — as a guest</li>
+          <li>Another account can be made with the same address later</li>
+        </ul>
+        <label class="field-lbl" for="delete-pass">Your password</label>
+        <input class="answer-input auth-input" id="delete-pass" type="password"
+               autocomplete="current-password" placeholder="the password of this account">
+        <div class="auth-error" id="delete-error"></div>
+        <div class="limit-actions">
+          <button class="btn btn-red btn-block" id="delete-go">DELETE THE ACCOUNT</button>
+          <button class="btn btn-ghost btn-block btn-plain" id="delete-cancel">KEEP IT</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ======================= LEAVE THE LESSON =======================
        There is no question any more: the button on the left of the
        lesson puts the lesson down, and the path offers it back. The
@@ -890,16 +1017,18 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 </div>
-<script src="data/data.js?v=10"></script>
+<script src="data/data.js?v=11"></script>
 <script src="data/shop_stats.js?v=1"></script>
 <script src="data/updates.js?v=1"></script>
 <script src="data/heroes.js?v=1"></script>
 <script src="data/config.js?v=1"></script>
 <script src="data/stat_icons.js?v=3"></script>
 <script src="data/stat_branches.js?v=1"></script>
-<script src="core.js?v=14"></script>
+<script src="data/counter_quiz.js?v=1"></script>
+<script src="data/counter_answers.js?v=1"></script>
+<script src="core.js?v=15"></script>
 <script src="auth.js?v=9"></script>
 <script src="api.js?v=1"></script>
-<script src="app.js?v=17"></script>
+<script src="app.js?v=18"></script>
 </body>
 </html>

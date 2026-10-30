@@ -183,6 +183,18 @@ window.DSCLOUD = (function () {
       .then(function () { setToken(''); user = null; fire(); return true; });
   }
 
+  /* Close the account for good. The password goes with the request: the
+     server does not take an account away on the word of a token alone. */
+  function deleteAccount(password) {
+    if (!available || !getToken()) return Promise.reject(new Error('no server'));
+    return call('DELETE', '/api/me', { password: password }).then(function (r) {
+      setToken('');
+      user = null;
+      fire();
+      return r;
+    });
+  }
+
   function saveProfile(state, counters) {
     if (!available || !getToken()) return Promise.resolve(null);
     return call('PUT', '/api/me', { state: state, counters: counters }).catch(function () { return null; });
@@ -271,6 +283,7 @@ window.DSCLOUD = (function () {
     register: register,
     login: login,
     logout: logout,
+    deleteAccount: deleteAccount,
     saveProfile: saveProfile,
     setPublic: setPublic,
     lessonStart: lessonStart,

@@ -24,6 +24,9 @@
   --orange:#FF9600;
   /* the Deadlock accents: the teal of the game's energy */
   --teal:#3DDCC8; --teal-d:#1FA795; --teal-l:#D8F7F2;
+  /* the same hues, but the ones that are allowed to be words: on a light
+     background the plain teal, gold, green and amber are too pale to read */
+  --teal-tx:#0C6E60; --gold-tx:#7A5800; --green-tx:#1F6B2B; --amber-tx:#8A5B06;
   --amber:#F5A524; --amber-d:#C67B08; --amber-l:#FDEBCC;
   /* the souls are green now, and the ink on them is dark */
   --souls-fill:#3FB950; --souls-d:#2A7F38; --on-souls:#06231F;
@@ -32,7 +35,7 @@
      exception - it is too dark to carry dark ink (the best it could do
      is 3.59:1), so it takes white: 4.86:1, which passes AA. */
   --on-teal:#06231F; --on-amber:#2E1B00; --on-red:#FFFFFF;
-  --ink:#22282B; --ink-2:#5E6A70; --line:#DAD4C7; --line-d:#C6BEAD;
+  --ink:#22282B; --ink-2:#515C61; --line:#DAD4C7; --line-d:#C6BEAD;
   --bg:#F2EFE8; --card:#FFFDF9; --soft:#EAE6DC; --shadow:0 2px 0 var(--line-d);
   --r:16px;
   --ring:#DAD4C7; --ring-on:#3FB950;
@@ -46,6 +49,7 @@
     --bg:#0C1114; --card:#151D22; --soft:#1C262C; --shadow:0 2px 0 var(--line-d);
     --green-l:#1E3D26; --red-l:#4E1B1E; --blue-l:#12303F; --gold-l:#3A2C10;
     --teal-l:#123C3A; --amber-l:#3E2D0D;
+    --teal-tx:#3DDCC8; --gold-tx:#FFC800; --green-tx:#5FD16B; --amber-tx:#F5A524;
     /* brighter text colours: green and red sit on their own tinted
        backgrounds, and the light-theme values are unreadable there */
     --green-d:#5FD16B; --red-d:#FF6B6B; --blue-d:#6FCDF7;
@@ -59,6 +63,7 @@
   --bg:#0C1114; --card:#151D22; --soft:#1C262C; --shadow:0 2px 0 var(--line-d);
   --green-l:#1E3D26; --red-l:#4E1B1E; --blue-l:#12303F; --gold-l:#3A2C10;
   --teal-l:#123C3A; --amber-l:#3E2D0D;
+  --teal-tx:#3DDCC8; --gold-tx:#FFC800; --green-tx:#5FD16B; --amber-tx:#F5A524;
   --green-d:#5FD16B; --red-d:#FF6B6B; --blue-d:#6FCDF7;
   --on-red:#FFFFFF;
   --souls-fill:#5FD16B; --souls-d:#3FB950;
@@ -128,18 +133,26 @@ h1,h2,h3,.hero h1,.topbar-title,.unit-title,.ic-name,.ih-name,.modal-title,
 .topbar-title{font-size:19px;margin:0;flex:1;text-align:center}
 .topbar-stats{display:flex;gap:14px;align-items:center}
 .topbar-right{display:flex;align-items:center;gap:8px}
-.chip{display:flex;align-items:center;gap:5px;font-weight:800}
-.chip-streak{color:var(--orange)} .chip-gold{color:var(--gold-d)}
+.chip{display:flex;align-items:center;gap:5px;font-weight:800;position:relative}
+/* the small counters in the top bar get a tap area of 44 without growing */
+.chip::before{content:"";position:absolute;inset:-9px -6px}
+.chip-streak{color:var(--orange)} .chip-gold{color:var(--gold-tx)}
 .chip .ico{width:20px;height:20px}
 .league{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink-2);font-weight:800}
-.league-ico{color:var(--blue);font-size:15px}
-.icon-btn{background:none;border:0;color:var(--ink-2);padding:6px;display:flex;border-radius:10px}
-.icon-btn:active{background:var(--soft)}
+.league-ico{color:var(--blue-d);font-size:15px}
+/* the icon keeps its 22px, the finger gets 44: the box grows around it and
+   the negative margin hands the space back, so the tight top bars do not
+   move by a pixel */
+.icon-btn{background:none;border:0;color:var(--ink-2);padding:0;display:flex;
+  align-items:center;justify-content:center;position:relative;
+  width:44px;height:44px;flex:none;margin:-5px;border-radius:10px}
+.icon-btn::before{content:"";position:absolute;inset:5px;border-radius:10px}
+.icon-btn:active::before{background:var(--soft)}
 
 /* ========================== hero + daily =========================== */
 .hero{padding:14px 2px 4px;display:flex;align-items:center;gap:12px}
 .hero-mark{width:52px;height:52px;border-radius:14px;flex:none;box-shadow:0 4px 12px rgba(0,0,0,.22)}
-.hero h1{margin:0;font-size:30px;letter-spacing:-.5px}
+.hero h1,.hero h2{margin:0;font-size:30px;letter-spacing:-.5px}
 .hero-sub{margin:2px 0 0;color:var(--ink-2);font-size:14px;font-weight:700}
 .daily-card{display:flex;align-items:center;gap:12px;background:var(--card);border:2px solid var(--line);
   border-radius:var(--r);padding:14px;margin:14px 0 12px;box-shadow:var(--shadow)}
@@ -155,6 +168,7 @@ h1,h2,h3,.hero h1,.topbar-title,.unit-title,.ic-name,.ih-name,.modal-title,
    4.5:1 the WCAG asks for) and the quiet one (a flat plate).
    Amber stands in for the second colour of the game, red for the danger. */
 .btn{border:0;border-radius:14px;padding:14px 20px;font-size:15px;letter-spacing:.6px;
+  min-height:44px;
   color:var(--on-teal);background:var(--teal);box-shadow:0 4px 0 var(--teal-d);
   transition:transform .06s,box-shadow .06s}
 .btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--teal-d)}
@@ -175,7 +189,7 @@ h1,h2,h3,.hero h1,.topbar-title,.unit-title,.ic-name,.ih-name,.modal-title,
   padding-right:16px;scrollbar-width:none}
 .chip-scroll::-webkit-scrollbar{display:none}
 .gchip{flex:none;border:2px solid var(--line);background:var(--card);color:var(--ink-2);
-  border-radius:99px;padding:6px 13px;font-size:12.5px;font-weight:800;white-space:nowrap}
+  border-radius:99px;padding:6px 13px;min-height:44px;font-size:12.5px;font-weight:800;white-space:nowrap}
 .gchip.on{border-color:var(--blue);background:var(--blue-l);color:var(--blue-d)}
 
 /* ============================== path =============================== */
@@ -199,7 +213,7 @@ h1,h2,h3,.hero h1,.topbar-title,.unit-title,.ic-name,.ih-name,.modal-title,
 .unit-body{flex:1;min-width:0}
 .unit-title{font-size:16px}
 .unit-note{font-size:12.5px;color:var(--ink-2);font-weight:700}
-.unit-cta{font-size:13px;color:var(--blue);font-weight:800;white-space:nowrap}
+.unit-cta{font-size:13px;color:var(--blue-d);font-weight:800;white-space:nowrap}
 .unit.locked .unit-cta{color:var(--ink-2)}
 .unit.done .unit-cta{color:var(--green-d)}
 .mastery-row{display:flex;gap:4px;margin-top:8px}
@@ -212,7 +226,7 @@ h1,h2,h3,.hero h1,.topbar-title,.unit-title,.ic-name,.ih-name,.modal-title,
   padding:6px 0 calc(env(safe-area-inset-bottom) + 6px)}
 .tab{flex:1;background:none;border:0;color:var(--ink-2);display:flex;flex-direction:column;
   align-items:center;gap:2px;font-size:11px;font-weight:800;padding:6px 0}
-.tab.active{color:var(--blue)}
+.tab.active{color:var(--blue-d)}
 .tab .ico{width:24px;height:24px}
 
 /* ============================= lesson ============================== */
@@ -237,7 +251,7 @@ h1,h2,h3,.hero h1,.topbar-title,.unit-title,.ic-name,.ih-name,.modal-title,
   box-shadow:var(--shadow);margin-bottom:18px;opacity:1}
 .q-kind{font-size:12px;letter-spacing:1px;color:var(--ink-2);font-weight:800;text-transform:uppercase}
 .q-title{font-size:20px;margin:4px 0 14px;line-height:1.3}
-.q-title b{color:var(--blue)}
+.q-title b{color:var(--blue-d)}
 .item-head{display:flex;gap:12px;align-items:center;background:var(--soft);border-radius:12px;padding:12px;margin-bottom:14px}
 .item-head img{width:56px;height:56px;object-fit:contain;flex:none}
 .item-head .ih-name{font-size:17px}
@@ -256,13 +270,13 @@ h1,h2,h3,.hero h1,.topbar-title,.unit-title,.ic-name,.ih-name,.modal-title,
 .hint-btn{align-self:flex-start;margin-top:12px;background:var(--soft);border:2px solid var(--line);
   color:var(--ink-2);border-radius:10px;padding:7px 13px;font-size:12.5px;font-weight:800;cursor:pointer;
   transition:transform .12s,border-color .15s,color .15s,opacity .15s}
-.hint-btn:hover{border-color:var(--blue);color:var(--blue)}
+.hint-btn:hover{border-color:var(--blue);color:var(--blue-d)}
 .hint-btn:active{transform:translateY(2px)}
 .hint-btn.used{opacity:.55;cursor:default;border-color:var(--line);color:var(--ink-2)}
 .hint-text{max-height:0;overflow:hidden;opacity:0;font-size:13px;font-weight:700;color:var(--ink-2);
   line-height:1.5;transition:max-height .3s ease,opacity .25s ease,margin .25s ease}
 .hint-text.on{max-height:120px;opacity:1;margin-top:9px}
-.hint-text b{color:var(--blue)}
+.hint-text b{color:var(--blue-d)}
 
 .opts{display:flex;flex-direction:column;gap:10px;margin-top:4px}
 .opt{display:flex;align-items:center;gap:12px;border:2px solid var(--line);background:var(--card);
@@ -272,7 +286,7 @@ h1,h2,h3,.hero h1,.topbar-title,.unit-title,.ic-name,.ih-name,.modal-title,
 .opt.sel{border-color:var(--blue);background:var(--blue-l);color:var(--blue-d);box-shadow:0 2px 0 var(--blue)}
 /* the right and wrong states keep their own text colour, in both themes —
    the hard-coded dark green was unreadable on the dark card */
-.opt.right{border-color:var(--green);background:var(--green-l);color:var(--green-d);box-shadow:0 2px 0 var(--green-d)}
+.opt.right{border-color:var(--green);background:var(--green-l);color:var(--green-tx);box-shadow:0 2px 0 var(--green-d)}
 .opt.wrong{border-color:var(--red);background:var(--red-l);color:var(--red-d);box-shadow:0 2px 0 var(--red-d)}
 :root[data-theme="dark"] .opt.wrong{color:#FF8080}
 @media (prefers-color-scheme: dark){
@@ -281,6 +295,10 @@ h1,h2,h3,.hero h1,.topbar-title,.unit-title,.ic-name,.ih-name,.modal-title,
 .opt-mark{margin-left:auto;font-weight:800}
 
 /* ===================== inline item mentions ======================= */
+/* The icon of an item is a <picture>: the WebP the browser knows and the
+   PNG under it. The wrapper makes no box of its own, so the picture lands
+   in the layout exactly where the <img> it replaces would have landed. */
+picture{display:contents}
 .mini-item{display:inline-flex;align-items:center;gap:5px;vertical-align:-4px;white-space:nowrap}
 .mini-ico{width:19px;height:19px;object-fit:contain;flex:none;border-radius:3px}
 .opt .mini-ico{width:22px;height:22px}
@@ -316,7 +334,7 @@ textarea.answer-input{min-height:130px;resize:vertical;font-size:15px;font-weigh
 .feedback.ok .feedback-inner{background:var(--green-l)}
 .feedback.no .feedback-inner{background:var(--red-l)}
 .feedback-title{font-size:20px}
-.feedback.ok .feedback-title{color:var(--green-d)}
+.feedback.ok .feedback-title{color:var(--green-tx)}
 .feedback.no .feedback-title{color:var(--red-d)}
 .feedback-sub{font-size:13px;color:var(--ink-2);font-weight:700;margin-top:2px}
 .feedback-body{font-size:14.5px;margin:10px 0 16px;color:var(--ink)}
@@ -330,9 +348,9 @@ textarea.answer-input{min-height:130px;resize:vertical;font-size:15px;font-weigh
   padding:24px 18px;text-align:center;box-shadow:var(--shadow)}
 .result-emoji{font-size:52px;line-height:1;animation:pop .4s cubic-bezier(.2,1.6,.4,1)}
 @keyframes pop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
-.result-title{font-size:24px;margin:8px 0 18px}
+.result-title{font-size:clamp(21px,1.1vw + 18px,26px);margin:8px 0 18px}
 .result-stats{display:flex;justify-content:center;gap:26px;margin-bottom:18px}
-.rs-num{font-size:22px;color:var(--blue)}
+.rs-num{font-size:22px;color:var(--blue-d)}
 .rs-lbl{font-size:11.5px;color:var(--ink-2);font-weight:800;text-transform:uppercase;letter-spacing:.5px}
 .result-items{border-top:2px solid var(--line);padding-top:14px;margin-bottom:18px;text-align:left}
 .ri{display:flex;align-items:center;gap:10px;padding:7px 0;font-size:14px}
@@ -374,9 +392,9 @@ textarea.answer-input{min-height:130px;resize:vertical;font-size:15px;font-weigh
 .stat-cards{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:12px 0 20px}
 .stat-card{background:var(--card);border:2px solid var(--line);border-radius:14px;padding:14px;text-align:center;
   box-shadow:var(--shadow)}
-.stat-num{font-size:26px;color:var(--blue)}
+.stat-num{font-size:26px;color:var(--blue-d)}
 .stat-lbl{font-size:12px;color:var(--ink-2);font-weight:800}
-.section-h{font-size:15px;margin:20px 0 8px;display:flex;align-items:baseline;gap:8px}
+.section-h{font-size:clamp(14px,.4vw + 12.5px,17px);margin:20px 0 8px;display:flex;align-items:baseline;gap:8px}
 .h-note{font-size:12px;color:var(--ink-2);font-weight:800}
 
 /* ---------- the three acts ---------- */
@@ -433,7 +451,7 @@ textarea.answer-input{min-height:130px;resize:vertical;font-size:15px;font-weigh
 
 /* ------------------------- partial feedback ------------------------- */
 .feedback.half .feedback-inner{background:var(--gold-l)}
-.feedback.half .feedback-title{color:var(--gold-d)}
+.feedback.half .feedback-title{color:var(--gold-tx)}
 
 /* --------------------------- panel title --------------------------- */
 .panel-title{display:none;font-size:11.5px;letter-spacing:1.2px;text-transform:uppercase;
@@ -476,7 +494,7 @@ textarea.answer-input{min-height:130px;resize:vertical;font-size:15px;font-weigh
 .auth-error.ok{color:var(--green-d)}
 .auth-note{background:var(--soft);border:2px dashed var(--line);border-radius:12px;padding:11px 13px;
   font-size:12.5px;font-weight:700;color:var(--ink-2);margin:10px 0 2px;line-height:1.55}
-.auth-note b{color:var(--blue);font-size:17px;letter-spacing:3px;font-weight:800}
+.auth-note b{color:var(--blue-d);font-size:17px;letter-spacing:3px;font-weight:800}
 .auth-seg{width:100%;margin:6px 0 4px}
 .auth-seg .seg-btn{flex:1;padding:9px 8px}
 .guest-import{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--ink-2);font-weight:700;
@@ -489,11 +507,11 @@ textarea.answer-input{min-height:130px;resize:vertical;font-size:15px;font-weigh
 .set-row.set-row-col .set-label{text-align:left}
 .set-inline{display:flex;gap:8px;align-items:center}
 .set-input{flex:1;min-width:0;border:2px solid var(--line);background:var(--soft);color:var(--ink);
-  border-radius:10px;padding:9px 11px;font:inherit;font-size:14px;font-weight:700;outline:none}
+  border-radius:10px;padding:9px 11px;min-height:44px;font:inherit;font-size:14px;font-weight:700;outline:none}
 .set-input:focus{border-color:var(--blue);background:var(--card)}
 .set-value{font-size:13.5px;font-weight:800;color:var(--ink-2);text-align:right;overflow:hidden;
   text-overflow:ellipsis;white-space:nowrap;max-width:62%}
-.btn-sm{padding:9px 14px;font-size:13px;border-radius:10px;letter-spacing:.3px}
+.btn-sm{padding:9px 14px;font-size:13px;border-radius:10px;letter-spacing:.3px;min-height:44px}
 .avatar-picker{display:flex;gap:8px;overflow-x:auto;padding:3px 2px 7px;margin:0 -2px;
   scrollbar-width:thin}
 .ava{flex:none;width:46px;height:46px;border-radius:12px;border:2px solid var(--line);background:var(--soft);
@@ -523,7 +541,7 @@ textarea.answer-input{min-height:130px;resize:vertical;font-size:15px;font-weigh
 .pc-meta{font-size:12.5px;color:var(--ink-2);font-weight:700}
 .profile-list{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
 .guest-banner{background:var(--card);border:2px solid var(--gold);border-radius:14px;padding:14px;margin-bottom:10px}
-.gb-title{font-size:14.5px;color:var(--gold-d);margin-bottom:4px}
+.gb-title{font-size:14.5px;color:var(--gold-tx);margin-bottom:4px}
 .gb-note{font-size:12.5px;color:var(--ink-2);font-weight:700;margin-bottom:10px}
 .gb-actions{display:flex;flex-direction:column;gap:6px}
 .gb-actions .btn{font-size:14px;padding:11px 16px}
@@ -544,11 +562,14 @@ textarea.answer-input{min-height:130px;resize:vertical;font-size:15px;font-weigh
 .set-action:last-child{border-bottom:0}
 .set-action.danger{color:var(--red-d)}
 .seg{display:flex;border:2px solid var(--line);border-radius:10px;overflow:hidden;flex:none}
-.seg-btn{border:0;background:var(--card);color:var(--ink-2);padding:7px 12px;font-size:12.5px;font-weight:800;
+.seg-btn{border:0;background:var(--card);color:var(--ink-2);padding:7px 12px;font-size:12.5px;
+  font-weight:800;min-height:44px;min-width:44px;
   transition:background .14s ease,color .14s ease}
 .seg-btn.on{background:var(--teal);color:var(--on-teal)}
 .toggle{width:46px;height:27px;border-radius:99px;border:2px solid var(--line);background:var(--soft);
   padding:0;position:relative;flex:none;transition:background .15s,border-color .15s}
+/* the switch keeps its look, the finger gets the height of a switch */
+.toggle::after{content:"";position:absolute;inset:-9px -4px}
 .toggle span{position:absolute;top:2px;left:2px;width:19px;height:19px;border-radius:50%;background:var(--line-d);
   transition:transform .18s,background .18s}
 .toggle.on{background:var(--teal);border-color:var(--teal-d)}
@@ -564,7 +585,7 @@ textarea.answer-input{min-height:130px;resize:vertical;font-size:15px;font-weigh
 .onboard-list li{padding:8px 0 8px 26px;position:relative;border-bottom:1px solid var(--line)}
 .onboard-list li:last-child{border-bottom:0}
 .onboard-list li::before{content:'✓';position:absolute;left:0;color:var(--green);font-weight:800}
-.onboard-list b{color:var(--blue)}
+.onboard-list b{color:var(--blue-d)}
 
 /* ============================== motion ============================== */
 /* One place for every animation in the app. All of them are short, all of
@@ -672,11 +693,6 @@ textarea.answer-input{min-height:130px;resize:vertical;font-size:15px;font-weigh
 @media (hover:hover){.track-door:hover{box-shadow:0 5px 0 var(--line-d)}}
 
 /* the urn of the daily run glows and the light in it breathes */
-@keyframes urnGlow{
-  0%,100%{filter:drop-shadow(0 4px 10px rgba(0,0,0,.5)) drop-shadow(0 0 0 rgba(61,220,200,0))}
-  50%{filter:drop-shadow(0 4px 10px rgba(0,0,0,.5)) drop-shadow(0 0 12px rgba(61,220,200,.55))}
-}
-.urn-mark{animation:urnFloat 4.5s ease-in-out infinite,urnGlow 3.2s ease-in-out infinite}
 @keyframes urnOpen{
   0%,100%{opacity:.75}
   50%{opacity:1}
@@ -711,8 +727,29 @@ textarea.answer-input{min-height:130px;resize:vertical;font-size:15px;font-weigh
 /* ====================== new: exam, week, groups ==================== */
 .exam-card{background:var(--soft);border-style:dashed}
 .exam-card .daily-title{font-size:15px}
-.exam-timer{font-size:13px;font-weight:800;color:var(--blue);font-variant-numeric:tabular-nums;
+.exam-timer{font-size:13px;font-weight:800;color:var(--blue-d);font-variant-numeric:tabular-nums;
   padding:3px 9px;border-radius:99px;background:var(--blue-l);flex:none}
+
+/* The clock of the daily run. The run stands in the Soul Urn of the game,
+   and the urn of the game keeps the time too — so the clock sits beside a
+   little urn, and the light of it burns while the run lasts. */
+.urn-timer{display:flex;align-items:center;gap:6px;flex:none;
+  padding:2px 10px 2px 4px;border-radius:99px;background:rgba(63,190,225,.12);
+  border:1px solid rgba(63,190,225,.3);color:#7FD9F0;font-weight:800;font-size:13px;
+  font-variant-numeric:tabular-nums}
+:root[data-theme="dark"] .urn-timer{color:#7FD9F0;background:rgba(63,190,225,.14)}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]) .urn-timer{color:#0E7A94;background:rgba(63,190,225,.14)}
+}
+/* The picture of the urn is the box, and the picture inside it is the size.
+   The width and the height of the <img> tag are set by the browser before
+   the sheet arrives, so they must agree with the box of the wrapper. */
+picture.urn-timer-pic{display:block;flex:none;width:15px;height:30px;
+  filter:drop-shadow(0 0 5px rgba(63,190,225,.6));
+  animation:urnTick 2.4s ease-in-out infinite}
+picture.urn-timer-pic img{display:block;width:100%;height:100%;object-fit:contain}
+@keyframes urnTick{0%,100%{transform:translateY(0);filter:drop-shadow(0 0 4px rgba(63,190,225,.45))}
+  50%{transform:translateY(-2px);filter:drop-shadow(0 0 9px rgba(63,190,225,.85))}}
 
 .week-chart{display:flex;align-items:flex-end;gap:6px;height:118px;padding:12px 2px 0;
   background:var(--card);border:2px solid var(--line);border-radius:14px;padding-left:10px;padding-right:10px}
@@ -739,8 +776,9 @@ textarea.answer-input{min-height:130px;resize:vertical;font-size:15px;font-weigh
   padding-right:16px;scrollbar-width:none}
 .filter-row::-webkit-scrollbar{display:none}
 .fchip{flex:none;border:2px solid var(--line);background:var(--card);color:var(--ink-2);border-radius:99px;
-  padding:6px 12px;font-size:12.5px;font-weight:800;cursor:pointer;transition:border-color .14s,color .14s}
-.fchip.on{border-color:var(--green);color:var(--green-d);background:var(--green-l)}
+  padding:6px 12px;font-size:12.5px;font-weight:800;cursor:pointer;min-height:44px;min-width:44px;
+  transition:border-color .14s,color .14s}
+.fchip.on{border-color:var(--green);color:var(--green-tx);background:var(--green-l)}
 
 .keys-card{max-width:420px}
 .keys-list{display:flex;flex-direction:column;gap:2px;margin:6px 0 16px}
@@ -778,7 +816,7 @@ textarea.answer-input{min-height:130px;resize:vertical;font-size:15px;font-weigh
   .scroll{padding:0 32px 32px}
   .topbar{padding:18px 32px 12px}
   .topbar-title{font-size:22px}
-  .hero h1{font-size:36px}
+  .hero h1,.hero h2{font-size:36px}
   .hero-sub{font-size:15px}
   .hero-mark{width:60px;height:60px;border-radius:16px}
 
@@ -850,7 +888,6 @@ textarea.answer-input{min-height:130px;resize:vertical;font-size:15px;font-weigh
   .stat-cards{grid-template-columns:repeat(4,1fr);gap:14px}
   .stat-card{padding:20px 14px}
   .stat-num{font-size:32px}
-  .section-h{font-size:16px}
   .mastery-list{padding:6px 14px}
   .profile-card{padding:20px}
   .avatar{width:64px;height:64px;font-size:26px}
@@ -925,18 +962,13 @@ textarea.answer-input{min-height:130px;resize:vertical;font-size:15px;font-weigh
 .unit{border-top-color:var(--line)}
 
 /* ---- uppercase display type ---- */
-.hero h1,.daily-title,.result-title,.onboard-title,.auth-title,.modal-title,
+.hero h1,.hero h2,.daily-title,.result-title,.onboard-title,.auth-title,.modal-title,
 .section-h,.chapter,.panel-title,.stat-card .stat-num,.gchip.on,.unit-cta{
   text-transform:uppercase;letter-spacing:.8px}
-.hero h1{font-size:31px;letter-spacing:1.6px}
+.hero h1,.hero h2{font-size:31px;letter-spacing:1.6px}
 .result-title{letter-spacing:1.2px}
 .daily-title{letter-spacing:1px}
-.chapter{letter-spacing:1.8px;color:var(--teal-d)}
-:root[data-theme="dark"] .chapter,
-:root:not([data-theme="light"]) .chapter{color:var(--teal)}
-@media (prefers-color-scheme: light){
-  :root:not([data-theme="dark"]) .chapter{color:var(--teal-d)}
-}
+.chapter{letter-spacing:1.8px;color:var(--teal-tx)}
 
 /* ---- energy and soul accents ---- */
 .progress-fill{background:var(--energy);box-shadow:0 0 10px rgba(61,220,200,.45)}
@@ -953,39 +985,23 @@ textarea.answer-input{min-height:130px;resize:vertical;font-size:15px;font-weigh
 /* the picked answer wears the energy colour; right and wrong keep their
    green and red so the feedback still reads instantly */
 .opt.sel:not(.right):not(.wrong){border-color:var(--teal);background:var(--teal-l);
-  color:var(--teal-d);box-shadow:0 2px 0 var(--teal-d)}
-.tab.active{color:var(--teal-d)}
-:root[data-theme="dark"] .tab.active{color:var(--teal)}
-@media (prefers-color-scheme: light){
-  :root:not([data-theme="dark"]) .tab.active{color:var(--teal-d)}
-}
-.gchip.on{border-color:var(--teal);background:var(--teal-l);color:var(--teal-d)}
-.stat-card .stat-num{color:var(--teal-d)}
-:root[data-theme="dark"] .stat-card .stat-num{color:var(--teal)}
-@media (prefers-color-scheme: light){
-  :root:not([data-theme="dark"]) .stat-card .stat-num{color:var(--teal-d)}
-}
+  color:var(--teal-tx);box-shadow:0 2px 0 var(--teal-d)}
+.tab.active{color:var(--teal-tx)}
+.gchip.on{border-color:var(--teal);background:var(--teal-l);color:var(--teal-tx)}
+.stat-card .stat-num{color:var(--teal-tx)}
 /* the owl keeps its shape on a light background */
 .owl-tip img{width:34px;height:34px;flex:none;object-fit:contain;background:var(--teal-l);
   border-radius:50%;padding:3px}
 .owl-tip p{margin:0;font-size:12.5px;color:var(--ink-2);font-weight:700;line-height:1.35}
-.unit-cta{color:var(--teal-d)}
-:root[data-theme="dark"] .unit-cta{color:var(--teal)}
-@media (prefers-color-scheme: light){
-  :root:not([data-theme="dark"]) .unit-cta{color:var(--teal-d)}
-}
-.q-title b{color:var(--teal-d)}
-:root[data-theme="dark"] .q-title b{color:var(--teal)}
-@media (prefers-color-scheme: light){
-  :root:not([data-theme="dark"]) .q-title b{color:var(--teal-d)}
-}
+.unit-cta{color:var(--teal-tx)}
+.q-title b{color:var(--teal-tx)}
 .item-head{border-left:3px solid var(--teal);border-radius:0 12px 12px 0}
 .unit-icon{border-radius:0 14px 0 14px;background:var(--soft)}
 .unit.active .unit-icon{box-shadow:inset 0 0 0 2px var(--green)}
 
 /* ---- tier rarity: common grey, uncommon green, rare blue, legendary amber ---- */
 .ic-tier.t1{background:#ECEDEF;color:#4A5459}
-.ic-tier.t2{background:#DFF3D3;color:#2E7D32}
+.ic-tier.t2{background:#DFF3D3;color:#256B29}
 .ic-tier.t3{background:#DCEEFF;color:#1565C0}
 .ic-tier.t4{background:linear-gradient(135deg,#FFE6B0,#F5A524);color:#4A2D00;
   box-shadow:0 0 0 1px rgba(198,123,8,.45)}
@@ -1053,11 +1069,7 @@ textarea.answer-input{min-height:130px;resize:vertical;font-size:15px;font-weigh
 .wn-item{padding:11px 0;border-bottom:1px solid var(--line)}
 .wn-item:last-child{border-bottom:0}
 .wn-title{font-family:var(--font-ui);font-size:15px;font-weight:800;letter-spacing:.4px;
-  color:var(--teal-d)}
-:root[data-theme="dark"] .wn-title{color:var(--teal)}
-@media (prefers-color-scheme: light){
-  :root:not([data-theme="dark"]) .wn-title{color:var(--teal-d)}
-}
+  color:var(--teal-tx)}
 .wn-note{font-size:13.5px;color:var(--ink-2);font-weight:700;line-height:1.4;margin-top:2px}
 .set-action{text-align:left}
 
@@ -1078,7 +1090,7 @@ textarea.answer-input{min-height:130px;resize:vertical;font-size:15px;font-weigh
 .screens{position:relative;height:100%;min-width:0}
 
 .side-nav{
-  position:fixed;left:0;top:0;bottom:0;width:290px;max-width:86vw;z-index:60;
+  position:fixed;left:0;top:0;bottom:0;width:318px;max-width:86vw;z-index:60;
   background:var(--card);border-right:1px solid var(--line);
   display:flex;flex-direction:column;overflow:hidden;
   transform:translateX(-102%);visibility:hidden;
@@ -1099,7 +1111,7 @@ textarea.answer-input{min-height:130px;resize:vertical;font-size:15px;font-weigh
 .nav-brand-txt b{font-family:var(--font-ui);font-size:17px;letter-spacing:1.4px;
   text-transform:uppercase;color:var(--ink)}
 .nav-brand-txt span{font-size:11px;color:var(--ink-2);font-weight:700;letter-spacing:.3px}
-.nav-close{display:flex;margin-left:auto}
+.nav-close{display:flex;margin:-5px -5px -5px auto}
 
 /* ---- the modules ---- */
 .nav-scroll{flex:1;overflow-y:auto;padding:10px 0 16px;-webkit-overflow-scrolling:touch}
@@ -1125,21 +1137,35 @@ textarea.answer-input{min-height:130px;resize:vertical;font-size:15px;font-weigh
 /* the list of links inside a module */
 .nav-items{display:none;padding:0 0 10px}
 .nav-group.open .nav-items{display:block}
+/* Every entry says in one line what it is and in the next what it does.
+   A name on its own ("Lesson path") has to be guessed at; a name with a
+   line under it ("64 lessons, one after another") does not. */
 .nav-item{
-  display:flex;align-items:center;gap:10px;width:100%;
-  background:none;border:0;padding:10px 14px 10px 20px;color:var(--ink-2);
-  font-size:14px;font-weight:800;text-align:left;position:relative;
+  display:flex;align-items:center;gap:11px;width:100%;
+  background:none;border:0;padding:9px 14px 9px 14px;color:var(--ink-2);
+  text-align:left;position:relative;min-height:48px;
   border-left:3px solid transparent;transition:color .14s ease,background .14s ease
 }
 .nav-item:hover{color:var(--ink);background:var(--soft)}
-.nav-item.on{color:var(--teal-d);border-left-color:var(--teal);background:var(--teal-l)}
-:root[data-theme="dark"] .nav-item.on{color:var(--teal)}
-@media (prefers-color-scheme: light){
-  :root:not([data-theme="dark"]) .nav-item.on{color:var(--teal-d)}
-}
-.nav-item::before{content:"";width:5px;height:5px;flex:none;border-radius:50%;
-  background:currentColor;opacity:.35}
-.nav-item.on::before{opacity:1}
+.nav-item.on{color:var(--teal-tx);border-left-color:var(--teal);background:var(--teal-l)}
+.nav-item-ico{width:24px;height:24px;flex:none;display:grid;place-items:center;
+  color:currentColor;opacity:.75}
+.nav-item-ico svg{width:20px;height:20px;fill:none;stroke:currentColor;
+  stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.nav-item.on .nav-item-ico{opacity:1}
+.nav-item-b{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.25}
+.nav-item-t{font-size:14.5px;font-weight:800;color:inherit}
+.nav-item-s{font-size:11.5px;font-weight:600;color:var(--ink-3);opacity:.9;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.nav-item.on .nav-item-s{color:var(--ink-2)}
+.nav-item-n{font-family:var(--font-ui);font-size:11px;font-weight:800;letter-spacing:.6px;
+  color:var(--ink-3);flex:none;padding:3px 7px;border-radius:999px;
+  background:var(--soft);border:1px solid var(--line)}
+.nav-item.on .nav-item-n{color:var(--teal-d);background:transparent;border-color:currentColor}
+.nav-item-tag{font-family:var(--font-ui);font-size:10px;font-weight:800;letter-spacing:.8px;
+  color:var(--ink-3);flex:none;padding:3px 7px;border-radius:999px;
+  background:var(--soft);border:1px solid var(--line)}
+.nav-item-tag.on{color:var(--on-souls);background:var(--souls);border-color:transparent}
 
 /* ---- the foot ---- */
 .nav-foot{border-top:1px solid var(--line);padding:12px 14px 14px;
@@ -1161,7 +1187,7 @@ textarea.answer-input{min-height:130px;resize:vertical;font-size:15px;font-weigh
    it, and it closes again on the scrim or with the cross. */
 @media (min-width:1000px){
   #app{width:100%;display:block}
-  .side-nav{position:fixed;left:0;top:0;bottom:0;width:290px;max-width:86vw;
+  .side-nav{position:fixed;left:0;top:0;bottom:0;width:318px;max-width:86vw;
     transform:translateX(-102%);visibility:hidden;z-index:60;
     border-right:1px solid var(--line);box-shadow:14px 0 40px rgba(0,0,0,.35)}
   .side-nav.on{transform:none;visibility:visible}
@@ -1264,7 +1290,7 @@ body.nav-locked{overflow:hidden}
 .upd-status.ok{color:var(--green-d)}
 .upd-status.bad{color:var(--red-d)}
 :root[data-theme="dark"] .upd-status.ok{color:var(--green-d)}
-:root[data-theme="dark"] .upd-status.bad{color:var(--red)}
+:root[data-theme="dark"] .upd-status.bad{color:var(--red-d)}
 .upd-block{background:var(--card);border:2px solid var(--line);border-radius:var(--r);
   padding:14px;margin:12px 0;box-shadow:var(--shadow)}
 .upd-block-t{font-family:var(--font-ui);font-size:14px;color:var(--ink);margin-bottom:8px}
@@ -1275,7 +1301,7 @@ body.nav-locked{overflow:hidden}
 .upd-pill.nerf{color:var(--red-d);border-color:currentColor}
 .upd-pill.new{color:var(--blue-d);border-color:currentColor}
 :root[data-theme="dark"] .upd-pill.buff{color:var(--green-d)}
-:root[data-theme="dark"] .upd-pill.nerf{color:var(--red)}
+:root[data-theme="dark"] .upd-pill.nerf{color:var(--red-d)}
 .upd-item{border-top:1px solid var(--line);padding:10px 0}
 .upd-item:first-child{border-top:0}
 .upd-item-t{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -1284,14 +1310,14 @@ body.nav-locked{overflow:hidden}
   padding:2px 7px;border-radius:999px;border:1px solid currentColor}
 .upd-tag.buff{color:var(--green-d)} .upd-tag.nerf{color:var(--red-d)}
 .upd-tag.mixed{color:var(--amber-d)} .upd-tag.change{color:var(--ink-2)}
-:root[data-theme="dark"] .upd-tag.nerf{color:var(--red)}
+:root[data-theme="dark"] .upd-tag.nerf{color:var(--red-d)}
 .upd-item-m{font-size:11.5px;color:var(--ink-2);font-weight:700;margin-left:auto}
 .upd-chg{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
 .upd-chg span{font-size:11.5px;font-weight:700;padding:3px 7px;border-radius:8px;
   background:var(--soft);color:var(--ink-2)}
 .upd-chg span.up{color:var(--green-d)} .upd-chg span.down{color:var(--red-d)}
 :root[data-theme="dark"] .upd-chg span.up{color:var(--green-d)}
-:root[data-theme="dark"] .upd-chg span.down{color:var(--red)}
+:root[data-theme="dark"] .upd-chg span.down{color:var(--red-d)}
 .upd-chg b{font-family:var(--font-ui)}
 .upd-empty{font-size:13px;color:var(--ink-2);font-weight:700;line-height:1.5}
 
@@ -1357,11 +1383,7 @@ body.acc-crimson{--teal:#F87171;--teal-d:#991B1B}
 .recall-table tr.recall-sec td{
   padding:10px 10px 4px;border-bottom:1px solid var(--line);
   font-family:var(--font-ui);font-size:11px;font-weight:800;letter-spacing:1.4px;
-  text-transform:uppercase;color:var(--teal-d);white-space:nowrap
-}
-:root[data-theme="dark"] .recall-table tr.recall-sec td{color:var(--teal)}
-@media (prefers-color-scheme: light){
-  :root:not([data-theme="dark"]) .recall-table tr.recall-sec td{color:var(--teal-d)}
+  text-transform:uppercase;color:var(--teal-tx);white-space:nowrap
 }
 .recall-table tr.recall-sec:first-child td{padding-top:2px;border-bottom:0}
 
@@ -1391,7 +1413,7 @@ body.acc-crimson{--teal:#F87171;--teal-d:#991B1B}
 }
 .unit-fix:active{transform:translateY(2px);box-shadow:0 1px 0 var(--red-d)}
 .unit-note-lock{color:var(--red-d);font-size:11.5px;margin-top:2px}
-:root[data-theme="dark"] .unit-note-lock{color:var(--red)}
+:root[data-theme="dark"] .unit-note-lock{color:var(--red-d)}
 
 /* the sample button next to the sound switch */
 .set-row .btn-sm{padding:7px 12px;font-size:12px;letter-spacing:.6px;flex:none}
@@ -1528,7 +1550,7 @@ body.acc-crimson{--teal:#F87171;--teal-d:#991B1B}
 .owner-row-t{font-family:var(--font-ui);font-size:13.5px;color:var(--ink);word-break:break-word}
 .owner-row-m{font-size:11.5px;color:var(--ink-2);font-weight:700;word-break:break-word}
 .owner-row-c{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;
-  color:var(--teal-d);word-break:break-all}
+  color:var(--teal-tx);word-break:break-all}
 .owner-acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px}
 
 /* ==================================================================
@@ -1562,8 +1584,7 @@ body.acc-crimson{--teal:#F87171;--teal-d:#991B1B}
 /* the level badge already carries a number, so it sits next to the XP */
 .chip-level{flex-direction:row;flex-wrap:wrap;justify-content:center;gap:4px;min-width:40px}
 .chip-level .chip-lbl{flex-basis:100%;text-align:center}
-.chip-limit{color:var(--teal-d);border:0;background:none;border-radius:0;padding:1px 2px 0}
-:root[data-theme="dark"] .chip-limit{color:var(--teal)}
+.chip-limit{color:var(--teal-tx);border:0;background:none;border-radius:0;padding:1px 2px 0}
 .chip-limit .chip-num{color:inherit}
 .chip-limit{border:0;background:none}
 
@@ -1577,8 +1598,8 @@ body.acc-crimson{--teal:#F87171;--teal-d:#991B1B}
 .chip-souls .chip-lbl{opacity:.85}
 .chip-souls .soul-ico{
   width:20px;height:20px;display:block;flex:none;
-  -webkit-mask:url('assets/soul.svg') center/contain no-repeat;
-  mask:url('assets/soul.svg') center/contain no-repeat;
+  -webkit-mask:url('assets/soul-mark.svg') center/contain no-repeat;
+  mask:url('assets/soul-mark.svg') center/contain no-repeat;
   background:var(--on-souls);
 }
 
@@ -1613,7 +1634,7 @@ body.acc-crimson{--teal:#F87171;--teal-d:#991B1B}
 /* ---- A4: the bell of the updates, with a dot while there is news ---- */
 .wn-btn{position:relative}
 .wn-btn.unread::after{
-  content:"";position:absolute;top:3px;right:3px;width:9px;height:9px;border-radius:50%;
+  content:"";position:absolute;top:8px;right:8px;width:9px;height:9px;border-radius:50%;
   background:var(--amber);box-shadow:0 0 0 2px var(--bg)
 }
 
@@ -1622,29 +1643,29 @@ body.acc-crimson{--teal:#F87171;--teal-d:#991B1B}
 .quit-card .limit-note{margin-bottom:10px}
 
 /* ---- E3: the score of a run, next to the clock ---- */
-.run-score{font-family:var(--font-ui);font-size:13px;font-weight:800;color:var(--teal);
+.run-score{font-family:var(--font-ui);font-size:13px;font-weight:800;color:var(--teal-tx);
   background:var(--teal-l);border:1px solid var(--teal-d);border-radius:99px;
   padding:2px 9px;white-space:nowrap}
-:root[data-theme="dark"] .run-score{color:var(--teal)}
-.exam-timer{color:var(--amber-d)}
-:root[data-theme="dark"] .exam-timer{color:var(--amber)}
+.exam-timer{color:var(--amber-tx)}
 
 /* ---- A3: the home launcher ---- */
 .topbar-home{padding-bottom:6px}
 .home-brand{display:flex;align-items:center;gap:9px;background:none;border:0;padding:0;
-  color:var(--ink)}
+  color:var(--ink);position:relative}
+.home-brand::after{content:"";position:absolute;inset:-5px 0}
 .home-brand .nav-brand-mark{width:34px;height:34px}
 .home-brand-txt{font-family:var(--font-ui);font-size:20px;font-weight:800;letter-spacing:2.6px;
   text-transform:uppercase;color:var(--ink);line-height:1}
-.home-brand-txt em{font-style:normal;color:var(--teal)}
+.home-brand-txt em{font-style:normal;color:var(--teal-tx)}
 .home-scroll{display:flex;flex-direction:column;gap:14px;width:100%;max-width:860px;
   margin:0 auto;padding:6px 16px 28px}
 
 .home-hero{display:flex;flex-direction:column;align-items:center;text-align:center;
   gap:2px;padding:10px 0 2px}
 .home-hero .owl-mark{width:92px;height:92px;filter:drop-shadow(0 8px 18px rgba(0,0,0,.35))}
-.home-title{font-family:var(--font-ui);font-size:40px;font-weight:800;letter-spacing:5px;
-  text-transform:uppercase;margin:2px 0 0;color:var(--teal);
+.home-title{font-family:var(--font-ui);font-size:clamp(36px,3.2vw + 25px,54px);
+  font-weight:800;letter-spacing:5px;
+  text-transform:uppercase;margin:2px 0 0;color:var(--teal-tx);
   text-shadow:0 0 26px rgba(61,220,200,.35)}
 .home-sub{margin:2px 0 0;font-size:13.5px;font-weight:700;color:var(--ink-2)}
 
@@ -1659,12 +1680,20 @@ body.acc-crimson{--teal:#F87171;--teal-d:#991B1B}
 }
 .home-main:active{transform:translateY(3px);box-shadow:0 1px 0 var(--teal-d)}
 .home-main-k{font-family:var(--font-ui);font-size:25px;font-weight:800;letter-spacing:4px;
-  text-transform:uppercase;color:var(--teal);line-height:1.1}
+  text-transform:uppercase;color:var(--teal-tx);line-height:1.1}
 .home-main-s{font-size:12.5px;font-weight:700;color:var(--ink-2)}
 
 /* ---- the daily run stands in an urn ----
    The Soul Urn of the game: a teal vessel that holds the run of the day.
    The lid is the button, the light behind it is the energy of the run. */
+/* the light theme has no dark wall to put the teal on, so the vessel gets a
+   pale teal one: the words on it stay teal and stay readable */
+:root[data-theme="light"] .urn-run{background:
+  radial-gradient(120% 90% at 18% 12%,rgba(61,220,200,.40),rgba(61,220,200,.12))}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]) .urn-run{background:
+    radial-gradient(120% 90% at 18% 12%,rgba(61,220,200,.40),rgba(61,220,200,.12))}
+}
 .urn-run{
   position:relative;display:flex;flex-direction:row;align-items:center;gap:14px;width:100%;
   border:2px solid var(--teal-d);background:
@@ -1675,18 +1704,31 @@ body.acc-crimson{--teal:#F87171;--teal-d:#991B1B}
   box-shadow:0 4px 0 var(--teal-d);transition:transform .08s ease,box-shadow .08s ease
 }
 .urn-run:active{transform:translateY(3px);box-shadow:0 1px 0 var(--teal-d)}
-.urn-mark{width:58px;height:58px;object-fit:contain;flex:none;filter:drop-shadow(0 4px 10px rgba(0,0,0,.5))}
-@keyframes urnFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+/* The urn of the daily run is the Soul Urn of the game: a turquoise jar on
+   three black legs. The light inside it breathes, the way the light of the
+   game breathes, and the whole thing stands a little above the card. */
+.urn-mark-pic{position:relative;flex:none;width:96px;height:195px;display:block;
+  filter:drop-shadow(0 0 18px rgba(63,190,225,.35)) drop-shadow(0 6px 14px rgba(0,0,0,.5));
+  animation:urnFloat 4.6s ease-in-out infinite}
+picture.urn-mark-pic img{display:block;width:100%;height:100%;object-fit:contain}
+.urn-mark-pic::after{
+  content:"";position:absolute;left:50%;top:56%;width:150px;height:150px;
+  transform:translate(-50%,-50%);border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle, rgba(63,190,225,.30), rgba(63,190,225,.08) 55%, transparent 72%);
+  animation:urnPulse 3.6s ease-in-out infinite
+}
+@keyframes urnFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes urnPulse{0%,100%{opacity:.45;transform:translate(-50%,-50%) scale(.88)}
+  50%{opacity:1;transform:translate(-50%,-50%) scale(1.14)}}
 .urn-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
 .urn-k{font-family:var(--font-ui);font-size:22px;font-weight:800;letter-spacing:3.4px;
-  text-transform:uppercase;color:var(--teal);line-height:1.1}
+  text-transform:uppercase;color:var(--teal-tx);line-height:1.1}
 .urn-s{font-size:12.5px;font-weight:700;color:var(--ink-2);line-height:1.35}
 .urn-go{font-family:var(--font-ui);font-size:12px;font-weight:800;letter-spacing:1.6px;
-  text-transform:uppercase;color:var(--teal-d);border:2px solid var(--teal-d);
+  text-transform:uppercase;color:var(--teal-tx);border:2px solid var(--teal-d);
   padding:7px 12px;flex:none;
   clip-path:polygon(7px 0,calc(100% - 7px) 0,100% 7px,100% calc(100% - 7px),
     calc(100% - 7px) 100%,7px 100%,0 calc(100% - 7px),0 7px)}
-:root[data-theme="dark"] .urn-go{color:var(--teal)}
 
 /* ---- the three doors of the path ----
    Newcomer, shopoholic, shopkeeper: how deep the learner wants to go. */
@@ -1705,8 +1747,7 @@ body.acc-crimson{--teal:#F87171;--teal-d:#991B1B}
   text-transform:uppercase;color:var(--ink)}
 .track-door span{font-size:11.5px;font-weight:700;color:var(--ink-2);line-height:1.35}
 .track-door.on{border-color:var(--teal-d);box-shadow:0 3px 0 var(--teal-d)}
-.track-door.on b{color:var(--teal-d)}
-:root[data-theme="dark"] .track-door.on b{color:var(--teal)}
+.track-door.on b{color:var(--teal-tx)}
 @media (max-width:640px){
   .track-pick-row{grid-template-columns:1fr}
 }
@@ -1719,8 +1760,7 @@ body.acc-crimson{--teal:#F87171;--teal-d:#991B1B}
   box-shadow:0 3px 0 var(--line-d);
   transition:transform .08s ease,border-color .14s ease,box-shadow .08s ease}
 .home-tile:active{transform:translateY(2px);box-shadow:0 1px 0 var(--line-d)}
-.home-tile .ico{width:26px;height:26px;color:var(--teal-d);margin-bottom:2px}
-:root[data-theme="dark"] .home-tile .ico{color:var(--teal)}
+.home-tile .ico{width:26px;height:26px;color:var(--teal-tx);margin-bottom:2px}
 .home-tile b{font-family:var(--font-ui);font-size:14px;font-weight:800;letter-spacing:.8px;
   text-transform:uppercase;color:var(--ink)}
 .home-tile span{font-size:11.5px;font-weight:700;color:var(--ink-2);line-height:1.35}
@@ -1741,7 +1781,7 @@ body.acc-crimson{--teal:#F87171;--teal-d:#991B1B}
 .lesson-scroll > .kbd-hint{margin-top:auto}
 
 /* ---- D2: the name of the site, large ---- */
-.hero h1{font-size:34px;letter-spacing:3px}
+.hero h1,.hero h2{font-size:34px;letter-spacing:3px}
 .nav-brand-txt b{font-size:19px;letter-spacing:2px}
 
 /* ---- D6: no motion when the player asked for none ---- */
@@ -1754,7 +1794,7 @@ body.acc-crimson{--teal:#F87171;--teal-d:#991B1B}
 @media (min-width:900px){
   .home-scroll{max-width:980px;gap:16px;padding-top:14px}
   .home-hero .owl-mark{width:120px;height:120px}
-  .home-title{font-size:54px;letter-spacing:8px}
+  .home-title{letter-spacing:8px}
   .home-tiles{grid-template-columns:repeat(4,minmax(0,1fr))}
   .home-main-k{font-size:30px}
 }
@@ -1784,21 +1824,28 @@ body.acc-crimson{--teal:#F87171;--teal-d:#991B1B}
   box-shadow:0 0 0 2px var(--amber),0 0 22px rgba(245,165,36,.5)}
 .pc-mood{font-size:11.5px;font-weight:800;color:var(--ink-2);margin-top:4px;letter-spacing:.3px}
 .pc-mood.hurt{color:var(--red-d)}
-.pc-mood.steady{color:var(--teal-d)}
+.pc-mood.steady{color:var(--teal-tx)}
 .pc-mood.streak{color:var(--amber-d)}
 .ava{width:52px;height:64px}
 .ava img{object-fit:cover;object-position:50% 0}
 
 /* ---- F1 + F2: the counter library and the quiz ---- */
 .counters-scroll{display:flex;flex-direction:column;gap:12px;width:100%;max-width:900px;
-  margin:0 auto;padding:6px 16px 28px}
+  margin:0 auto;padding:6px 16px 28px;container-type:inline-size;container-name:counters}
 .cnt-hero{background:var(--card);border:2px solid var(--line);border-top-color:var(--teal-d);
   padding:14px;clip-path:polygon(11px 0,calc(100% - 11px) 0,100% 11px,100% calc(100% - 11px),
     calc(100% - 11px) 100%,11px 100%,0 calc(100% - 11px),0 11px);box-shadow:0 3px 0 var(--line-d)}
-.cnt-hero-t{font-family:var(--font-ui);font-size:16px;font-weight:800;letter-spacing:1.2px;
+.cnt-hero-t{font-family:var(--font-ui);font-size:clamp(15px,.5vw + 13px,18px);
+  font-weight:800;letter-spacing:1.2px;
   text-transform:uppercase;color:var(--ink)}
 .cnt-hero-s{font-size:13px;font-weight:700;color:var(--ink-2);margin-top:4px;line-height:1.45}
 .cnt-quiz{font-size:16px;letter-spacing:1.6px}
+.cnt-quiz:disabled{opacity:.5;cursor:default;filter:grayscale(.4)}
+/* how many of the counter questions the owner has answered */
+.cnt-progress{width:100%}
+.cnt-progress-line{font-size:13px;font-weight:600;color:var(--ink-2);line-height:1.45;
+  padding:0 2px}
+.cnt-progress-line b{color:var(--teal-tx);font-weight:800}
 .cnt-row{display:flex;flex-direction:column;gap:6px;text-align:left;width:100%;
   background:var(--card);border:2px solid var(--line);padding:13px;cursor:pointer;
   clip-path:polygon(11px 0,calc(100% - 11px) 0,100% 11px,100% calc(100% - 11px),
@@ -1806,9 +1853,14 @@ body.acc-crimson{--teal:#F87171;--teal-d:#991B1B}
   box-shadow:0 3px 0 var(--line-d);transition:transform .08s ease,border-color .14s ease}
 .cnt-row:active{transform:translateY(2px);box-shadow:0 1px 0 var(--line-d)}
 .cnt-row-t{font-family:var(--font-ui);font-size:15px;font-weight:800;letter-spacing:1px;
-  text-transform:uppercase;color:var(--teal-d)}
-:root[data-theme="dark"] .cnt-row-t{color:var(--teal)}
+  text-transform:uppercase;color:var(--teal-tx)}
 .cnt-row-n{font-size:12.5px;font-weight:700;color:var(--ink-2);line-height:1.45}
+/* the counter names are long and shouted: in a narrow list they need a
+   little less room to keep their shape */
+@container counters (max-width:560px){
+  .cnt-row-t{font-size:14px;letter-spacing:.6px}
+  .cnt-row{gap:5px}
+}
 .cnt-row-icons{display:flex;gap:4px;margin-top:2px}
 .cnt-row-icons img{width:28px;height:28px;object-fit:contain;background:var(--soft);
   border:1px solid var(--line);border-radius:6px;padding:2px}
@@ -1904,7 +1956,7 @@ body.acc-crimson{--teal:#F87171;--teal-d:#991B1B}
   animation:bootSpin 1.6s linear infinite}
 @keyframes bootSpin{to{transform:rotate(360deg)}}
 .boot-name{font-family:var(--font-ui);font-size:30px;font-weight:800;letter-spacing:7px;
-  text-transform:uppercase;color:var(--teal);text-shadow:0 0 26px rgba(61,220,200,.35)}
+  text-transform:uppercase;color:var(--teal-tx);text-shadow:0 0 26px rgba(61,220,200,.35)}
 .boot-bar{width:190px;height:5px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden}
 .boot-bar i{display:block;width:38%;height:100%;border-radius:99px;
   background:linear-gradient(90deg,var(--teal-d),var(--teal));
@@ -1943,7 +1995,7 @@ body.acc-crimson{--teal:#F87171;--teal-d:#991B1B}
   display:inline-flex;align-items:center;gap:6px;
   background:var(--card);border:1px solid var(--line);border-radius:10px;
   padding:8px 12px;font-family:var(--font-ui);font-size:11px;font-weight:800;
-  letter-spacing:.5px;text-transform:uppercase;color:var(--ink-2);
+  letter-spacing:.5px;text-transform:uppercase;color:var(--ink-2);min-height:44px;
   cursor:pointer;-webkit-user-select:none;user-select:none;
 }
 .foot-btn:hover{border-color:var(--teal-d);color:var(--ink)}
@@ -1961,6 +2013,63 @@ body.acc-crimson{--teal:#F87171;--teal-d:#991B1B}
   background:var(--card);border:2px solid var(--line);border-radius:var(--r);
   box-shadow:var(--shadow);overflow:hidden;margin:12px 0
 }
+/* ---- the pit of the Midboss ----
+   The page of the subscription wears the crystal of the game: a dark shard
+   with a green light inside, standing over the text. The light breathes,
+   the way the light of the crystal breathes in the pit. */
+.sub-hero{
+  display:flex;align-items:center;gap:16px;margin:12px 0;
+  padding:18px 16px;border-radius:var(--r);
+  background:
+    radial-gradient(120% 90% at 22% 40%, rgba(63,185,80,.13), transparent 62%),
+    linear-gradient(180deg, var(--card), var(--soft));
+  border:2px solid var(--line);box-shadow:var(--shadow);
+  position:relative;overflow:hidden
+}
+.sub-hero::after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(90% 70% at 18% 55%, rgba(95,224,90,.10), transparent 60%);
+  animation:subBreathe 4.6s ease-in-out infinite
+}
+@keyframes subBreathe{0%,100%{opacity:.55}50%{opacity:1}}
+.sub-crystal{position:relative;flex:none;width:96px;height:144px;display:grid;place-items:center}
+.sub-crystal img{position:relative;z-index:2;width:96px;height:144px;object-fit:contain;
+  filter:drop-shadow(0 0 14px rgba(95,224,90,.42)) drop-shadow(0 6px 12px rgba(0,0,0,.45));
+  animation:subFloat 5.4s ease-in-out infinite}
+@keyframes subFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.sub-crystal-glow{
+  position:absolute;left:50%;top:58%;width:120px;height:120px;transform:translate(-50%,-50%);
+  border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle, rgba(95,224,90,.42), rgba(95,224,90,.10) 55%, transparent 72%);
+  animation:subPulse 3.8s ease-in-out infinite
+}
+@keyframes subPulse{0%,100%{opacity:.5;transform:translate(-50%,-50%) scale(.9)}
+  50%{opacity:1;transform:translate(-50%,-50%) scale(1.12)}}
+.sub-hero-b{flex:1;min-width:0;position:relative;z-index:3}
+.sub-hero-t{font-family:var(--font-ui);font-size:19px;letter-spacing:2px;color:var(--ink);
+  line-height:1.2}
+.sub-hero .sub-plate-state{display:inline-block;margin-top:8px}
+.sub-hero-s{margin:10px 0 0;font-size:13px;font-weight:600;color:var(--ink-2);line-height:1.55}
+
+/* ---- the numbers of the game ---- */
+.sub-lore{
+  margin:12px 0;padding:14px 16px;border-radius:var(--r);
+  background:var(--card);border:1px solid var(--line)
+}
+.sub-lore-h{font-family:var(--font-ui);font-size:12px;letter-spacing:1.6px;
+  color:var(--ink-3);margin-bottom:10px}
+.sub-lore-list{list-style:none;margin:0;padding:0}
+.sub-lore-list li{display:flex;gap:12px;align-items:baseline;padding:7px 0;
+  border-bottom:1px solid var(--line)}
+.sub-lore-list li:last-child{border-bottom:0}
+.sub-lore-n{font-family:var(--font-ui);font-size:13.5px;font-weight:800;color:var(--green-d);
+  flex:none;min-width:74px}
+:root[data-theme="dark"] .sub-lore-n{color:var(--green-d)}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]) .sub-lore-n{color:var(--green-d)}
+}
+.sub-lore-d{font-size:12.5px;font-weight:600;color:var(--ink-2);line-height:1.5}
+.sub-lore-note{margin:10px 0 0;font-size:12px;font-weight:600;color:var(--ink-3);line-height:1.5}
 .sub-plate-top{
   display:flex;align-items:center;justify-content:space-between;gap:12px;
   padding:12px 14px;border-bottom:1px solid var(--line)

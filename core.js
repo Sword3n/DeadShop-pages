@@ -258,9 +258,15 @@ window.DSC = (function () {
       var name = m[2];
       if (ITEM_BY_NAME[name]) {
         var slug = ITEM_BY_NAME[name].slug;
-        out += '<span class="mini-item"><img class="mini-ico" src="' +
-          escapeHtml(iconPath || 'assets/icons/') + escapeHtml(slug) + '.png" alt="" loading="lazy">' +
-          escapeHtml(name) + '</span>';
+        /* The small icon of an item: the browser takes the WebP it knows and
+           the PNG under it. The two weigh one and a half kilobytes together
+           instead of the fifty of the picture of the game. */
+        out += '<span class="mini-item"><picture>' +
+          '<source type="image/webp" srcset="assets/icons/' + escapeHtml(slug) +
+          '-64.webp 64w, assets/icons/' + escapeHtml(slug) + '-128.webp 128w" sizes="24px">' +
+          '<img class="mini-ico" src="assets/icons/' + escapeHtml(slug) +
+          '.png" alt="" loading="lazy" decoding="async" width="24" height="24">' +
+          '</picture>' + escapeHtml(name) + '</span>';
       } else {
         // a stat: it wears the colour of its branch
         out += chipHtml(name, STAT_BY_LABEL[name]);

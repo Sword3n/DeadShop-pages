@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="souls">
+  <!-- The shape of a soul on its own.
+       The chip of the header paints this file through a mask, so the mask
+       takes only the outline of what is drawn here: a plain silhouette, with
+       no dark rim and no halo around it. Without this separate file the mask
+       took the whole dark circle of soul.svg and the chip showed a blank
+       disc instead of a soul. -->
+  <path d="M32 12c5 6 9 10 9 16 0 8-4 13-9 13s-9-5-9-13c0-3 1-5 2-7-1 4 1 6 3 7-1-5-1-10 4-16z"/>
+</svg>
