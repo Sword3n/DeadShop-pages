@@ -1,17 +1,73 @@
 /* The answers of the owner.
  *
- * Every question of the counter library asks which of the offered
- * items is the counter that works. The owner is the one who knows,
- * so he writes the answers here — through the page owner-quiz.html.
- *
- *   answers: { "<id of the question>": "<slug of the item>" }
- *   retired: { "<id of the question>": "<why>" }
- *
- * A question without an answer is not asked in the quiz until the
- * owner has answered it. */
+ * Written by owner-quiz.html — the page where the owner answers the
+ * questions of the counter library. Keep it in the repository: the app
+ * reads it and takes these answers as the right ones.
+ */
 window.DSCA = {
  "version": 1,
- "answers": {},
- "retired": {},
- "updated": ""
+ "answers": {
+  "cq-01-abrams": "healbane",
+  "cq-02-apollo": "spirit-shielding",
+  "cq-03-baba": "rebuttal",
+  "cq-04-bebop": "dispel-magic",
+  "cq-05-billy": "tankbuster",
+  "cq-06-calico": "spirit-shielding",
+  "cq-07-celeste": "knockdown",
+  "cq-09-drifter": "disarming-hex",
+  "cq-10-dynamo": "debuff-reducer",
+  "cq-11-graves": "disarming-hex",
+  "cq-12-grey-talon": "slowing-hex",
+  "cq-13-haze": "battle-vest",
+  "cq-14-holliday": "slowing-hex",
+  "cq-15-infernus": "disarming-hex",
+  "cq-16-ivy": "slowing-hex",
+  "cq-18-lady-geist": "healbane",
+  "cq-21-mina": "disarming-hex",
+  "cq-24-nurse": "healbane",
+  "cq-27-pocket": "spirit-shielding",
+  "cq-28-rat-king": "disarming-hex",
+  "cq-29-rem": "healbane",
+  "cq-32-silver": "disarming-hex",
+  "cq-33-sinclair": "slowing-hex",
+  "cq-34-solomon": "spirit-shielding",
+  "cq-36-venator": "disarming-hex",
+  "cq-37-victor": "healbane",
+  "cq-38-vindicta": "disarming-hex",
+  "cq-39-artist": "spirit-shielding",
+  "cq-40-viscous": "rebuttal",
+  "cq-43-wraith": "disarming-hex",
+  "cq-44-yamato": "slowing-hex",
+  "cq-45-heal": "healbane",
+  "cq-46-gun": "disarming-hex",
+  "cq-48-spirit": "spirit-resilience",
+  "cq-49-control": "slowing-hex",
+  "cq-50-melee": "rebuttal",
+  "cq-53-sustain": "spirit-burn",
+  "cq-54-heal": "enchanters-emblem",
+  "cq-55-gun": "spirit-shielding",
+  "cq-56-bullet": "melee-charge",
+  "cq-57-spirit": "phantom-strike",
+  "cq-58-control": "rusted-barrel",
+  "cq-59-melee": "spirit-strike"
+ },
+ "retired": {
+  "cq-08-deadman-danny": "the owner retired it",
+  "cq-17-kelvin": "the owner retired it",
+  "cq-19-lash": "the owner retired it",
+  "cq-20-mcginnis": "the owner retired it",
+  "cq-22-mirage": "the owner retired it",
+  "cq-23-mo-and-krill": "the owner retired it",
+  "cq-25-paige": "the owner retired it",
+  "cq-26-paradox": "the owner retired it",
+  "cq-30-seven": "the owner retired it",
+  "cq-31-shiv": "the owner retired it",
+  "cq-35-the-doorman": "the owner retired it",
+  "cq-41-vyper": "the owner retired it",
+  "cq-42-warden": "the owner retired it",
+  "cq-47-bullet": "the owner retired it",
+  "cq-51-burst": "the owner retired it",
+  "cq-52-tempo": "the owner retired it"
+ },
+ "updated": "2026-10-30"
 };
