@@ -1090,11 +1090,12 @@
     lore.appendChild(el('div', 'sub-lore-h', 'THE CRYSTAL OF THE PIT'));
     var loreList = el('ul', 'sub-lore-list');
     [
-      ['13 000', 'health of the Midboss, and it grows by 195 every minute'],
+      ['15 600', 'health of the Midboss, and it grows by 234 every minute'],
       ['35', 'the shield that has to be broken first, and it comes back by 5 a minute'],
-      ['3', 'the credits one Midboss gives — one heavy blow each'],
-      ['6 seconds', 'the fall of the crystal before it can be claimed'],
-      ['3 minutes', 'how long a credit lives']
+      ['3', 'the credits one Midboss gives — three crystals, one heavy blow each'],
+      ['7.5 seconds', 'the fall of the crystal before it can be claimed'],
+      ['3 minutes', 'how long a credit lives'],
+      ['1 500', 'the souls of the killing team, and it grows by 25 a minute']
     ].forEach(function (row) {
       var li = el('li');
       li.appendChild(el('b', 'sub-lore-n', row[0]));
@@ -1104,7 +1105,8 @@
     lore.appendChild(loreList);
     var loreNote = el('p', 'sub-lore-note',
       'The Midboss wakes up again seven minutes after the first kill, six '
-      + 'after the second, five after the third.');
+      + 'after the second, five after the third. It roars at a quarter of '
+      + 'its health, and every crystal heals the hero who takes it full.');
     lore.appendChild(loreNote);
     box.appendChild(lore);
 
@@ -1468,8 +1470,8 @@
   // ------------------------------------------------------------- support
   /* Everything a tester might want to tell us, in one block they can copy.
      This is the only place that knows where feedback goes. */
-  var APP_VERSION = '0.18.0';
-  var BUILD_DATE = '2026-10-30';
+  var APP_VERSION = '0.19.0';
+  var BUILD_DATE = '2026-10-31';
   // Where "report a problem" goes. Two options, both need no server:
   //   ISSUES_URL  a GitHub issue with the diagnostics already filled in
   //   SUPPORT_EMAIL  a mailbox (mailto:). Leave it empty to skip it.
@@ -1488,12 +1490,16 @@
     : 'api/shop';
 
   var WHATS_NEW = [
+    ['The shop follows the game', 'Valve changed thirty-eight items in the Halloween update of the game. The numbers of the site moved with them: the bullet speed of the rounds, the lifesteal of the infuser, the cooldown of the divine barrier. The change lies in the repository as a patch, so the next update is written the same way, and every number of the site can be checked against the game.'],
+    ['The pit is stronger', 'The Midboss has 15600 health now and grows by 234 every minute. The crystals of the Rejuvenator fall for 7.5 seconds, there are three of them, and every one of them heals the hero full. It roars at a quarter of its health instead of a half.'],
+    ['The ambush hits', 'Shadow Weave gives no fire rate and no melee damage with the ambush any more. It gives fifty per cent weapon damage instead, and the bonus needs six seconds of stealth before it reaches its full power.'],
+    ['The feed of the updates is alive', 'The site tells what the game changed, item by item, with the old number and the new one. The update of the thirtieth of October is the first entry of it.'],
     ['The site weighs five times less', 'The whole shop used to be eight and a half megabytes of pictures. Now it is one and a half: every icon of the game is drawn at the size it is shown, in the format the browser understands best, and the pictures that are below the fold are not fetched at all. The page opens five times faster on a phone.'],
     ['The account can be deleted', 'In the profile there is a button that takes the account away: the progress, the streak, the souls, the name on the board and the subscription. The password is asked for, and nothing of it stays behind.'],
     ['The menu explains itself', 'The side menu is three groups now, and every line says what it does: what is left of the path, what answers what, what the daily run is, how many items there are. It is a list of doors, not a list of names.'],
     ['The counters have a desk of their own', 'Fifty-nine questions about what answers what, and the owner answers them himself: which of the offered items is the counter that works. Until he has answered a question it is not asked in the quiz — a quiz that guesses is worse than no quiz.'],
     ['The questions stopped lying', 'A limit is not a gift: "Cooldown" and "Max Stacks" are no longer the answer to "what does this give you". The comparisons of the limits say which is longer and which is shorter. The hint of the upgrade no longer promises a tier that the game does not keep.'],
-    ['The subscription is a crystal', 'The panel of Rejuvenator is built around the crystal of the midboss, and it tells what the boss of the lane really is: 13000 health, a shield of 35, three credits, a buff of three minutes and a respawn of seven, six or five minutes.'],
+    ['The subscription is a crystal', 'The panel of Rejuvenator is built around the crystal of the midboss, and it tells what the boss of the lane really is: 15600 health, a shield of 35, three credits, a buff of three minutes and a respawn of seven, six or five minutes.'],
     ['The soul keeps its outline', 'The green heart of the soul and the black rim around it — on the light screen and on the dark one. In the plate of the header the soul is now a flame and not a blank disc.'],
     ['The daily run is timed by the urn', 'The blue Soul Urn of the game stands next to the clock of the run and on the home screen. It is the real model of the game, not a drawing of it.'],
     ['The site can be read aloud', 'Every field has a name, every icon button says what it does, there is one headline on the page, and the small buttons are big enough for a finger. The colours were measured, not guessed.'],
@@ -1631,7 +1637,7 @@
     var meta = el('div', 'app-foot-meta');
     var counts = DS.meta || {};
     meta.textContent = (counts.items || 156) + ' items · ' + (counts.units || 64) +
-      ' lessons · data ' + ((counts.snapshot) || '2026-10-15');
+      ' lessons · data ' + ((counts.snapshot) || '2026-10-30');
     top.appendChild(ver);
     top.appendChild(meta);
     foot.appendChild(top);
@@ -5045,6 +5051,22 @@
         var base = window.DSS;
         if (!base || !base.items) throw new Error('no snapshot in this build');
         var live = canonLive(raw);
+        /* The live shop can be behind the snapshot of the app: the game
+           files of the newest build are not published the moment the patch
+           is. Then the diff would show the changes backwards, so the
+           build of the live shop is read first. */
+        var liveBuild = (raw.source || {}).buildId || '';
+        var liveAt = (raw.source || {}).generatedAt || '';
+        var oursAt = (base.meta || {}).generatedAt || '';
+        if (liveAt && oursAt && liveAt < oursAt) {
+          if (status) {
+            status.className = 'upd-status';
+            status.textContent = 'The live shop still runs the build ' + (liveBuild || 'of an older patch') +
+              ' — it is behind our snapshot of ' + ((base.meta || {}).snapshot || 'the site') +
+              '. The numbers in the app follow the newer build.';
+          }
+          return;
+        }
         var d = diffCanon(base.items, live, base.labels || {});
         var c = d.counts;
         if (status) {
@@ -5617,7 +5639,7 @@
   // must keep working without it.
   // The version in the URL forces a fresh worker script on every data change,
   // otherwise the browser may keep serving a stale cached data.js.
-  var SW_VERSION = 'v13';
+  var SW_VERSION = 'v14';
   try {
     if ('serviceWorker' in navigator &&
         (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
