@@ -1321,6 +1321,16 @@ body.nav-locked{overflow:hidden}
 .upd-chg b{font-family:var(--font-ui)}
 .upd-empty{font-size:13px;color:var(--ink-2);font-weight:700;line-height:1.5}
 
+/* what the game changed outside of the shop: the midboss, the haunts, the
+   tunnels — the parts of the patch that are not a number of a card */
+.upd-world{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.upd-world-h{font-family:var(--font-ui);font-size:11.5px;letter-spacing:1.1px;
+  text-transform:uppercase;color:var(--ink-2);margin-bottom:9px}
+.upd-world-row{margin-bottom:10px}
+.upd-world-row:last-child{margin-bottom:0}
+.upd-world-t{font-family:var(--font-ui);font-size:13.5px;color:var(--ink);margin-bottom:3px}
+.upd-world-d{font-size:12.5px;color:var(--ink-2);font-weight:600;line-height:1.55}
+
 /* ==================================================================
    BUGHUNT
    ================================================================== */

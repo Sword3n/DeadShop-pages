@@ -1470,7 +1470,7 @@
   // ------------------------------------------------------------- support
   /* Everything a tester might want to tell us, in one block they can copy.
      This is the only place that knows where feedback goes. */
-  var APP_VERSION = '0.19.0';
+  var APP_VERSION = '0.19.1';
   var BUILD_DATE = '2026-10-31';
   // Where "report a problem" goes. Two options, both need no server:
   //   ISSUES_URL  a GitHub issue with the diagnostics already filled in
@@ -1494,6 +1494,8 @@
     ['The pit is stronger', 'The Midboss has 15600 health now and grows by 234 every minute. The crystals of the Rejuvenator fall for 7.5 seconds, there are three of them, and every one of them heals the hero full. It roars at a quarter of its health instead of a half.'],
     ['The ambush hits', 'Shadow Weave gives no fire rate and no melee damage with the ambush any more. It gives fifty per cent weapon damage instead, and the bonus needs six seconds of stealth before it reaches its full power.'],
     ['The feed of the updates is alive', 'The site tells what the game changed, item by item, with the old number and the new one. The update of the thirtieth of October is the first entry of it.'],
+    ['The world of the game is told too', 'The patch changed more than the shop. The screen of the latest update now says what happened outside of the cards: the midboss and its three crystals, the haunts, the gold of the comeback, the tunnels, and the base damage of the heroes.'],
+    ['The next patch reads itself', 'The tool that reads the notes of a patch and the history of every item in the wiki writes the draft of the change on its own: it finds the number of a note and gives it to the property of the game files that holds it. Only the few lines it cannot place need a hand.'],
     ['The site weighs five times less', 'The whole shop used to be eight and a half megabytes of pictures. Now it is one and a half: every icon of the game is drawn at the size it is shown, in the format the browser understands best, and the pictures that are below the fold are not fetched at all. The page opens five times faster on a phone.'],
     ['The account can be deleted', 'In the profile there is a button that takes the account away: the progress, the streak, the souls, the name on the board and the subscription. The password is asked for, and nothing of it stays behind.'],
     ['The menu explains itself', 'The side menu is three groups now, and every line says what it does: what is left of the path, what answers what, what the daily run is, how many items there are. It is a list of doors, not a list of names.'],
@@ -5014,6 +5016,19 @@
       row.appendChild(t);
       block.appendChild(row);
     });
+    /* the game changed more than the shop: the midboss, the haunts, the
+       tunnels. These are not numbers of a card, so they are told in words. */
+    if (e.world && e.world.length) {
+      var world = el('div', 'upd-world');
+      world.appendChild(el('div', 'upd-world-h', 'What else the game changed'));
+      e.world.forEach(function (row) {
+        var line = el('div', 'upd-world-row');
+        line.appendChild(el('div', 'upd-world-t', row.title || ''));
+        line.appendChild(el('div', 'upd-world-d', row.text || ''));
+        world.appendChild(line);
+      });
+      block.appendChild(world);
+    }
     return block;
   }
 
@@ -5639,7 +5654,7 @@
   // must keep working without it.
   // The version in the URL forces a fresh worker script on every data change,
   // otherwise the browser may keep serving a stale cached data.js.
-  var SW_VERSION = 'v14';
+  var SW_VERSION = 'v15';
   try {
     if ('serviceWorker' in navigator &&
         (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
