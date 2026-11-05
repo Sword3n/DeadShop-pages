@@ -1795,6 +1795,11 @@
     if (lm) lm.classList.remove('on');
     syncNavActive(name);
     syncNavCounts();
+    /* The tour does not fight the visitor: when he walks off to another
+       screen on his own, the tour gets out of the way. It is the only
+       thing that may move the screen while it runs — that is what
+       tour.moving says. */
+    if (tour.on && !tour.moving) tourEnd();
   }
   var lastXp = null, lastStreak = null, lastLeague = null;
   function renderCounters() {
@@ -5133,8 +5138,10 @@
     var step = TOUR_STEPS[tour.i];
     if (!step) { tourEnd(); return; }
     if (step.screen && step.screen !== current) {
+      tour.moving = true;
       if (step.screen === 'items') setActiveTab('items');
       show(step.screen);
+      tour.moving = false;
     }
     /* the screen has to be drawn before the hole can be measured */
     setTimeout(function () { tourPlace(step); }, 70);
@@ -5651,6 +5658,11 @@
     setText('#data-counts', nItems + ' items · ' + nUnits + ' lessons');
     if (meta.snapshot) { setText('#data-snapshot', meta.snapshot); setText('#nav-snapshot', meta.snapshot); }
 
+    // the bell of "what is new" goes into the header of every screen
+    mountWhatsNew();
+    // the site opens on the home screen: the daily run and four doors out
+    show('home');
+
     // first run: the site walks you over the parts of it, one spot at a
     // time. no signup wall — accounts live inside the profile screen.
     // The flag lives in the profile state so it persists through the same
@@ -5660,10 +5672,6 @@
     if (!S.onboarded && !skipIntro) {
       tourStart(typeof S.tourStep === 'number' ? S.tourStep : 0);
     }
-    // the bell of "what's new" goes into the header of every screen
-    mountWhatsNew();
-    // the site opens on the home screen: the daily run and four doors out
-    show('home');
 
     // the home screen: one big button and four tiles
     $('#home-daily').addEventListener('click', function () { startDaily(); });
