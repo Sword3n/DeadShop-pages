@@ -8,7 +8,7 @@
 <!-- the build of the page itself. The script reads it and compares it with
      its own version: a page from an older build next to a newer script is
      a site that throws, so the two are put back together. -->
-<meta name="ds-version" content="0.19.1">
+<meta name="ds-version" content="0.20.0">
 <!-- a private test build: it stays out of the search engines, the link is
      the only way in. Remove this line when the site goes public on purpose. -->
 <meta name="robots" content="noindex, nofollow">
@@ -38,7 +38,7 @@
 <link rel="mask-icon" href="assets/icon.svg" color="#3DDCC8">
 <link rel="apple-touch-icon" href="assets/icon-180.png">
 <link rel="preload" href="assets/fonts/saira-var.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="app.css?v=17">
+<link rel="stylesheet" href="app.css?v=18">
 </head>
 <body>
 <!-- ========================== THE BOOT SCREEN ==========================
@@ -174,7 +174,7 @@
             </span>
           </button>
           <button class="nav-item" type="button" data-go="sub">
-            <span class="nav-item-ico"><svg viewBox="0 0 24 24"><path d="M12 2l7 6v9l-7 5-7-5V8z"/><path d="M12 8v8M8.5 11h7"/></svg></span>
+            <span class="nav-item-ico"><img src="assets/rejuvenator-crystal-icon.png" alt=""></span>
             <span class="nav-item-b">
               <span class="nav-item-t">Rejuvenator</span>
               <span class="nav-item-s">Support the project, take the ads away</span>
@@ -352,11 +352,6 @@
         </div>
       </div>
 
-      <div class="owl-tip" id="owl-tip">
-        <img src="assets/owl.svg" alt="" width="34" height="34">
-        <p id="owl-tip-text">Grey Talon's owl is watching. Every stat you learn is a souls saved.</p>
-      </div>
-
       <div class="daily-card exam-card">
         <div class="daily-left">
           <div class="daily-title">Test yourself</div>
@@ -364,10 +359,6 @@
         </div>
         <button class="btn btn-blue daily-btn" id="exam-btn">Start</button>
       </div>
-
-      <div class="panel-title">Groups</div>
-      <div class="chip-scroll" id="group-chips"></div>
-      <div class="chip-scroll chip-scroll-more" id="group-chips-more" hidden></div>
 
       <div class="ad-slot" data-slot="path"></div>
 
@@ -441,6 +432,7 @@
     </header>
     <div class="scroll" id="items-scroll">
       <div class="filter-row" id="item-filters"></div>
+      <div class="filter-row filter-row-cat" id="item-cat-filters"></div>
       <div class="item-list" id="item-list"></div>
       <div class="foot-slot" id="foot-items"></div>
     </div>
@@ -883,6 +875,7 @@
 
       <h3 class="section-h" id="profile-help">Help &amp; feedback</h3>
       <div class="settings">
+        <button class="set-action" id="tour-replay">Take the tour again</button>
         <button class="set-action" id="report-btn">Report a bug — Bughunt</button>
         <button class="set-action" id="diag-btn">Copy diagnostics</button>
         <button class="set-action" id="whatsnew-profile-btn">What's new</button>
@@ -991,27 +984,27 @@
        lesson puts the lesson down, and the path offers it back. The
        question was only ever in the way. -->
 
-  <!-- ========================= ONBOARDING ========================== -->
-  <div class="modal" id="onboard-modal" aria-hidden="true">    <div class="modal-card onboard-card">
-      <img class="onboard-mark owl-mark" src="assets/owl.svg" alt="Grey Talon's owl" width="72" height="72">
-      <h2 class="onboard-title">Deadlock shop trainer</h2>
-      <p class="onboard-text"><span id="onboard-counts">156 shop items. 64 short lessons.</span>
-        Every stat is checked against the game files.</p>
-      <ul class="onboard-list">
-        <li><b>Newcomer</b> — what an item does and what it upgrades into</li>
-        <li><b>Shopoholic</b> — the item and the numbers of its main effects</li>
-        <li><b>Shopkeeper</b> — the whole card, number by number</li>
-      </ul>
-      <p class="onboard-reassure">
-        No account, no sign-up, nothing sent anywhere — your progress stays in this
-        browser. Open it once and it keeps working offline.
-      </p>
-      <button class="btn btn-green btn-block" id="onboard-start">START LEARNING</button>
-      <button class="btn btn-ghost btn-block btn-plain" id="onboard-skip">Not now</button>
-      <p class="onboard-fine">
-        Fan project, not affiliated with Valve. Data snapshot
-        <span id="onboard-snapshot">2026-10-30</span>.
-      </p>
+  <!-- ============================== TOUR ==============================
+       The first time the site opens, it does not show a wall of text: it
+       walks over the parts of the site and shows what each one is for.
+       Five steps, a spotlight on a real element, a card that follows it.
+       The tour never locks the site — Skip is always there, Escape ends
+       it, and the profile remembers that it was seen. -->
+  <div class="tour" id="tour" hidden>
+    <div class="tour-hole" id="tour-hole"></div>
+    <div class="tour-card" id="tour-card" role="dialog" aria-modal="false"
+         aria-labelledby="tour-title" aria-describedby="tour-text">
+      <div class="tour-head">
+        <span class="tour-count" id="tour-count">1 / 5</span>
+        <button class="tour-x" id="tour-skip" type="button" aria-label="Skip the tour">Skip</button>
+      </div>
+      <h3 class="tour-title" id="tour-title"></h3>
+      <p class="tour-text" id="tour-text"></p>
+      <div class="tour-dots" id="tour-dots"></div>
+      <div class="tour-actions">
+        <button class="btn btn-ghost btn-sm btn-plain" id="tour-prev" type="button">Back</button>
+        <button class="btn btn-green btn-sm" id="tour-next" type="button">Next</button>
+      </div>
     </div>
   </div>
 
@@ -1029,6 +1022,6 @@
 <script src="core.js?v=15"></script>
 <script src="auth.js?v=9"></script>
 <script src="api.js?v=1"></script>
-<script src="app.js?v=20"></script>
+<script src="app.js?v=21"></script>
 </body>
 </html>

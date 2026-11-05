@@ -575,17 +575,9 @@ textarea.answer-input{min-height:130px;resize:vertical;font-size:15px;font-weigh
 .toggle.on{background:var(--teal);border-color:var(--teal-d)}
 .toggle.on span{transform:translateX(19px);background:#fff}
 
-/* =========================== onboarding ============================ */
-.onboard-card{text-align:center}
-.onboard-mark{display:block;width:72px;height:72px;margin:0 auto 10px;border-radius:20px;
-  box-shadow:0 6px 18px rgba(0,0,0,.28)}
-.onboard-title{font-size:22px;margin:0 0 6px}
-.onboard-text{font-size:14px;color:var(--ink-2);font-weight:700;margin:0 0 14px}
-.onboard-list{text-align:left;list-style:none;padding:0;margin:0 0 18px;font-size:14px}
-.onboard-list li{padding:8px 0 8px 26px;position:relative;border-bottom:1px solid var(--line)}
-.onboard-list li:last-child{border-bottom:0}
-.onboard-list li::before{content:'✓';position:absolute;left:0;color:var(--green);font-weight:800}
-.onboard-list b{color:var(--blue-d)}
+/* The welcome card of the first run is gone: the site walks you over its
+   own parts now (see the tour at the end of this file). */
+
 
 /* ============================== motion ============================== */
 /* One place for every animation in the app. All of them are short, all of
@@ -779,6 +771,10 @@ picture.urn-timer-pic img{display:block;width:100%;height:100%;object-fit:contai
   padding:6px 12px;font-size:12.5px;font-weight:800;cursor:pointer;min-height:44px;min-width:44px;
   transition:border-color .14s,color .14s}
 .fchip.on{border-color:var(--green);color:var(--green-tx);background:var(--green-l)}
+.filter-row-cat{margin-top:-2px;padding-top:0}
+.filter-lbl{flex:none;border:2px dashed var(--line);background:transparent;color:var(--ink-2);
+  border-radius:99px;padding:5px 11px;font-size:11.5px;font-weight:800;letter-spacing:.8px;
+  text-transform:uppercase;opacity:.8}
 
 .keys-card{max-width:420px}
 .keys-list{display:flex;flex-direction:column;gap:2px;margin:6px 0 16px}
@@ -826,7 +822,7 @@ picture.urn-timer-pic img{display:block;width:100%;height:100%;object-fit:contai
   .path-scroll{display:block;max-width:1600px;margin:0 auto;padding:0 32px 40px}
   .path-side{position:static;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
     gap:14px;align-items:stretch;padding-top:8px}
-  .path-side > .hero,.path-side > .owl-tip,.path-side > .panel-title,
+  .path-side > .hero,.path-side > .panel-title,
   .path-side > .chip-scroll,.path-side > .ad-slot,.path-side > .footnote{grid-column:1/-1}
   .path-side > .daily-card{margin:0}
   .path-main{min-width:0}
@@ -990,9 +986,6 @@ picture.urn-timer-pic img{display:block;width:100%;height:100%;object-fit:contai
 .gchip.on{border-color:var(--teal);background:var(--teal-l);color:var(--teal-tx)}
 .stat-card .stat-num{color:var(--teal-tx)}
 /* the owl keeps its shape on a light background */
-.owl-tip img{width:34px;height:34px;flex:none;object-fit:contain;background:var(--teal-l);
-  border-radius:50%;padding:3px}
-.owl-tip p{margin:0;font-size:12.5px;color:var(--ink-2);font-weight:700;line-height:1.35}
 .unit-cta{color:var(--teal-tx)}
 .q-title b{color:var(--teal-tx)}
 .item-head{border-left:3px solid var(--teal);border-radius:0 12px 12px 0}
@@ -1037,7 +1030,8 @@ picture.urn-timer-pic img{display:block;width:100%;height:100%;object-fit:contai
 .result-card.perfect .result-owl{filter:drop-shadow(0 0 26px rgba(61,220,200,.75))}
 
 /* the owl's tip on the path screen */
-.owl-tip{display:flex;align-items:center;gap:10px;background:var(--soft);
+/* the owl tip was here */
+.owl-tip{display:none;align-items:center;gap:10px;background:var(--soft);
   border-left:3px solid var(--amber);padding:9px 12px;margin:2px 0 12px;
   border-radius:0 12px 12px 0}
 .owl-tip img{width:34px;height:34px;flex:none;object-fit:contain}
@@ -1150,6 +1144,7 @@ picture.urn-timer-pic img{display:block;width:100%;height:100%;object-fit:contai
 .nav-item.on{color:var(--teal-tx);border-left-color:var(--teal);background:var(--teal-l)}
 .nav-item-ico{width:24px;height:24px;flex:none;display:grid;place-items:center;
   color:currentColor;opacity:.75}
+.nav-item-ico img{width:22px;height:22px;object-fit:contain}
 .nav-item-ico svg{width:20px;height:20px;fill:none;stroke:currentColor;
   stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .nav-item.on .nav-item-ico{opacity:1}
@@ -1233,8 +1228,11 @@ body.nav-locked{overflow:hidden}
 }
 .souls-balance{display:flex;align-items:center;gap:12px}
 .souls-mark{width:40px;height:40px;flex:none;
-  background:url('assets/soul.svg') center/contain no-repeat;
-  filter:drop-shadow(0 2px 6px rgba(63,185,80,.35))}
+  background:url('assets/souls-2x.webp') center/contain no-repeat;
+  background-size:contain;filter:drop-shadow(0 2px 6px rgba(63,185,80,.35))}
+@supports not (background:-webkit-linear-gradient(#fff,#fff)){
+  .souls-mark{background-image:url('assets/souls-2x.png')}
+}
 .souls-txt{flex:1;min-width:0}
 .souls-num{font-family:var(--font-ui);font-size:26px;line-height:1.05;color:var(--ink)}
 .souls-lbl{font-size:12px;color:var(--ink-2);font-weight:800;letter-spacing:.6px;
@@ -1608,8 +1606,8 @@ body.acc-crimson{--teal:#F87171;--teal-d:#991B1B}
 .chip-souls .chip-lbl{opacity:.85}
 .chip-souls .soul-ico{
   width:20px;height:20px;display:block;flex:none;
-  -webkit-mask:url('assets/soul-mark.svg') center/contain no-repeat;
-  mask:url('assets/soul-mark.svg') center/contain no-repeat;
+  -webkit-mask:url('assets/souls.png') center/contain no-repeat;
+  mask:url('assets/souls.png') center/contain no-repeat;
   background:var(--on-souls);
 }
 
@@ -2042,8 +2040,8 @@ picture.urn-mark-pic img{display:block;width:100%;height:100%;object-fit:contain
   animation:subBreathe 4.6s ease-in-out infinite
 }
 @keyframes subBreathe{0%,100%{opacity:.55}50%{opacity:1}}
-.sub-crystal{position:relative;flex:none;width:96px;height:144px;display:grid;place-items:center}
-.sub-crystal img{position:relative;z-index:2;width:96px;height:144px;object-fit:contain;
+.sub-crystal{position:relative;flex:none;width:96px;height:96px;display:grid;place-items:center}
+.sub-crystal img{position:relative;z-index:2;width:88px;height:88px;object-fit:contain;
   filter:drop-shadow(0 0 14px rgba(95,224,90,.42)) drop-shadow(0 6px 12px rgba(0,0,0,.45));
   animation:subFloat 5.4s ease-in-out infinite}
 @keyframes subFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
@@ -2161,3 +2159,49 @@ html, body, .scroll, .modal-body{
 html::-webkit-scrollbar, body::-webkit-scrollbar,
 .scroll::-webkit-scrollbar, .modal-body::-webkit-scrollbar,
 #screen-path::-webkit-scrollbar, #screen-items::-webkit-scrollbar{display:none}
+
+/* ============================== TOUR ===============================
+   The first run of the site: a spotlight on a real element and a card
+   that follows it. The dark is a hole around the element, the card
+   slides in, and nothing is ever locked — Skip is always there. */
+.tour{position:fixed;inset:0;z-index:60;pointer-events:none}
+.tour[hidden]{display:none}
+.tour-hole{position:absolute;border-radius:18px;pointer-events:none;
+  box-shadow:0 0 0 9999px rgba(3,7,10,.76);
+  transition:top .5s cubic-bezier(.22,.9,.26,1),left .5s cubic-bezier(.22,.9,.26,1),
+    width .5s cubic-bezier(.22,.9,.26,1),height .5s cubic-bezier(.22,.9,.26,1),
+    border-radius .3s ease}
+.tour-hole::after{content:'';position:absolute;inset:-7px;border-radius:24px;
+  border:2px solid var(--teal);opacity:.9;animation:tour-pulse 2s ease-in-out infinite}
+@keyframes tour-pulse{0%,100%{transform:scale(1);opacity:.9}50%{transform:scale(1.05);opacity:.4}}
+.tour-card{position:absolute;left:0;top:0;width:min(340px,calc(100vw - 28px));
+  background:var(--card);border:2px solid var(--line);border-radius:16px;padding:13px 15px 12px;
+  box-shadow:0 18px 44px rgba(0,0,0,.5);pointer-events:auto;
+  opacity:0;transform:translateY(12px) scale(.97);
+  transition:opacity .3s ease,transform .4s cubic-bezier(.22,.9,.26,1)}
+.tour.on .tour-card{opacity:1;transform:none}
+.tour-card::before{content:'';position:absolute;width:13px;height:13px;background:var(--card);
+  border-left:2px solid var(--line);border-top:2px solid var(--line);
+  transform:rotate(45deg);left:var(--arrow,26px);top:-8px}
+.tour-card[data-arrow="down"]::before{top:auto;bottom:-8px;left:var(--arrow,26px);
+  border-left:0;border-top:0;border-right:2px solid var(--line);border-bottom:2px solid var(--line)}
+.tour-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:7px}
+.tour-count{font-family:var(--font-ui);font-size:11.5px;letter-spacing:1.1px;color:var(--ink-3)}
+.tour-x{background:none;border:0;color:var(--ink-3);font-size:12.5px;font-weight:800;
+  letter-spacing:.4px;cursor:pointer;padding:4px 2px;border-radius:8px}
+.tour-x:hover{color:var(--ink)}
+.tour-title{font-family:var(--font-ui);font-size:16.5px;margin:0 0 5px;line-height:1.25}
+.tour-text{font-size:13.5px;color:var(--ink-2);font-weight:600;line-height:1.55;margin:0}
+.tour-text b{color:var(--ink)}
+.tour-dots{display:flex;gap:6px;margin:12px 0 2px}
+.tour-dot{width:7px;height:7px;border-radius:50%;background:var(--line);border:0;padding:0;
+  cursor:pointer;transition:background .25s,transform .25s}
+.tour-dot.on{background:var(--teal);transform:scale(1.25)}
+.tour-dot.done{background:var(--ink-3)}
+.tour-actions{display:flex;align-items:center;gap:8px;margin-top:10px}
+.tour-actions .btn{margin-left:auto}
+.tour-actions .btn + .btn{margin-left:0}
+@media (max-width:640px){
+  .tour-card{width:calc(100vw - 24px)}
+  .tour-card::before{display:none}
+}

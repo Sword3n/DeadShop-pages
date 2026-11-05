@@ -120,33 +120,9 @@
     }
   }
 
-  // A line of advice from the owl. It stays put for the whole day — the
-  // owl's counsel of the day — and a tap on it pulls the next one out.
-  var OWL_TIPS = [
-    'Tier 4 items upgrade into other Tier 4 items. Learn the chain, not just the numbers.',
-    'A wrong answer costs you a soul. The hint costs you half the XP but keeps the streak.',
-    'Bullet Speed is a raw number. Everything in per cent is a percentage of your weapon.',
-    'The owl has seen every shopkeeper patch these cards. Numbers first, opinions later.',
-    'Upgrade chains are direct only: one item feeds one item, never two steps at once.',
-    'Spirit Power is spent, not stacked. Health and Spirit Resist never scale the same way.',
-    'Twenty questions a day beats one hundred on Sunday. The streak is the point.',
-    'If two items look equal, the cheaper one is the better buy until the data says otherwise.'
-  ];
-  function owlTip(advance) {
-    var node = $('#owl-tip-text');
-    if (!node) return;
-    var day = today();
-    var seen = {};
-    try { seen = JSON.parse(localStorage.getItem('deadshop-tips-v1') || '{}'); } catch (e) { seen = {}; }
-    var idx;
-    if (typeof seen.i !== 'number' || seen.day !== day) {
-      idx = Math.floor(Math.random() * OWL_TIPS.length);
-    } else {
-      idx = advance ? (seen.i + 1) % OWL_TIPS.length : seen.i;
-    }
-    try { localStorage.setItem('deadshop-tips-v1', JSON.stringify({ day: day, i: idx })); } catch (e) {}
-    node.textContent = OWL_TIPS[idx];
-  }
+  /* The owl used to leave a line of advice on the path every day. The path
+     is a path now: it shows the lessons and nothing else. The advice moved
+     into the tour of the first run, where it belongs. */
   // local calendar day, not UTC — a streak must not roll over at 00:00 GMT
   function dayKey(d) {
     var m = d.getMonth() + 1, day = d.getDate();
@@ -230,7 +206,7 @@
 
   var DEFAULTS = {
     xp: 0, streak: 0, lastDay: null, dailyDay: null, mastery: {}, right: 0, wrong: 0,
-    lessons: 0, unitsDone: {}, unlocked: {}, seen: {}, onboarded: false, paused: null,
+    lessons: 0, unitsDone: {}, unlocked: {}, seen: {}, onboarded: false, tourStep: 0, paused: null,
     display: '', avatar: '', todayCount: 0, todayDay: null, history: {},
     // the questions that were missed in the daily run: they may be repeated,
     // but a repeat pays nothing
@@ -1021,7 +997,7 @@
     var hero = el('div', 'sub-hero');
     var art = el('div', 'sub-crystal');
     var crystal = el('img');
-    crystal.src = 'assets/rejuvenator-crystal.svg';
+    crystal.src = 'assets/rejuvenator-crystal.png';
     crystal.alt = 'The Rejuvenator crystal';
     crystal.width = 96;
     crystal.height = 144;
@@ -1470,8 +1446,8 @@
   // ------------------------------------------------------------- support
   /* Everything a tester might want to tell us, in one block they can copy.
      This is the only place that knows where feedback goes. */
-  var APP_VERSION = '0.19.1';
-  var BUILD_DATE = '2026-10-31';
+  var APP_VERSION = '0.20.0';
+  var BUILD_DATE = '2026-11-05';
   // Where "report a problem" goes. Two options, both need no server:
   //   ISSUES_URL  a GitHub issue with the diagnostics already filled in
   //   SUPPORT_EMAIL  a mailbox (mailto:). Leave it empty to skip it.
@@ -1490,6 +1466,10 @@
     : 'api/shop';
 
   var WHATS_NEW = [
+    ['The first run walks you through the site', 'Five steps, each one a light on a real part of the screen: the daily run, the path, the three depths, the souls and the shop. It never locks the site, Escape ends it, and the profile has a button that takes it again.'],
+    ['The icons come from the game', 'The mark of the souls is the swirl of the shop of Deadlock and the crystal of the Rejuvenator is the green shard of the pit of the Midboss. Both are taken from the game files now, not drawn by hand.'],
+    ['The path lost its categories', 'The path is a curriculum: the lessons stand in the order they build on each other, and the title of every lesson says what it is about. The categories moved to the shop, where the browsing belongs.'],
+    ['The path says nothing on its own', 'The line of advice of the owl is gone from the path. What the site has to say is said once, in the tour of the first run.'],
     ['The shop follows the game', 'Valve changed thirty-eight items in the Halloween update of the game. The numbers of the site moved with them: the bullet speed of the rounds, the lifesteal of the infuser, the cooldown of the divine barrier. The change lies in the repository as a patch, so the next update is written the same way, and every number of the site can be checked against the game.'],
     ['The pit is stronger', 'The Midboss has 15600 health now and grows by 234 every minute. The crystals of the Rejuvenator fall for 7.5 seconds, there are three of them, and every one of them heals the hero full. It roars at a quarter of its health instead of a half.'],
     ['The ambush hits', 'Shadow Weave gives no fire rate and no melee damage with the ambush any more. It gives fifty per cent weapon damage instead, and the bonus needs six seconds of stealth before it reaches its full power.'],
@@ -2027,8 +2007,6 @@
   }
 
   // ------------------------------------------------------------- path UI
-  var activeGroup = null;
-  var activeCat = null;
   var pathAnimated = false;
 
   /* Thirty-six groups make thirty-six chips, and nobody reads them all.
@@ -2047,11 +2025,18 @@
     { id: 'control', title: 'Control', groups: ['Crown Control', 'Debuffs', 'Duration',
       'Anti Gun', 'Anti Healing'] },
     { id: 'move', title: 'Movement', groups: ['Movement and Agility', 'Charges', 'Cooldown'] },
-    { id: 'actives', title: 'Actives', groups: ['Actives', 'Melee'] }
+    { id: 'actives', title: 'Actives', groups: ['Actives', 'Melee'] },
+    /* The items the game files give no family to — the golden goose egg,
+       the arctic blast, the divine barrier. They are a family of their
+       own, or the shop would hide them from the reader. */
+    { id: 'special', title: 'Special', groups: [] }
   ];
   var GROUP_CAT = {};
   GROUP_CATS.forEach(function (c) { c.groups.forEach(function (g) { GROUP_CAT[g] = c; }); });
-  function catOf(group) { return GROUP_CAT[group] || null; }
+  function catOf(group) {
+    if (!group) return GROUP_CATS[GROUP_CATS.length - 1];
+    return GROUP_CAT[group] || null;
+  }
 
   /* The home screen: one big thing to do and four smaller ones. It is the
      first thing the site shows, so it carries the daily run and nothing
@@ -2111,7 +2096,6 @@
 
   function renderPath() {
     renderCounters();
-    owlTip();
     renderTrackPick();
 
     // a paused lesson waits on the path until you want it back
@@ -2127,76 +2111,16 @@
       rc.hidden = true;
     }
 
-    // the group filter: six families, and the whole list under "More"
-    var chips = $('#group-chips');
-    chips.innerHTML = '';
-    var more = $('#group-chips-more');
-    if (more) more.innerHTML = '';
-    var any = activeGroup === null && activeCat === null;
-
-    function chip(text, on, fn, cls) {
-      var b = el('button', (cls || 'gchip') + (on ? ' on' : ''), text);
-      b.type = 'button';
-      b.addEventListener('click', fn);
-      return b;
-    }
-    chips.appendChild(chip('All', any, function () {
-      activeGroup = null; activeCat = null; renderPath();
-    }));
-    GROUP_CATS.forEach(function (c) {
-      var n = c.groups.reduce(function (a, g) {
-        return a + DS.units.filter(function (u) { return u.group === g; }).length;
-      }, 0);
-      chips.appendChild(chip(c.title + ' · ' + n, activeCat === c.id, function () {
-        activeCat = activeCat === c.id ? null : c.id;
-        activeGroup = null;
-        renderPath();
-      }));
-    });
-    var moreBtn = chip('More ▾', more && !more.hidden, function () {
-      if (more) more.hidden = !more.hidden;
-      renderPath();
-    }, 'gchip gchip-more');
-    chips.appendChild(moreBtn);
-
-    // the full list of groups
-    if (more && !more.hidden) {
-      more.appendChild(chip('All', any, function () {
-        activeGroup = null; activeCat = null; renderPath();
-      }));
-      DS.groups.forEach(function (g) {
-        var b = chip(g, activeGroup === g, function () {
-          activeGroup = activeGroup === g ? null : g;
-          activeCat = null;
-          if (activeGroup) unlockGroup(activeGroup);
-          renderPath();
-          setTimeout(function () {
-            var first = $('.unit[data-unit]:not(.locked)');
-            if (first && activeGroup) first.scrollIntoView({ block: 'center' });
-          }, 30);
-        });
-        more.appendChild(b);
-      });
-    }
-
+    /* The categories live in the shop now, not on the path. The path is a
+       curriculum: the lessons stand in the order they build on each other,
+       and the title of every lesson already says what it is about. */
     var box = $('#path-list');
     box.innerHTML = '';
     // the whole list is rebuilt on every visit — only let it animate once,
     // otherwise the path flashes empty every time you come back to it
     if (pathAnimated) box.classList.add('no-anim'); else pathAnimated = true;
-    var lastGroup = null;
     var stagger = 0;
     DS.units.forEach(function (u, idx) {
-      if (activeGroup && u.group !== activeGroup) return;
-      if (activeCat) {
-        var c = catOf(u.group);
-        if (!c || c.id !== activeCat) return;
-      }
-      if (u.group !== lastGroup) {
-        lastGroup = u.group;
-        var head = el('div', 'chapter', u.group.toUpperCase());
-        box.appendChild(head);
-      }
       var locked = unitLocked(u, idx);
       var done = unitDone(u.id);
       var row = el('div', 'unit' + (locked ? ' locked' : '') + (done ? ' done' : ''));
@@ -2356,7 +2280,7 @@
     return svg;
   }
 
-  var itemFilter = { slot: null, tier: null, fresh: false };
+  var itemFilter = { slot: null, tier: null, fresh: false, cat: null };
 
   /* F4: the three branches of the game have three colours. The green of
      the old palette is gone — it now only ever says "right". */
@@ -2565,7 +2489,7 @@
     }
     var any = !itemFilter.slot && !itemFilter.tier && !itemFilter.fresh;
     chip('All', any, function () {
-      itemFilter = { slot: null, tier: null, fresh: false };
+      itemFilter = { slot: null, tier: null, fresh: false, cat: null };
       renderItems();
     });
     ['Weapon', 'Vitality', 'Spirit'].forEach(function (s) {
@@ -2584,6 +2508,36 @@
       itemFilter.fresh = !itemFilter.fresh;
       renderItems();
     });
+
+    /* The categories of the shop live here and nowhere else. Six families
+       of what an item does — the thirty-six groups of the game files are
+       folded into them — and the count of every family is written on the
+       chip, because a filter without a number is a guess. */
+    var crow = $('#item-cat-filters');
+    if (!crow) return;
+    crow.innerHTML = '';
+    var label = el('span', 'filter-lbl', 'Category');
+    crow.appendChild(label);
+    function cchip(text, on, fn) {
+      var b = el('button', 'fchip' + (on ? ' on' : ''), text);
+      b.type = 'button';
+      b.addEventListener('click', fn);
+      crow.appendChild(b);
+    }
+    cchip('All', !itemFilter.cat, function () {
+      itemFilter.cat = null;
+      renderItems();
+    });
+    GROUP_CATS.forEach(function (c) {
+      var n = DS.items ? Object.keys(DS.items).filter(function (k) {
+        var g = catOf(DS.items[k].group);
+        return g && g.id === c.id;
+      }).length : 0;
+      cchip(c.title + ' · ' + n, itemFilter.cat === c.id, function () {
+        itemFilter.cat = itemFilter.cat === c.id ? null : c.id;
+        renderItems();
+      });
+    });
   }
 
   function renderItems(query) {
@@ -2599,9 +2553,15 @@
     if (itemFilter.slot) list = list.filter(function (i) { return i.slot === itemFilter.slot; });
     if (itemFilter.tier) list = list.filter(function (i) { return i.tier === itemFilter.tier; });
     if (itemFilter.fresh) list = list.filter(function (i) { return boxOf(i.slug) === 0; });
+    if (itemFilter.cat) {
+      list = list.filter(function (i) {
+        var c = catOf(i.group);
+        return c && c.id === itemFilter.cat;
+      });
+    }
     list.sort(function (a, b) { return a.tier - b.tier || a.slot.localeCompare(b.slot) || a.name.localeCompare(b.name); });
     if (!list.length) {
-      var why = (itemFilter.slot || itemFilter.tier || itemFilter.fresh)
+      var why = (itemFilter.slot || itemFilter.tier || itemFilter.fresh || itemFilter.cat)
         ? 'Nothing matches those filters.'
         : 'No items match "' + q + '"';
       box.appendChild(el('div', 'footnote', why));
@@ -2713,12 +2673,19 @@
       row.appendChild(el('div', 'group-num', d.mastered + '/' + d.n));
       // tap a group to jump straight to it on the path
       row.addEventListener('click', function () {
-        activeGroup = g;
         unlockGroup(g);
-        renderPath();
         show('path');
-        var first = $('.unit[data-unit]:not(.locked)');
-        if (first) first.scrollIntoView({ block: 'center' });
+        setTimeout(function () {
+          /* the path has no categories any more, so the group is found by
+             its lessons — the first lesson of that family */
+          var firstId = null;
+          for (var i = 0; i < DS.units.length; i++) {
+            if (DS.units[i].group === g) { firstId = DS.units[i].id; break; }
+          }
+          var node = firstId ? $('.unit[data-unit="' + firstId + '"]') : null;
+          if (!node) node = $('.unit[data-unit]:not(.locked)');
+          if (node) node.scrollIntoView({ block: 'center' });
+        }, 60);
       });
       box.appendChild(row);
     });
@@ -4515,7 +4482,7 @@
           foot.appendChild(el('div', 'cos-cost', on ? 'worn' : 'owned'));
         } else {
           var cost = el('div', 'cos-cost');
-          cost.innerHTML = '<img src="assets/soul.svg" alt=""> ' + c.cost;
+          cost.innerHTML = '<img src="assets/souls.png" alt=""> ' + c.cost;
           foot.appendChild(cost);
         }
         var btn = el('button', 'cos-btn' + (owned ? ' ghost' : ' buy'), owned ? (on ? 'ON' : 'WEAR') : 'BUY');
@@ -5112,6 +5079,158 @@
       });
   }
 
+  // ============================================================== TOUR
+  /* The first time the site opens, it does not show a wall of text: it
+     walks over its own parts and says what each one is for. Five steps,
+     a spotlight on a real element, a card that follows it.
+
+     The rules of a tour that does not annoy: it is short, it never locks
+     the site, Skip is always there, Escape ends it, it says where it is,
+     it remembers where it was, and it can be found again later — the
+     profile has a button for it. */
+  var TOUR_STEPS = [
+    { screen: 'home', sel: '#home-daily',
+      title: 'The daily run',
+      text: 'Ten to twelve questions from the whole shop, the same for everybody today. A right answer is a soul.' },
+    { screen: 'home', sel: '.home-tile[data-go="path"]',
+      title: 'The path',
+      text: 'The lessons, one family of items each. What you learn here is what you buy with confidence later.' },
+    { screen: 'path', sel: '#track-pick',
+      title: 'Three depths',
+      text: 'Newcomer, Shopoholic, Shopkeeper. Choose how deep you want to go — the choice can be changed later.' },
+    { screen: 'path', sel: '#souls-chip',
+      title: 'The souls',
+      text: 'The currency of the shop. A lesson pays two, a flawless one five, the daily run three.' },
+    { screen: 'items', sel: '#item-search',
+      title: 'The shop',
+      text: 'All the items of the game, every number checked against the game files. The categories live here and nowhere else.' }
+  ];
+  var tour = { on: false, i: 0, raf: null };
+
+  function tourStart(at) {
+    var root = $('#tour');
+    if (!root) return;
+    var hole = $('#tour-hole');
+    tour.on = true;
+    tour.i = Math.max(0, Math.min(TOUR_STEPS.length - 1, at || 0));
+    root.hidden = false;
+    /* the hole starts in the middle of the screen and flies to the first
+       element — the tour opens by showing you where it is going */
+    if (hole) {
+      hole.style.top = '50%';
+      hole.style.left = '50%';
+      hole.style.width = '0px';
+      hole.style.height = '0px';
+      hole.style.borderRadius = '50%';
+    }
+    requestAnimationFrame(function () {
+      root.classList.add('on');
+      tourShow();
+    });
+  }
+
+  function tourShow() {
+    var step = TOUR_STEPS[tour.i];
+    if (!step) { tourEnd(); return; }
+    if (step.screen && step.screen !== current) {
+      if (step.screen === 'items') setActiveTab('items');
+      show(step.screen);
+    }
+    /* the screen has to be drawn before the hole can be measured */
+    setTimeout(function () { tourPlace(step); }, 70);
+  }
+
+  function tourPlace(step) {
+    var hole = $('#tour-hole'), card = $('#tour-card');
+    if (!hole || !card || !tour.on) return;
+    var node = $(step.sel);
+    if (!node) { tourGo(tour.i + 1); return; }
+    var r = node.getBoundingClientRect();
+    if (!r.width || !r.height) { tourGo(tour.i + 1); return; }
+    var pad = 7;
+    var top = Math.max(0, r.top - pad);
+    var left = Math.max(0, r.left - pad);
+    var w = r.width + pad * 2, h = r.height + pad * 2;
+    hole.style.borderRadius = (r.height > 60 ? 16 : 12) + 'px';
+    hole.style.top = top + 'px';
+    hole.style.left = left + 'px';
+    hole.style.width = w + 'px';
+    hole.style.height = h + 'px';
+
+    setText('#tour-title', step.title);
+    setText('#tour-text', step.text);
+    setText('#tour-count', (tour.i + 1) + ' / ' + TOUR_STEPS.length);
+
+    var dots = $('#tour-dots');
+    if (dots) {
+      dots.innerHTML = '';
+      TOUR_STEPS.forEach(function (s, k) {
+        var b = el('button', 'tour-dot' + (k === tour.i ? ' on' : (k < tour.i ? ' done' : '')));
+        b.type = 'button';
+        b.setAttribute('aria-label', 'Step ' + (k + 1));
+        b.addEventListener('click', function () { tourGo(k); });
+        dots.appendChild(b);
+      });
+    }
+    var prev = $('#tour-prev'), next = $('#tour-next');
+    if (prev) prev.hidden = tour.i === 0;
+    if (next) next.textContent = tour.i === TOUR_STEPS.length - 1 ? 'START THE PATH' : 'Next';
+
+    /* the card sits under the hole, over it, or at the bottom of the
+       screen — whatever has room for it */
+    card.classList.remove('swap');
+    var vw = window.innerWidth, vh = window.innerHeight;
+    var cw = card.offsetWidth || 320;
+    var ch = card.offsetHeight || 200;
+    var cx = left + w / 2;
+    var cy = top + h / 2;
+    var ctop, arrow;
+    if (cy + h / 2 + 20 + ch < vh) { ctop = cy + h / 2 + 20; arrow = 'up'; }
+    else if (cy - h / 2 - 20 - ch > 8) { ctop = cy - h / 2 - 20 - ch; arrow = 'down'; }
+    else { ctop = Math.max(8, vh - ch - 14); arrow = 'down'; }
+    var cleft = cx - cw / 2;
+    if (cleft < 12) cleft = 12;
+    if (cleft + cw > vw - 12) cleft = Math.max(12, vw - cw - 12);
+    card.style.left = cleft + 'px';
+    card.style.top = ctop + 'px';
+    card.dataset.arrow = arrow;
+    card.style.setProperty('--arrow', Math.round(Math.max(14, Math.min(cw - 14, cx - cleft))) + 'px');
+    requestAnimationFrame(function () { card.classList.add('swap'); });
+  }
+
+  function tourGo(k) {
+    if (!tour.on) return;
+    if (k < 0 || k >= TOUR_STEPS.length) { tourEnd(); return; }
+    tour.i = k;
+    if (typeof S.tourStep === 'number') { S.tourStep = k; save(); }
+    tourShow();
+  }
+
+  function tourEnd() {
+    var root = $('#tour'), card = $('#tour-card');
+    tour.on = false;
+    if (card) card.classList.remove('swap');
+    if (root) {
+      root.classList.remove('on');
+      setTimeout(function () { root.hidden = true; }, 260);
+    }
+    S.onboarded = true;
+    S.tourStep = 0;
+    save();
+  }
+
+  function tourKey(e) {
+    if (!tour.on) return false;
+    if (e.key === 'Escape') { e.preventDefault(); tourEnd(); return true; }
+    if (e.key === 'ArrowRight' || e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      if (tour.i === TOUR_STEPS.length - 1) tourEnd(); else tourGo(tour.i + 1);
+      return true;
+    }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); tourGo(tour.i - 1); return true; }
+    return true;
+  }
+
   // ------------------------------------------------------------- wiring
   /* A small door for the in-page tests: they need to reach the souls
      arithmetic and the diff engine without clicking through the UI. */
@@ -5134,6 +5253,12 @@
     startLesson: startLesson,
     show: show,
     openItem: openItem,
+    /* the tour of the first run — the tests walk it, step by step */
+    tourStart: tourStart,
+    tourEnd: tourEnd,
+    tourGo: tourGo,
+    tourSteps: function () { return TOUR_STEPS.map(function (s) { return { screen: s.screen, sel: s.sel, title: s.title }; }); },
+    tourState: function () { return { on: tour.on, i: tour.i }; },
     audioState: function () {
       return {
         state: AC ? AC.state : 'none',
@@ -5221,17 +5346,6 @@
         show(t.dataset.tab);
       });
     });
-    // a tap on the owl pulls out the next line of counsel
-    var tipBox = $('#owl-tip');
-    if (tipBox) {
-      tipBox.setAttribute('role', 'button');
-      tipBox.setAttribute('tabindex', '0');
-      tipBox.setAttribute('title', 'Tap for another tip');
-      tipBox.addEventListener('click', function () { owlTip(true); });
-      tipBox.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); owlTip(true); }
-      });
-    }
     $('#exam-btn').addEventListener('click', startExam);
     $('#review-btn').addEventListener('click', startReview);
     $('#items-back').addEventListener('click', function () { setActiveTab('path'); show('path'); });
@@ -5500,9 +5614,31 @@
     $('#haptic-toggle').addEventListener('click', function () { S.settings.haptics = !S.settings.haptics; save(); applySettings(); });
     $('#motion-toggle').addEventListener('click', function () { S.settings.motion = !S.settings.motion; save(); applySettings(); });
 
-    // onboarding
-    $('#onboard-start').addEventListener('click', function () { closeOnboard(); });
-    $('#onboard-skip').addEventListener('click', function () { closeOnboard(); });
+    // the tour of the first run
+    $('#tour-next').addEventListener('click', function () {
+      if (tour.i === TOUR_STEPS.length - 1) { tourEnd(); show('path'); }
+      else tourGo(tour.i + 1);
+    });
+    $('#tour-prev').addEventListener('click', function () { tourGo(tour.i - 1); });
+    $('#tour-skip').addEventListener('click', function () { tourEnd(); });
+    var tourReplay = $('#tour-replay');
+    if (tourReplay) {
+      tourReplay.addEventListener('click', function () {
+        if (current !== 'home') { show('home'); }
+        setTimeout(function () { tourStart(0); }, 120);
+      });
+    }
+    var tourHole = $('#tour-hole');
+    if (tourHole) {
+      tourHole.addEventListener('click', function () {
+        if (tour.i === TOUR_STEPS.length - 1) tourEnd(); else tourGo(tour.i + 1);
+      });
+    }
+    window.addEventListener('resize', function () {
+      if (!tour.on) return;
+      clearTimeout(tour.raf);
+      tour.raf = setTimeout(function () { tourPlace(TOUR_STEPS[tour.i]); }, 160);
+    });
 
     applySettings();
     renderAll();
@@ -5513,20 +5649,16 @@
     var nItems = meta.items || Object.keys(DS.items).length;
     var nUnits = meta.units || DS.units.length;
     setText('#data-counts', nItems + ' items · ' + nUnits + ' lessons');
-    setText('#onboard-counts', nItems + ' shop items. ' + nUnits + ' short lessons.');
-    if (meta.snapshot) setText('#onboard-snapshot', meta.snapshot);
     if (meta.snapshot) { setText('#data-snapshot', meta.snapshot); setText('#nav-snapshot', meta.snapshot); }
 
-    // first run: a short welcome, then straight into the lessons.
-    // no signup wall — accounts live inside the profile screen.
+    // first run: the site walks you over the parts of it, one spot at a
+    // time. no signup wall — accounts live inside the profile screen.
     // The flag lives in the profile state so it persists through the same
     // storage path as everything else (and resets with a profile reset).
-    // ?nointro=1 skips the welcome card (handy for screenshots and embeds)
+    // ?nointro=1 skips the tour (handy for screenshots and embeds)
     var skipIntro = /(^|[?&])nointro=1/.test(location.search);
     if (!S.onboarded && !skipIntro) {
-      S.onboarded = true;
-      save();
-      $('#onboard-modal').classList.add('on');
+      tourStart(typeof S.tourStep === 'number' ? S.tourStep : 0);
     }
     // the bell of "what's new" goes into the header of every screen
     mountWhatsNew();
@@ -5583,6 +5715,9 @@
   //   Esc   leave a lesson, or close whatever popup is open
   document.addEventListener('keydown', function (e) {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
+    /* the tour has the keys while it walks: Escape ends it, the arrows
+       move it, and nothing else happens by accident */
+    if (tour.on) { tourKey(e); return; }
     var t = e.target;
     var typing = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
     // while typing only Escape is ours — the rest belongs to the field
@@ -5632,7 +5767,6 @@
       if (wn && wn.classList.contains('on')) { e.preventDefault(); wn.classList.remove('on'); return; }
       var lmd = $('#limit-modal');
       if (lmd && lmd.classList.contains('on')) { e.preventDefault(); lmd.classList.remove('on'); return; }
-      if ($('#onboard-modal').classList.contains('on')) { e.preventDefault(); closeOnboard(); return; }
       if (current === 'items' || current === 'stats' || current === 'profile') {
         e.preventDefault();
         setActiveTab('path'); show('path');
@@ -5654,15 +5788,11 @@
   // must keep working without it.
   // The version in the URL forces a fresh worker script on every data change,
   // otherwise the browser may keep serving a stale cached data.js.
-  var SW_VERSION = 'v15';
+  var SW_VERSION = 'v16';
   try {
     if ('serviceWorker' in navigator &&
         (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
       navigator.serviceWorker.register('sw.js?v=' + SW_VERSION).catch(function () { });
     }
   } catch (e) { }
-
-  function closeOnboard() {
-    $('#onboard-modal').classList.remove('on');
-  }
 })();
