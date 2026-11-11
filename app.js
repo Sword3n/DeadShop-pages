@@ -1446,8 +1446,8 @@
   // ------------------------------------------------------------- support
   /* Everything a tester might want to tell us, in one block they can copy.
      This is the only place that knows where feedback goes. */
-  var APP_VERSION = '0.20.0';
-  var BUILD_DATE = '2026-11-05';
+  var APP_VERSION = '0.21.0';
+  var BUILD_DATE = '2026-11-11';
   // Where "report a problem" goes. Two options, both need no server:
   //   ISSUES_URL  a GitHub issue with the diagnostics already filled in
   //   SUPPORT_EMAIL  a mailbox (mailto:). Leave it empty to skip it.
@@ -1466,6 +1466,10 @@
     : 'api/shop';
 
   var WHATS_NEW = [
+    ['The path of the upgrades changed', 'Extra Regen no longer upgrades into Healing Booster, and Healing Booster is no longer built from it. Healing Booster also stopped granting Health Regen with its tier. The card of the item and the questions about the chain follow the game, so the question about what Extra Regen upgrades into is gone: there is nothing to answer any more.'],
+    ['The site tells a changed chain', 'The feed of the updates used to count only the numbers. Now it tells the path of the upgrades too: what an item is built from, what it feeds into, and what its tier gives. A change of the chain is a change of the shop, and it is written in the history with the old value and the new one.'],
+    ['The patch of the fifth of November', 'Valve shipped a minor update on the fourth of November, build client-6860. The numbers of the site moved with it: Healbane stacks its penalty from eighty per cent, Metal Skin pulls you down with twenty per cent more gravity, and Majestic Leap lost the four velocity properties of its jump.'],
+    ['The heroes are told too', 'The patch changed more than the shop: Apollo, Baba, Celeste, Deadman Danny, Mo & Krill, Nurse Harrow and the Rat King all moved. Their cards carry only health, the weapon and the weakness, so the screen of the latest update says in words what happened to them.'],
     ['The first run walks you through the site', 'Five steps, each one a light on a real part of the screen: the daily run, the path, the three depths, the souls and the shop. It never locks the site, Escape ends it, and the profile has a button that takes it again.'],
     ['The icons come from the game', 'The mark of the souls is the swirl of the shop of Deadlock and the crystal of the Rejuvenator is the green shard of the pit of the Midboss. Both are taken from the game files now, not drawn by hand.'],
     ['The path lost its categories', 'The path is a curriculum: the lessons stand in the order they build on each other, and the title of every lesson says what it is about. The categories moved to the shop, where the browsing belongs.'],
@@ -4817,6 +4821,12 @@
   function canonLive(raw) {
     var items = (raw && raw.items) || [];
     var out = {};
+    // the names of the items, so the chain of the upgrades can be shown by
+    // its names and not by the ids of the game
+    var nameOf = {};
+    items.forEach(function (it) {
+      if (it && it.id) nameOf[it.id] = ((it.displayName || {}).english) || it.slug || it.id;
+    });
     items.forEach(function (it) {
       var slug = it && it.slug;
       if (!slug) return;
@@ -4828,6 +4838,19 @@
         var v = parseFloat((props[pk] || {}).value);
         if (!isNaN(v) && v !== 0) stats[pk] = v;
       });
+      var chainFrom = Array.isArray(shop.componentIds) ?
+        shop.componentIds.map(function (c) { return nameOf[c] || c; }) : null;
+      var chainTo = Array.isArray(shop.upgradeIds) ?
+        shop.upgradeIds.map(function (c) { return nameOf[c] || c; }) : null;
+      var tiers = null;
+      if (Array.isArray(it.upgrades)) {
+        tiers = {};
+        it.upgrades.forEach(function (lvl) {
+          (lvl.propertyUpgrades || []).forEach(function (pu) {
+            if (pu.propertyName) tiers[pu.propertyName] = pu.bonus;
+          });
+        });
+      }
       out[slug] = {
         name: ((it.displayName || {}).english) || slug,
         slot: SHOP_SLOTS[shop.slotType] || shop.slotType || '',
@@ -4837,6 +4860,12 @@
         updatedAt: String(it.updatedAt || '').slice(0, 10),
         stats: stats
       };
+      /* A side that does not know the chain says nothing about it: only two
+         sides that both know it can be compared, or a shop that simply does
+         not answer would look like a shop that lost its chains. */
+      if (chainFrom) out[slug].chainFrom = chainFrom;
+      if (chainTo) out[slug].chainTo = chainTo;
+      if (tiers) out[slug].tiers = tiers;
     });
     return out;
   }
@@ -4867,6 +4896,31 @@
       if (a.cost !== b.cost) ch.push({ prop: 'Cost', label: 'Soul cost', family: 'Economy', kind: 'cost', old: a.cost, new: b.cost, dir: b.cost > a.cost ? 'up' : 'down' });
       if (a.tier !== b.tier) ch.push({ prop: 'Tier', label: 'Tier', family: 'Economy', kind: 'tier', old: a.tier, new: b.tier, dir: b.tier > a.tier ? 'up' : 'down' });
       if (a.activation !== b.activation) ch.push({ prop: 'Activation', label: 'Activation', family: 'Economy', kind: 'activation', old: a.activation, new: b.activation, dir: 'change' });
+      // the path of the upgrades and the bonuses of the tiers: the learner
+      // walks this path, so a change of it belongs in the history too.
+      // A side that does not know the chain says nothing about it.
+      [['chainFrom', 'Built from'], ['chainTo', 'Upgrades into']].forEach(function (pair) {
+        if (a[pair[0]] === undefined || b[pair[0]] === undefined) return;
+        var av = a[pair[0]] || [], bv = b[pair[0]] || [];
+        if (av.join('|') === bv.join('|')) return;
+        ch.push({
+          prop: pair[0], label: pair[1], family: 'Chain', kind: 'chain',
+          old: av.length ? av.join(', ') : 'nothing',
+          new: bv.length ? bv.join(', ') : 'nothing', dir: 'change'
+        });
+      });
+      if (a.tiers !== undefined && b.tiers !== undefined) {
+        var at = a.tiers || {}, bt = b.tiers || {};
+        Object.keys(at).concat(Object.keys(bt)).forEach(function (pk) {
+          if (at[pk] === bt[pk]) return;
+          var lab = labels[pk] || [prettyProp(pk), 'Other'];
+          ch.push({
+            prop: 'Tier:' + pk, label: 'Tier bonus: ' + lab[0], family: lab[1], kind: 'tier',
+            old: at[pk] === undefined ? 'nothing' : at[pk],
+            new: bt[pk] === undefined ? 'nothing' : bt[pk], dir: 'change'
+          });
+        });
+      }
       if (!ch.length) return;
       var ups = 0, downs = 0;
       ch.forEach(function (c) {
