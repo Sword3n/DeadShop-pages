@@ -95,6 +95,8 @@ window.DSCLOUD = (function () {
       });
     }).catch(function (e) {
       clearTimeout(timer);
+      // the server answered with an error — it is there, it only said no
+      if (e && e.status) { e.offline = false; throw e; }
       var err = new Error(e && e.message ? e.message : 'no server');
       err.offline = true;
       throw err;
@@ -170,7 +172,24 @@ window.DSCLOUD = (function () {
   // ------------------------------------------------------------------ accounts
   function register(email, password, name) {
     return call('POST', '/api/register', { email: email, password: password, name: name || '' })
-      .then(function (r) { setToken(r.token); user = r.user; fire(); return r; });
+      .then(function (r) {
+        // with a mailbox on the server the account waits for the letter, and
+        // there is no token yet — the code comes first
+        if (r && r.token) { setToken(r.token); user = r.user; fire(); }
+        return r;
+      });
+  }
+
+  function verify(email, code) {
+    return call('POST', '/api/verify', { email: email, code: code })
+      .then(function (r) {
+        if (r && r.token) { setToken(r.token); user = r.user; fire(); }
+        return r;
+      });
+  }
+
+  function resendCode(email) {
+    return call('POST', '/api/resend-code', { email: email });
   }
 
   function login(email, password) {
@@ -281,6 +300,8 @@ window.DSCLOUD = (function () {
     get ads() { return ads; },
     getToken: getToken,
     register: register,
+    verify: verify,
+    resendCode: resendCode,
     login: login,
     logout: logout,
     deleteAccount: deleteAccount,

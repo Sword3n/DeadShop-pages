@@ -8,7 +8,7 @@
 <!-- the build of the page itself. The script reads it and compares it with
      its own version: a page from an older build next to a newer script is
      a site that throws, so the two are put back together. -->
-<meta name="ds-version" content="0.21.0">
+<meta name="ds-version" content="0.22.0">
 <!-- a private test build: it stays out of the search engines, the link is
      the only way in. Remove this line when the site goes public on purpose. -->
 <meta name="robots" content="noindex, nofollow">
@@ -765,20 +765,30 @@
       <div class="cloud-box">
         <div id="cloud-state"></div>
         <div class="settings" id="cloud-form" hidden>
-          <div class="set-row set-row-col">
+          <div class="set-row set-row-col" id="cloud-mail-row">
             <label class="set-label" for="cloud-email">E-mail</label>
             <input class="set-input" id="cloud-email" type="email" maxlength="120"
                    placeholder="you@example.com" autocomplete="username" inputmode="email">
           </div>
-          <div class="set-row set-row-col">
+          <div class="set-row set-row-col" id="cloud-pass-row">
             <label class="set-label" for="cloud-pass">Password</label>
             <input class="set-input" id="cloud-pass" type="password" maxlength="80"
                    placeholder="at least 8 characters" autocomplete="current-password">
           </div>
-          <div class="set-row set-row-col">
+          <div class="set-row set-row-col" id="cloud-name-row">
             <label class="set-label" for="cloud-name">Name on the board (optional)</label>
             <input class="set-input" id="cloud-name" type="text" maxlength="20"
                    placeholder="How should the board call you?">
+          </div>
+          <div class="set-row set-row-col" id="cloud-code-row" hidden>
+            <label class="set-label" for="cloud-code">The code from the letter</label>
+            <input class="set-input" id="cloud-code" type="text" maxlength="6"
+                   placeholder="six digits" inputmode="numeric" autocomplete="one-time-code">
+            <div class="footnote" id="cloud-code-note">We sent a code to your address. It is good for fifteen minutes.</div>
+            <div class="set-actions">
+              <button class="btn btn-green btn-sm" id="cloud-verify" type="button">ENTER THE CODE</button>
+              <button class="btn btn-ghost btn-sm btn-plain" id="cloud-resend" type="button">SEND IT AGAIN</button>
+            </div>
           </div>
           <button class="btn btn-green btn-block" id="cloud-register" type="button">CREATE THE ACCOUNT</button>
           <button class="btn btn-blue btn-block btn-plain" id="cloud-login" type="button">I ALREADY HAVE ONE — SIGN IN</button>
@@ -1022,6 +1032,6 @@
 <script src="core.js?v=15"></script>
 <script src="auth.js?v=9"></script>
 <script src="api.js?v=1"></script>
-<script src="app.js?v=22"></script>
+<script src="app.js?v=23"></script>
 </body>
 </html>

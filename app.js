@@ -388,6 +388,8 @@
     rank: 0,
     serverUser: null,
     ownerKey: '',
+    step: 'form',          // 'form' — or 'code', when the letter waits
+    mail: '',
     priceUsd: 3
   };
   try { cloud.ownerKey = localStorage.getItem('deadshop-owner-key-v1') || ''; } catch (e) { }
@@ -580,11 +582,16 @@
     }
     var u = cloud.serverUser;
     if (!u) {
-      state.appendChild(el('div', 'note',
-        'Make an account and the progress follows you to every device, your ' +
-        'name can go on the board, and Rejuvenator lifts the daily limit.'));
+      var noteText = 'Make an account and the progress follows you to every device, your ' +
+        'name can go on the board, and Rejuvenator lifts the daily limit.';
+      if (cloud.step === 'code') {
+        noteText = 'We sent a code to ' + (cloud.mail || 'your address') +
+          '. Type it below — the account opens as soon as the code is right.';
+      }
+      state.appendChild(el('div', 'note', noteText));
       if (form) form.hidden = false;
       if (signed) signed.hidden = true;
+      renderCloudStep();
       return;
     }
     state.appendChild(el('div', 'cloud-mail', u.email || 'signed in'));
@@ -667,25 +674,100 @@
     var fn = kind === 'register' ? DSCLOUD.register : DSCLOUD.login;
     fn(mail, pass, name).then(function (r) {
       if (!r) { toast('The server did not answer — try again in a moment'); return; }
-      cloud.serverUser = r.user;
-      cloud.sub = !!(r.user.subscription && r.user.subscription.active);
-      cloud.subUntil = (r.user.subscription && r.user.subscription.until) || 0;
-      if (r.user.name) { S.display = r.user.name; save(); }
-      S.board = !!r.user.public;
-      var pn = $('#cloud-pass'); if (pn) pn.value = '';
-      renderCloudAccount();
-      renderAds();
-      renderSub();
-      renderFriends();
-      renderLimitChip();
-      toast(kind === 'register' ? 'Account created' : 'Welcome back');
-      syncCloud();
+      if (r.pending) {
+        // the server has a mailbox: the account waits for the code that
+        // came by letter
+        cloudStep('code', mail);
+        return;
+      }
+      cloudDone(r, kind === 'register' ? 'Account created' : 'Welcome back');
     }).catch(function (e) {
+      if (e && e.data && e.data.needCode) {
+        // the account is there, but the address was never confirmed
+        cloudStep('code', mail);
+        toast(e.message || 'This address is not confirmed yet');
+        return;
+      }
       toast(e && e.message ? e.message : 'That did not work');
     });
   }
 
+  /* The step where the code from the letter is asked for. The address is
+     remembered, so the player only has to type the six digits. */
+  function showRow(id, show) {
+    var n = $(id);
+    if (n) n.hidden = !show;
+  }
+
+  function renderCloudStep() {
+    var code = cloud.step === 'code';
+    showRow('#cloud-mail-row', true);
+    showRow('#cloud-pass-row', !code);
+    showRow('#cloud-name-row', !code);
+    showRow('#cloud-code-row', code);
+    showRow('#cloud-register', !code);
+    showRow('#cloud-login', !code);
+    var mail = $('#cloud-email');
+    if (mail) mail.readOnly = !!code;
+    var note = $('#cloud-code-note');
+    if (note && code && cloud.mail) {
+      note.textContent = 'We sent a code to ' + cloud.mail +
+        '. It is good for fifteen minutes — if it does not come, ask for another one.';
+    }
+  }
+
+  function cloudStep(step, mail) {
+    cloud.step = step;
+    cloud.mail = mail || cloud.mail || '';
+    renderCloudAccount();
+    var code = $('#cloud-code');
+    if (code) { try { code.value = ''; } catch (e) { } }
+    if (code && code.focus) setTimeout(function () { try { code.focus(); } catch (e) { } }, 60);
+  }
+
+  function cloudVerify() {
+    var mail = cloud.mail || ($('#cloud-email') && $('#cloud-email').value || '').trim();
+    var code = ($('#cloud-code') && $('#cloud-code').value || '').trim();
+    if (!code) { toast('The code from the letter'); return; }
+    DSCLOUD.verify(mail, code).then(function (r) {
+      if (!r || !r.user) { toast('The server did not answer'); return; }
+      cloud.step = 'form';
+      cloud.mail = '';
+      cloudDone(r, 'The address is confirmed');
+    }).catch(function (e) {
+      toast(e && e.message ? e.message : 'That code did not work');
+    });
+  }
+
+  function cloudResend() {
+    var mail = cloud.mail || ($('#cloud-email') && $('#cloud-email').value || '').trim();
+    if (!mail) { toast('The e-mail first'); return; }
+    DSCLOUD.resendCode(mail).then(function (r) {
+      toast((r && r.note) || 'The letter is on its way');
+    }).catch(function (e) {
+      toast(e && e.message ? e.message : 'The letter did not go out');
+    });
+  }
+
+  function cloudDone(r, message) {
+    cloud.serverUser = r.user;
+    cloud.sub = !!(r.user.subscription && r.user.subscription.active);
+    cloud.subUntil = (r.user.subscription && r.user.subscription.until) || 0;
+    if (r.user.name) { S.display = r.user.name; save(); }
+    S.board = !!r.user.public;
+    var pn = $('#cloud-pass'); if (pn) pn.value = '';
+    renderCloudAccount();
+    renderAds();
+    renderSub();
+    renderFriends();
+    renderLimitChip();
+    toast(message || 'Done');
+    syncCloud();
+  }
+
   function cloudLogout() {
+    cloud.step = 'form';
+    cloud.mail = '';
     DSCLOUD.logout().then(function () {
       cloud.serverUser = null;
       cloud.sub = false;
@@ -1446,8 +1528,8 @@
   // ------------------------------------------------------------- support
   /* Everything a tester might want to tell us, in one block they can copy.
      This is the only place that knows where feedback goes. */
-  var APP_VERSION = '0.21.0';
-  var BUILD_DATE = '2026-11-11';
+  var APP_VERSION = '0.22.0';
+  var BUILD_DATE = '2026-11-12';
   // Where "report a problem" goes. Two options, both need no server:
   //   ISSUES_URL  a GitHub issue with the diagnostics already filled in
   //   SUPPORT_EMAIL  a mailbox (mailto:). Leave it empty to skip it.
@@ -1466,6 +1548,7 @@
     : 'api/shop';
 
   var WHATS_NEW = [
+    ['The account is confirmed by letter', 'A new account waits for the code that came by letter: six digits are mailed to the address, and the account opens when they are typed in. The code is good for fifteen minutes and five tries, and the server never keeps it — only the hash of it, made with the key of the database. A letter that cannot go out never locks the account.'],
     ['The path of the upgrades changed', 'Extra Regen no longer upgrades into Healing Booster, and Healing Booster is no longer built from it. Healing Booster also stopped granting Health Regen with its tier. The card of the item and the questions about the chain follow the game, so the question about what Extra Regen upgrades into is gone: there is nothing to answer any more.'],
     ['The site tells a changed chain', 'The feed of the updates used to count only the numbers. Now it tells the path of the upgrades too: what an item is built from, what it feeds into, and what its tier gives. A change of the chain is a change of the shop, and it is written in the history with the old value and the new one.'],
     ['The patch of the fifth of November', 'Valve shipped a minor update on the fourth of November, build client-6860. The numbers of the site moved with it: Healbane stacks its penalty from eighty per cent, Metal Skin pulls you down with twenty per cent more gravity, and Majestic Leap lost the four velocity properties of its jump.'],
@@ -5471,8 +5554,13 @@
     // the cloud: the account, the limit, the subscription
     $('#cloud-register').addEventListener('click', function () { cloudAuth('register'); });
     $('#cloud-login').addEventListener('click', function () { cloudAuth('login'); });
+    $('#cloud-verify').addEventListener('click', function () { cloudVerify(); });
+    $('#cloud-resend').addEventListener('click', function () { cloudResend(); });
     $('#cloud-pass').addEventListener('keydown', function (e) {
       if (e.key === 'Enter') { e.preventDefault(); cloudAuth('register'); }
+    });
+    $('#cloud-code').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); cloudVerify(); }
     });
     $('#limit-sub').addEventListener('click', function () {
       $('#limit-modal').classList.remove('on');
