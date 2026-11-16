@@ -146,14 +146,14 @@
 
   /* Three ways through the shop. The owner asked for three categories of
      learning path: a newcomer only wants to know what an item does and what
-     it upgrades into, a shopoholic wants the numbers of the main effects as
+     it gives, a shopoholic wants the numbers of the main effects as
      well, and a shopkeeper wants the whole card. The track is remembered in
      the profile and can be changed at any time on the path screen. */
   var TRACKS = {
     newcomer: {
       name: 'Newcomer', list: 'q_newcomer',
-      note: 'what the item does and what it upgrades into',
-      light: ['gives', 'which_item']
+      note: 'what the item does and what it gives',
+      light: ['gives', 'effect']
     },
     shopoholic: {
       name: 'Shopoholic', list: 'q_shopoholic',
@@ -1528,7 +1528,7 @@
   // ------------------------------------------------------------- support
   /* Everything a tester might want to tell us, in one block they can copy.
      This is the only place that knows where feedback goes. */
-  var APP_VERSION = '0.22.2';
+  var APP_VERSION = '0.23.0';
   var BUILD_DATE = '2026-11-16';
   // Where "report a problem" goes. Two options, both need no server:
   //   ISSUES_URL  a GitHub issue with the diagnostics already filled in
@@ -1548,6 +1548,7 @@
     : 'api/shop';
 
   var WHATS_NEW = [
+    ['The beginner path teaches what the item does', 'A newcomer now meets every item the way a player reads a card: first what it does — the line the game itself carries — then what it gives you, then what else it gives you. The three answers of one item stay together, so the lesson makes a single sentence: "it does this, and it gives that". The path of the upgrades left the beginner path: that is the shopkeeper\'s business. 451 questions now, and the run of the day follows the path you walk.'],
     ['The account is confirmed by letter', 'A new account waits for the code that came by letter: six digits are mailed to the address, and the account opens when they are typed in. The code is good for fifteen minutes and five tries, and the server never keeps it — only the hash of it, made with the key of the database. A letter that cannot go out never locks the account.'],
     ['The path of the upgrades changed', 'Extra Regen no longer upgrades into Healing Booster, and Healing Booster is no longer built from it. Healing Booster also stopped granting Health Regen with its tier. The card of the item and the questions about the chain follow the game, so the question about what Extra Regen upgrades into is gone: there is nothing to answer any more.'],
     ['The site tells a changed chain', 'The feed of the updates used to count only the numbers. Now it tells the path of the upgrades too: what an item is built from, what it feeds into, and what its tier gives. A change of the chain is a change of the shop, and it is written in the history with the old value and the new one.'],
@@ -2868,7 +2869,8 @@
     family: 'Which stat?', value: 'Exact value', blank: 'Missing stat', compare: 'Comparison',
     chain: 'Upgrade path', freeRecall: 'Full recall', valueBlind: 'Exact value',
     tier: 'Tier', counter: 'Counter pick',
-    gives: 'What it gives', which_item: 'Which item'
+    gives: 'What it gives', which_item: 'Which item',
+    effect: 'What it does'
   };
 
 
@@ -2933,14 +2935,25 @@
   /* The run of the day is the warm-up of the day: the questions that can be
      answered by reading the card, not by writing the whole card from memory.
      The card fill and the full recall stay for the path — in the run of the
-     day they only make the learner give up. */
-  var DAILY_TYPES = { gives: 1, value: 1, compare: 1, which_item: 1 };
+     day they only make the learner give up.
+
+     The warm-up belongs to the path the learner walks: a newcomer gets the
+     questions of the newcomer path ("what it does, what it gives"), a
+     shopoholic the numbers of the main effects. */
+  var DAILY_TYPES = {
+    newcomer: { gives: 1, effect: 1 },
+    shopoholic: { gives: 1, value: 1, compare: 1 },
+    shopkeeper: { gives: 1, value: 1, compare: 1, which_item: 1 }
+  };
   function dailyQuestions() {
     var rnd = seededRandom(daySeed());
+    var key = trackKey();
+    var list = TRACKS[key].list;
+    var types = DAILY_TYPES[key] || DAILY_TYPES.shopkeeper;
     var pool = [];
     DS.units.forEach(function (u) {
-      u.questions.forEach(function (q) {
-        if (DAILY_TYPES[q.type]) pool.push(q);
+      (u[list] || []).forEach(function (q) {
+        if (types[q.type]) pool.push(q);
       });
     });
     for (var i = pool.length - 1; i > 0; i--) {

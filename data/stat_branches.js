@@ -89,6 +89,7 @@ window.DSB = {
 "Faster Time Between Charges": "spirit",
 "Fervor Status Resistance": "vital",
 "Fire Rate": "gun",
+"Fire Rate (always on)": "gun",
 "Fire Rate Bonus": "gun",
 "Fire Rate Slow": "spirit",
 "Fire Rate per Kill": "gun",
