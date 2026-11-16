@@ -709,11 +709,25 @@ textarea.answer-input{min-height:130px;resize:vertical;font-size:15px;font-weigh
 .chip.bump{animation:chipPop .45s cubic-bezier(.2,1.6,.3,1)}
 
 /* ========================= reduced motion =========================== */
-.reduce-motion *,.reduce-motion *::before,.reduce-motion *::after{
+/* Two ways to ask for less movement: the switch in the profile (the class
+   .reduce-motion) and the setting of the system (the media query). Both
+   have to stop the motion the same way.
+
+   A duration of a thousandth of a millisecond does not stop an animation
+   that repeats for ever — it repeats it a million times a second, and the
+   owl, the urn and the light around them shake so fast that they look
+   broken. What stops it is the number of repeats: once. */
+.reduce-motion,.reduce-motion *,.reduce-motion *::before,.reduce-motion *::after{
   animation-duration:.001ms !important;animation-iteration-count:1 !important;
   animation-delay:0ms !important;transition-duration:.001ms !important}
+/* the drawer keeps its movement even here: it is a small slide, and a menu
+   that appears out of nowhere is a cut, not a drawer */
+.reduce-motion .side-nav,.reduce-motion .nav-scrim{transition-duration:.22s !important}
 @media (prefers-reduced-motion: reduce){
-  *{animation-duration:.001ms !important;animation-delay:0ms !important;transition-duration:.001ms !important}
+  *,*::before,*::after{
+    animation-duration:.001ms !important;animation-iteration-count:1 !important;
+    animation-delay:0ms !important;transition-duration:.001ms !important}
+  .side-nav,.nav-scrim{transition-duration:.22s !important}
 }
 
 /* ====================== new: exam, week, groups ==================== */
