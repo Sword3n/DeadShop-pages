@@ -146,8 +146,9 @@
 
   /* Three ways through the shop. The owner asked for three categories of
      learning path: a newcomer only wants to know what an item does and what
-     it gives, a shopoholic wants the numbers of the main effects as
-     well, and a shopkeeper wants the whole card. The track is remembered in
+     it gives, a shopoholic wants the numbers as well and where the card
+     sits in the shop, and a shopkeeper wants the whole card - every number,
+     the way it is upgraded and what it costs. The track is remembered in
      the profile and can be changed at any time on the path screen. */
   var TRACKS = {
     newcomer: {
@@ -157,12 +158,12 @@
     },
     shopoholic: {
       name: 'Shopoholic', list: 'q_shopoholic',
-      note: 'the item and the numbers of its main effects',
+      note: 'what it gives, the numbers, and where it sits in the shop',
       light: ['gives', 'value', 'compare']
     },
     shopkeeper: {
       name: 'Shopkeeper', list: 'questions',
-      note: 'the whole card, number by number',
+      note: 'the whole card, number by number, and what it costs',
       light: ['gives', 'value', 'compare', 'blank']
     }
   };
@@ -1528,7 +1529,7 @@
   // ------------------------------------------------------------- support
   /* Everything a tester might want to tell us, in one block they can copy.
      This is the only place that knows where feedback goes. */
-  var APP_VERSION = '0.23.0';
+  var APP_VERSION = '0.24.0';
   var BUILD_DATE = '2026-11-16';
   // Where "report a problem" goes. Two options, both need no server:
   //   ISSUES_URL  a GitHub issue with the diagnostics already filled in
@@ -1548,6 +1549,8 @@
     : 'api/shop';
 
   var WHATS_NEW = [
+    ['The middle path reads the card like a buyer', 'The shopoholic now walks the shelf card by card: what the thing gives you, how much of its main effect, what else it gives, and where the card sits in the shop. The numbers have to be remembered now, not picked from the table — 604 questions on the path.'],
+    ['The deep path knows the price of a card', 'The shopkeeper wants the whole card, and the card has two faces: fifty of the 156 items take something away as well, and a player who knows only the gifts buys a card that slows him down. The path also asks where a card comes from — the upgrade path from both ends — and finds a card from a stat instead of from its name. 841 questions now.'],
     ['The beginner path teaches what the item does', 'A newcomer now meets every item the way a player reads a card: first what it does — the line the game itself carries — then what it gives you, then what else it gives you. The three answers of one item stay together, so the lesson makes a single sentence: "it does this, and it gives that". The path of the upgrades left the beginner path: that is the shopkeeper\'s business. 451 questions now, and the run of the day follows the path you walk.'],
     ['The account is confirmed by letter', 'A new account waits for the code that came by letter: six digits are mailed to the address, and the account opens when they are typed in. The code is good for fifteen minutes and five tries, and the server never keeps it — only the hash of it, made with the key of the database. A letter that cannot go out never locks the account.'],
     ['The path of the upgrades changed', 'Extra Regen no longer upgrades into Healing Booster, and Healing Booster is no longer built from it. Healing Booster also stopped granting Health Regen with its tier. The card of the item and the questions about the chain follow the game, so the question about what Extra Regen upgrades into is gone: there is nothing to answer any more.'],
@@ -1578,7 +1581,7 @@
     ['The voices speak at one level', 'The sting of the game used to shout over the other voices. Now the right answer is the confirmation of a soul and the wrong one the refusal of it, and every sound sits at the same level.'],
     ['The run of the day is a warm-up', 'The daily run draws from the questions that can be answered by reading the card. The card fill and the full recall stay in the path, where they belong.'],
     ['A name that is not allowed is not shown', 'The display name is the one thing of a player that other people see. A slur is refused on the phone, refused again by the server, and hidden on the leaderboard even when it got in before the check existed.'],
-    ['Three ways through the shop', 'Newcomer, shopoholic, shopkeeper. The newcomer only learns what an item does and what it upgrades into, the shopoholic wants the numbers of the main effects as well, and the shopkeeper wants the whole card. The choice is on the path screen and it can be changed at any time.'],
+    ['Three ways through the shop', 'Newcomer, shopoholic, shopkeeper. The newcomer only learns what an item does and what it gives, the shopoholic wants the numbers of the main effects and where the card sits in the shop, and the shopkeeper wants the whole card - every number, the upgrade path from both ends and the price the card asks. The choice is on the path screen and it can be changed at any time.'],
     ['The daily run stands in an urn', 'The Soul Urn of the game, on the home screen and nowhere else. The run of the day is taken out of the lessons.'],
     ['Every stat wears a colour', 'The health of a card is green, the cooldown and the charges are violet, the weapon is orange. Before, only a few stats had a colour — now every one of them does.'],
     ['The hints say something', 'A hint names the branch the stat belongs to, the kind of number it is and the window it lies in. It never gives the answer away.'],
@@ -2870,7 +2873,8 @@
     chain: 'Upgrade path', freeRecall: 'Full recall', valueBlind: 'Exact value',
     tier: 'Tier', counter: 'Counter pick',
     gives: 'What it gives', which_item: 'Which item',
-    effect: 'What it does'
+    effect: 'What it does',
+    penalty: 'What it costs', chainUp: 'Upgrade from'
   };
 
 
@@ -5428,6 +5432,8 @@
     currentQuestion: function () { return (L && L.qs) ? L.qs[L.i] : null; },
     lesson: function () { return L; },
     state: function () { return S; },
+    kind: KIND,
+    tracks: TRACKS,
     offensiveName: offensiveName,
     safeName: safeName,
     dailyQuestions: dailyQuestions,
