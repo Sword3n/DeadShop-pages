@@ -1675,7 +1675,6 @@ body.acc-crimson{--teal:#F87171;--teal-d:#991B1B}
 .home-brand{display:flex;align-items:center;gap:9px;background:none;border:0;padding:0;
   color:var(--ink);position:relative}
 .home-brand::after{content:"";position:absolute;inset:-5px 0}
-.home-brand .nav-brand-mark{width:34px;height:34px}
 .home-brand-txt{font-family:var(--font-ui);font-size:20px;font-weight:800;letter-spacing:2.6px;
   text-transform:uppercase;color:var(--ink);line-height:1}
 .home-brand-txt em{font-style:normal;color:var(--teal-tx)}
