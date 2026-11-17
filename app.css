@@ -257,9 +257,13 @@ h1,h2,h3,.hero h1,.topbar-title,.unit-title,.ic-name,.ih-name,.modal-title,
 .item-head .ih-name{font-size:17px}
 .item-head .ih-meta{font-size:12.5px;color:var(--ink-2);font-weight:700}
 
-.stat-table{width:100%;border-collapse:collapse;margin:6px 0 4px}
-.stat-table td{padding:9px 10px;border-bottom:1px solid var(--line);font-size:14.5px;font-weight:700}
-.stat-table td:last-child{text-align:right;color:var(--green-d);white-space:nowrap}
+.stat-table{width:100%;border-collapse:collapse;margin:6px 0 4px;table-layout:fixed}
+.stat-table td{padding:9px 10px;border-bottom:1px solid var(--line);font-size:14.5px;font-weight:700;overflow-wrap:anywhere}
+.stat-table td:last-child{text-align:right;color:var(--green-d);white-space:nowrap;width:32%}
+/* The name of a stat may be long — "Cooldown Reduction For Charged
+   Abilities" — and the chip of it never wrapped: the number of the stat
+   was then pushed out of the card and could not be read on a phone. */
+.stat-table .stat-chip{white-space:normal;display:inline-block;text-align:left}
 .stat-table tr:last-child td{border-bottom:0}
 .stat-table td.blank-cell{color:var(--ink-2);letter-spacing:2px}
 .stat-table td.blank-cell::after{content:'? ? ?';color:var(--line-d)}
@@ -426,10 +430,14 @@ textarea.answer-input{min-height:130px;resize:vertical;font-size:15px;font-weigh
 .footnote{font-size:12px;color:var(--ink-2);text-align:center;padding:18px 10px 8px;font-weight:700}
 
 /* ----------------------- card fill (full recall) ------------------- */
-.recall-table{margin:10px 0 4px}
+.recall-table{margin:10px 0 4px;table-layout:fixed;width:100%}
 .recall-table td{padding:7px 10px}
-.recall-label{color:var(--ink-2);font-size:13.5px;width:52%}
-.recall-input{width:100%;min-width:80px;border:2px solid var(--line);border-radius:10px;
+.recall-label{color:var(--ink-2);font-size:13.5px;width:58%}
+/* The name of a stat is long and the field beside it is short: without a
+   fixed layout the table grew wider than the card and the fields the
+   learner has to write in were pushed out of sight on a phone. */
+.recall-label .stat-chip{white-space:normal;display:inline-block;text-align:left}
+.recall-input{width:100%;min-width:0;border:2px solid var(--line);border-radius:10px;
   padding:8px 10px;font-family:var(--font-ui);font-weight:800;font-size:15px;text-align:right;
   color:var(--ink);background:var(--card);outline:none}
 .recall-input:focus{border-color:var(--blue)}

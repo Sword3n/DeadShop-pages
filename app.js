@@ -1586,7 +1586,7 @@
   // ------------------------------------------------------------- support
   /* Everything a tester might want to tell us, in one block they can copy.
      This is the only place that knows where feedback goes. */
-  var APP_VERSION = '0.29.0';
+  var APP_VERSION = '0.30.0';
   var BUILD_DATE = '2026-11-16';
   // Where "report a problem" goes. Two options, both need no server:
   //   ISSUES_URL  a GitHub issue with the diagnostics already filled in
@@ -3474,10 +3474,16 @@
     // would hand the answer over — so it is left out. The same goes for a
     // question about the tab of the shop or the price of the card: the head
     // shows both of them.
-    var itemName = String(item.name || '').toLowerCase();
-    var leaks = q.hideHead === true || !!(q.options && q.options.some(function (opt) {
-      return String(opt).toLowerCase().indexOf(itemName) >= 0;
-    }));
+    // The option has to BE the card: an option that only carries the name
+    // of the card inside a sentence ("Your bullets will ricochet on
+    // enemies…") is not the answer, and the head was left out for it.
+    var itemName = String(item.name || '').toLowerCase().trim();
+    function optionIsTheItem(opt) {
+      var t = String(opt === undefined || opt === null ? '' : opt).toLowerCase()
+        .replace(/\s*\(tier\s*\d+\)\s*$/, '').trim();
+      return t === itemName;
+    }
+    var leaks = q.hideHead === true || !!(q.options && q.options.some(optionIsTheItem));
     if (!leaks) {
       // The head only names the subject. It is deliberately not a link:
       // opening the full card would show every stat and hand over the answer.
