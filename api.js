@@ -266,8 +266,11 @@ window.DSCLOUD = (function () {
   }
 
   function claim(code) {
-    if (!available) return Promise.resolve(null);
-    return call('POST', '/api/claim', { code: code }).catch(function () { return null; });
+    if (!available) return Promise.reject(new Error('no server'));
+    /* The answer of the server is not swallowed: a player whose code is
+       locked out by too many wrong guesses must not be told that the code
+       is dead. */
+    return call('POST', '/api/claim', { code: code });
   }
 
   function pendingSubs(ownerKey) {
@@ -295,10 +298,12 @@ window.DSCLOUD = (function () {
   }
 
   function subscribe(email, plan, source, proof) {
-    if (!available) return Promise.resolve(null);
+    if (!available) return Promise.reject(new Error('no server'));
+    /* The answer of the server is not swallowed: a player who paid and
+       asks for the code must not be told that the server is down when it
+       is the account that is missing. */
     return call('POST', '/api/subscribe',
-      { email: email || '', plan: plan || 'rejuvenator', source: source || 'boosty', proof: proof || '' })
-      .catch(function () { return null; });
+      { email: email || '', plan: plan || 'rejuvenator', source: source || 'boosty', proof: proof || '' });
   }
 
   return {

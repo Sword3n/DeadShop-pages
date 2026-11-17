@@ -433,6 +433,7 @@
     step: 'form',          // 'form' — or 'code', when the letter waits
     mail: '',
     pass: '',              // the password of this session, in memory only
+    lastCode: '',          // the reward code of the last report the owner accepted
     priceUsd: 3
   };
   try { cloud.ownerKey = localStorage.getItem('deadshop-owner-key-v1') || ''; } catch (e) { }
@@ -760,7 +761,10 @@
     showRow('#cloud-register', !code);
     showRow('#cloud-login', !code);
     var mail = $('#cloud-email');
-    if (mail) mail.readOnly = !!code;
+    /* The address stays editable in the step of the code: an address that
+       was written wrong can be corrected, and the letter goes to the
+       address that is written there now. */
+    if (mail) mail.readOnly = false;
     var note = $('#cloud-code-note');
     if (note && code && cloud.mail) {
       note.textContent = 'We sent a code to ' + cloud.mail +
@@ -778,7 +782,7 @@
   }
 
   function cloudVerify() {
-    var mail = cloud.mail || ($('#cloud-email') && $('#cloud-email').value || '').trim();
+    var mail = ($('#cloud-email') && $('#cloud-email').value || '').trim() || cloud.mail;
     var code = ($('#cloud-code') && $('#cloud-code').value || '').trim();
     if (!code) { toast('The code from the letter'); return; }
     /* The password goes along: when the address is confirmed already — the
@@ -798,7 +802,10 @@
   }
 
   function cloudResend() {
-    var mail = cloud.mail || ($('#cloud-email') && $('#cloud-email').value || '').trim();
+    /* The address of the box is the address the letter goes to: it may
+       have been corrected since the last one, and a letter to an address
+       that was never here does not come. */
+    var mail = ($('#cloud-email') && $('#cloud-email').value || '').trim() || cloud.mail;
     if (!mail) { toast('The e-mail first'); return; }
     DSCLOUD.resendCode(mail).then(function (r) {
       toast((r && r.note) || 'The letter is on its way');
@@ -943,6 +950,20 @@
         out.appendChild(el('div', 'owner-h', 'Waiting for Rejuvenator'));
         p.pending.forEach(function (s) { out.appendChild(ownerSubRow(s)); });
       });
+      /* The code of the reward that was accepted last: the report is not
+         in the queue any more, so the code is shown here — it is the only
+         place the owner can copy it from. */
+      if (cloud.lastCode) {
+        out.appendChild(el('div', 'owner-h', 'The last reward code'));
+        var codeBox = el('div', 'bh-code', cloud.lastCode);
+        out.appendChild(codeBox);
+        var copyBtn = el('button', 'btn btn-green btn-sm', 'COPY THE REWARD CODE');
+        copyBtn.type = 'button';
+        copyBtn.addEventListener('click', function () {
+          copyText(cloud.lastCode, 'Reward code copied');
+        });
+        out.appendChild(copyBtn);
+      }
     });
   }
 
@@ -974,14 +995,10 @@
       if (!n) { toast('Put a number of souls in the box'); return; }
       DSCLOUD.decide(cloud.ownerKey, rep.id, 'accepted', n, '').then(function (res) {
         if (!res || !res.reward_code) { toast('The server did not take it'); return; }
-        var codeBox = el('div', 'bh-code', res.reward_code);
-        body.appendChild(codeBox);
-        var copyBtn = el('button', 'btn btn-green btn-sm', 'COPY THE REWARD CODE');
-        copyBtn.type = 'button';
-        copyBtn.addEventListener('click', function () {
-          copyText(res.reward_code, 'Reward code copied');
-        });
-        acts.appendChild(copyBtn);
+        /* The code belongs to the owner: the report leaves the queue when
+           it is decided, and the queue is loaded again — so the code is
+           kept here, where it stays until another one comes. */
+        cloud.lastCode = res.reward_code;
         toast('Accepted — send the reward code back');
         ownerLoadQueue();
       });
@@ -1245,11 +1262,21 @@
       var ask = el('button', 'btn btn-ghost btn-block', 'I PAID — ASK FOR THE CODE');
       ask.type = 'button';
       ask.addEventListener('click', function () {
+        /* The request belongs to the account of the player: it comes from
+           the signed-in session, and the owner sees the address of that
+           account. Without a session there is nothing to ask for. */
+        if (!DSCLOUD.user) {
+          toast('Sign in first — the request belongs to your account');
+          return;
+        }
         var email = cloudMail();
         if (!email) { toast('Put your e-mail in the profile first'); return; }
         DSCLOUD.subscribe(email, 'rejuvenator', 'boosty', '').then(function (r) {
           if (r && r.ok) toast('Sent — the owner switches it on for you');
-          else toast('The server is not reachable right now');
+          else toast('The server did not take the request');
+        }).catch(function (e) {
+          if (e && e.offline) toast('The server is not reachable right now');
+          else toast((e && e.message) || 'The server did not take the request');
         });
       });
       actions.appendChild(ask);
@@ -1586,7 +1613,7 @@
   // ------------------------------------------------------------- support
   /* Everything a tester might want to tell us, in one block they can copy.
      This is the only place that knows where feedback goes. */
-  var APP_VERSION = '0.31.0';
+  var APP_VERSION = '0.32.0';
   var BUILD_DATE = '2026-11-16';
   // Where "report a problem" goes. Two options, both need no server:
   //   ISSUES_URL  a GitHub issue with the diagnostics already filled in
@@ -1606,6 +1633,8 @@
     : 'api/shop';
 
   var WHATS_NEW = [
+    ['The owner sees the code of the reward', 'The report leaves the queue when it is decided, and the queue is drawn again — so the code of the reward was gone in the same moment it appeared. It stays on the desk now, with the button that copies it.'],
+    ['The deep path asks every card for its numbers', 'The pick of the lesson took one question of every kind, and a card could be walked past without a single number of it being asked: forty-two of the 156 cards were never asked for a number. Every card of the shopkeeper is asked for its gift and for its numbers now.'],
     ['The middle path asks how a card works', 'A card that has to be pressed does nothing until it is pressed, and the numbers of a passive card are always on — a card read the wrong way round is bought for the wrong reason. Every card of the middle path is now asked four things: what it gives, how much, where it stands in the shop and how it works. 884 questions on the path.'],
     ['The cards have their slow back', 'The wiki writes the slow of the enemy as a negative move speed, and three cards had lost the number of it: the Arctic Blast had no slow at all, and the Lightning Scroll, the Glass Cannon and the Majestic Leap had no number either. The rule that cleans such a row now asks the card of the game first: the row goes away when the card shows the slow already, and it stays — in the words of the game — when the card does not. The Cold Front, the Mystic Slow, the Mystic Reverb and the Capacitor no longer teach that these cards slow *you* down, and the move speed of the Sharpshooter and of Weighted Shots is now a drawback of yours, as the files of the game say.'],
     ['The progress of the guest came along', 'A new account made with an e-mail used to leave the progress of the guest behind: the form is drawn again for the code of the letter, and the box that said "keep my guest progress" was gone by then. The choice is now kept outside the box — and the points, the mastery and the streak travel with it.'],
@@ -4971,6 +5000,11 @@
         awardSouls(Number(r.souls) || 0, 'bughunt reward');
         toast('+' + (r.souls || 0) + ' souls');
         if (node) node.value = '';
+      }).catch(function (e) {
+        /* The server says why: too many wrong guesses, or no session. A
+           valid code must never be called dead. */
+        if (e && e.offline) toast('The server is not reachable right now');
+        else toast((e && e.message) || 'That code is not valid any more');
       });
       return;
     }
@@ -5633,8 +5667,7 @@
     dailyQuestions: dailyQuestions,
     save: save,
     // the cloud — so the checks can drive it without a server
-    cloud: function () { return cloud; },
-    lessonsToday: lessonsToday,
+    cloud: function () { return cloud; },    lessonsToday: lessonsToday,
     limitLeft: limitLeft,
     gateLesson: gateLesson,
     countLocalLesson: countLocalLesson,
@@ -5642,6 +5675,9 @@
     renderFriends: renderFriends,
     renderSub: renderSub,
     renderCloudAccount: renderCloudAccount,
+    // the desk of the owner — the checks drive it with a stub of the server
+    ownerLoadQueue: ownerLoadQueue,
+    ownerReportRow: ownerReportRow,
     showLimitScreen: showLimitScreen,
     // the second pass — the checks drive these too
     dailyQuestions: dailyQuestions,
