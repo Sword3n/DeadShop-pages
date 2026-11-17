@@ -159,12 +159,12 @@
     shopoholic: {
       name: 'Shopoholic', list: 'q_shopoholic',
       note: 'what it gives, the numbers, and where it sits in the shop',
-      light: ['gives', 'value', 'compare']
+      light: ['gives', 'value', 'compare', 'shelf']
     },
     shopkeeper: {
       name: 'Shopkeeper', list: 'questions',
       note: 'the whole card, number by number, and what it costs',
-      light: ['gives', 'value', 'compare', 'blank']
+      light: ['gives', 'value', 'compare', 'blank', 'price', 'slot']
     }
   };
   var TRACK_ORDER = ['newcomer', 'shopoholic', 'shopkeeper'];
@@ -1586,7 +1586,7 @@
   // ------------------------------------------------------------- support
   /* Everything a tester might want to tell us, in one block they can copy.
      This is the only place that knows where feedback goes. */
-  var APP_VERSION = '0.26.0';
+  var APP_VERSION = '0.27.0';
   var BUILD_DATE = '2026-11-16';
   // Where "report a problem" goes. Two options, both need no server:
   //   ISSUES_URL  a GitHub issue with the diagnostics already filled in
@@ -2954,7 +2954,9 @@
     tier: 'Tier', counter: 'Counter pick',
     gives: 'What it gives', which_item: 'Which item',
     effect: 'What it does',
-    penalty: 'What it costs', chainUp: 'Upgrade from'
+    penalty: 'What it costs', chainUp: 'Upgrade from',
+    price: 'Price', slot: 'Shop tab', shelf: 'Where it stands',
+    activation: 'Passive or active'
   };
 
 
@@ -3027,8 +3029,8 @@
      shopoholic the numbers of the main effects. */
   var DAILY_TYPES = {
     newcomer: { gives: 1, effect: 1 },
-    shopoholic: { gives: 1, value: 1, compare: 1 },
-    shopkeeper: { gives: 1, value: 1, compare: 1, which_item: 1 }
+    shopoholic: { gives: 1, value: 1, compare: 1, shelf: 1 },
+    shopkeeper: { gives: 1, value: 1, compare: 1, which_item: 1, price: 1 }
   };
   function dailyQuestions() {
     var rnd = seededRandom(daySeed());
@@ -3469,9 +3471,11 @@
     card.appendChild(el('div', 'q-kind', KIND[q.type] || q.type));
 
     // When the item being studied is one of the answer options, its card
-    // would hand the answer over — so it is left out.
+    // would hand the answer over — so it is left out. The same goes for a
+    // question about the tab of the shop or the price of the card: the head
+    // shows both of them.
     var itemName = String(item.name || '').toLowerCase();
-    var leaks = !!(q.options && q.options.some(function (opt) {
+    var leaks = q.hideHead === true || !!(q.options && q.options.some(function (opt) {
       return String(opt).toLowerCase().indexOf(itemName) >= 0;
     }));
     if (!leaks) {
