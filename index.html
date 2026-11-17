@@ -8,7 +8,7 @@
 <!-- the build of the page itself. The script reads it and compares it with
      its own version: a page from an older build next to a newer script is
      a site that throws, so the two are put back together. -->
-<meta name="ds-version" content="0.33.0">
+<meta name="ds-version" content="0.34.0">
 <!-- a private test build: it stays out of the search engines, the link is
      the only way in. Remove this line when the site goes public on purpose. -->
 <meta name="robots" content="noindex, nofollow">
@@ -432,6 +432,7 @@
     <div class="scroll" id="items-scroll">
       <div class="filter-row" id="item-filters"></div>
       <div class="filter-row filter-row-cat" id="item-cat-filters"></div>
+      <div class="footnote" id="item-count"></div>
       <div class="item-list" id="item-list"></div>
       <div class="foot-slot" id="foot-items"></div>
     </div>
@@ -911,7 +912,8 @@
   </div>
 
   <!-- ======================== ITEM DETAIL ========================== -->
-  <div class="modal" id="item-modal" aria-hidden="true">
+  <div class="modal" id="item-modal" aria-hidden="true" role="dialog" aria-modal="true"
+       aria-label="Card of the item">
     <div class="modal-card" id="modal-card"></div>
   </div>
 

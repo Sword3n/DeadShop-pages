@@ -154,7 +154,9 @@
     newcomer: {
       name: 'Newcomer', list: 'q_newcomer',
       note: 'what the item does and what it gives',
-      light: ['gives', 'effect']
+      // a card that is known is asked for its numbers only: what it does in
+      // the game is the easy half of the newcomer track
+      light: ['gives']
     },
     shopoholic: {
       name: 'Shopoholic', list: 'q_shopoholic',
@@ -603,9 +605,13 @@
   /* Every lesson-like session goes through here. A registered player is
      counted by the server (which cannot be edited away); a guest is counted
      here. The exam is not a lesson — it gives nothing, so it is not
-     counted. */
+     counted. And the drill of the mistakes is not counted either: it pays
+     nothing, and it is the one thing that opens the gate of the next
+     lesson — a player who used up the five lessons of the day could not
+     open the gate, and the path stayed shut for the rest of the day. */
   function gateLesson(kind, go) {
     renderLimitChip();
+    if (kind === 'drill') { go(); return; }
     if (cloud.sub) { go(); return; }
     if (DSCLOUD.available && DSCLOUD.getToken()) {
       /* The answer of the server may come a moment later. If the player
@@ -1787,7 +1793,7 @@
   // ------------------------------------------------------------- support
   /* Everything a tester might want to tell us, in one block they can copy.
      This is the only place that knows where feedback goes. */
-  var APP_VERSION = '0.33.0';
+  var APP_VERSION = '0.34.0';
   var BUILD_DATE = '2026-11-17';
   // Where "report a problem" goes. Two options, both need no server:
   //   ISSUES_URL  a GitHub issue with the diagnostics already filled in
@@ -1807,6 +1813,12 @@
     : 'api/shop';
 
   var WHATS_NEW = [
+    ['The search survives the filter', 'Type "extra" in the search of the shop and tap the chip of a tab: the list jumped to every card of the tab while the field still read "extra", and the player saw a list that did not answer what they asked. The word of the search now holds through every filter. The words of the chips are words of the search as well — "Survival" found nothing before, although the chip right above said "Survival · 37" — and so is the tier of a card.'],
+    ['The card of an item says what is always on', 'One flat table of numbers hid the difference between the numbers a card carries the whole time and the numbers that are there only while the buff is up. The card is split into the two blocks the game writes them in now. And the card can be reached and left with the keyboard: it has a button that closes it, the focus goes into it, and the focus stays there until it is closed.'],
+    ['The run of the day is used from the moment it starts', 'The XP is paid for every answer, and the day was written down only when the run was over: a run that was left half way and started again paid twice for the same twelve questions — five times a day for the free plan, and as often as the player liked with a subscription. The day is written down when the run starts now, the run can be put down and taken up again, and what was missed is remembered as it happens.'],
+    ['The drill of the mistakes is not a lesson of the day', 'The drill pays nothing, and it is the one thing that opens the gate of the next lesson. A player who had used up the five lessons of the day could not open the gate, and the path stayed shut for the rest of the day. The drill does not count against the day any more — and a real lesson is still turned away when the day is full.'],
+    ['The exam asks about the whole track', 'The exam of the newcomer track was ten "what does the item do in the game" and never a "what does it give you" — one half of the track, ten times. The exam asks about both halves now.'],
+    ['The numbers of the description are the numbers of the card', 'The card of Extra Regen said "Grants +3 Health Regen, +1 Out of Combat Regen", and its own numbers were 2.5 and 1.5: two numbers on one card, and no way to tell which one is right. The numbers of the game win now — and the same for Vampiric Burst and the Juggernaut, whose sentences still carried the numbers of the patch before.'],
     ['Signing in no longer throws the account away', 'The progress of the guest was copied over the account on every sign-in — so signing back into an account that had a thousand lessons gave the player the dozen answers of the guest, and the account was gone. The progress of the guest now only travels into a profile that was made in that very flow and that holds nothing yet. The code of the letter counts the wrong guesses as well: five tries, as the site promises.'],
     ['The unit of an answer belongs to the answer', 'A learner who is told "value in %" and writes "45m" was told "Correct!" and got the points. The unit is checked now, and a bare number is still accepted — but "45m" is not a percentage. The card that takes a stat away is also asked in the right words now: it does not give "-16%", it weakens the stat of the other one by sixteen.'],
     ['The account and the browser do not fight', 'The account on the server may have been played on another device, and the push of the browser replaced it — a week of work was gone after one sign-in, and the work of the other device was never seen here. The two are merged now: the numbers are the larger of the two, the mastery keeps the better record of every card, and the lists are the union of both. The name of the server no longer overwrites the name of the player.'],
@@ -2144,6 +2156,7 @@
       // a stale filter would hide items the user thinks are missing
       var search = $('#item-search');
       if (search && search.value) search.value = '';
+      itemQuery = '';
       renderItems();
     }
     if (name === 'stats') renderStats();
@@ -2475,8 +2488,9 @@
       var punit = null;
       for (var pi = 0; pi < DS.units.length; pi++) if (DS.units[pi].id === S.paused.unit) punit = DS.units[pi];
       rc.hidden = false;
-      setText('#resume-sub', punit
-        ? punit.title + ' — question ' + ((S.paused.i || 0) + 1) + ' of ' + S.paused.qs.length
+      var ptitle = punit ? punit.title : (S.paused.title || '');
+      setText('#resume-sub', ptitle
+        ? ptitle + ' — question ' + ((S.paused.i || 0) + 1) + ' of ' + S.paused.qs.length
         : 'Pick up where you left off.');
     } else {
       rc.hidden = true;
@@ -2658,6 +2672,11 @@
   }
 
   var itemFilter = { slot: null, tier: null, fresh: false, cat: null };
+  /* The word the player typed. It lives here and not only in the field:
+     a chip of the filter called renderItems() without it, and the list
+     jumped to every card of the tab while the field still read "extra" —
+     the player saw a list that did not answer what they asked. */
+  var itemQuery = '';
 
   /* F4: the three branches of the game have three colours. The green of
      the old palette is gone — it now only ever says "right". */
@@ -2861,6 +2880,9 @@
     function chip(text, on, fn) {
       var b = el('button', 'fchip' + (on ? ' on' : ''), text);
       b.type = 'button';
+      /* the state of the chip is a colour and nothing else: a reader of the
+         screen has no way to know which filter is on */
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
       b.addEventListener('click', fn);
       row.appendChild(b);
     }
@@ -2898,6 +2920,7 @@
     function cchip(text, on, fn) {
       var b = el('button', 'fchip' + (on ? ' on' : ''), text);
       b.type = 'button';
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
       b.addEventListener('click', fn);
       crow.appendChild(b);
     }
@@ -2921,11 +2944,19 @@
     var box = $('#item-list');
     box.innerHTML = '';
     renderFilters();
-    var q = (query || '').toLowerCase().trim();
+    if (query !== undefined && query !== null) itemQuery = String(query);
+    var q = String(itemQuery || '').toLowerCase().trim();
     var list = Object.keys(DS.items).map(function (k) { return DS.items[k]; });
     if (q) list = list.filter(function (i) {
       var stats = i.innate.concat(i.active).map(function (r) { return r.label + ' ' + r.value; }).join(' ');
-      return (i.name + ' ' + i.group + ' ' + i.slot + ' ' + i.desc + ' ' + stats).toLowerCase().indexOf(q) >= 0;
+      /* The words of the chips are words of the search too: the chip above
+         says "Survival · 37", and a player who types "Survival" expects the
+         thirty-seven cards of it — not "no items match". The tier is
+         searched as well, for the badge "T1" on every card. */
+      var cat = catOf(i.group);
+      var hay = i.name + ' ' + i.group + ' ' + (cat ? cat.title : '') + ' ' + i.slot +
+        ' tier ' + i.tier + ' t' + i.tier + ' ' + i.desc + ' ' + stats;
+      return hay.toLowerCase().indexOf(q) >= 0;
     });
     if (itemFilter.slot) list = list.filter(function (i) { return i.slot === itemFilter.slot; });
     if (itemFilter.tier) list = list.filter(function (i) { return i.tier === itemFilter.tier; });
@@ -2937,6 +2968,11 @@
       });
     }
     list.sort(function (a, b) { return a.tier - b.tier || a.slot.localeCompare(b.slot) || a.name.localeCompare(b.name); });
+    /* how many of the 156 are on the screen: the footer of the site counts
+       the whole shop, and a player who filtered it down to fifty-three had
+       no way to know */
+    var total = DS.items ? Object.keys(DS.items).length : list.length;
+    setText('#item-count', list.length + ' of ' + total + ' items');
     if (!list.length) {
       var why = (itemFilter.slot || itemFilter.tier || itemFilter.fresh || itemFilter.cat)
         ? 'Nothing matches those filters.'
@@ -2959,9 +2995,39 @@
       var b = boxOf(it.slug);
       if (b) right.insertAdjacentHTML('beforeend', ring(b));
       row.appendChild(right);
+      /* the whole catalogue was mouse-only: a player with a keyboard could
+         not open a single card */
+      row.setAttribute('role', 'button');
+      row.setAttribute('tabindex', '0');
+      row.setAttribute('aria-label', 'Open the card of ' + it.name);
       row.addEventListener('click', function () { openItem(it); });
+      row.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+          e.preventDefault();
+          openItem(it);
+        }
+      });
       box.appendChild(row);
     });
+  }
+
+  /* The card of an item, with the numbers of the card split into the two
+     blocks the game writes them in: the numbers that are always on, and
+     the numbers that are there only while the buff is up. One flat table
+     hid the difference, and a learner could not tell which of the numbers
+     the card carries the whole time.
+
+     The words that tell two rows of the same stat apart are computed over
+     the whole card — a card that carries "Spirit Resist" twice must not
+     lose the word that tells them apart because the table was split. */
+  function itemSections(rows) {
+    var all = DSC.rowLabels(rows);
+    var out = { innate: [], active: [] };
+    rows.forEach(function (r, i) {
+      if (!all[i]) return;
+      out[r.sec === 'active' ? 'active' : 'innate'].push(all[i]);
+    });
+    return out;
   }
 
   function openItem(it) {
@@ -2972,17 +3038,51 @@
       '<div><div class="modal-title">' +
       esc(it.name) + '</div><div class="modal-meta">' + esc(it.slot) + ' · Tier ' + it.tier + ' · ' +
       it.cost.toLocaleString() + ' souls · ' + esc(it.activation) + '</div></div>' +
-      '<div class="modal-ring">' + ring(b) + '<span>L' + b + '</span></div></div>';
+      '<div class="modal-ring">' + ring(b) + '<span>L' + b + '</span></div>' +
+      '<button class="modal-x" type="button" aria-label="Close the card of ' +
+      esc(it.name) + '">×</button></div>';
     if (it.desc) h += '<div class="modal-desc">' + decorate(it.desc) + '</div>';
     if (rows.length) {
-      h += '<div class="modal-sec">Stats</div><table class="stat-table">';
-      DSC.rowLabels(rows).forEach(function (r) { h += '<tr><td>' + DSC.statRow(r.label) + '</td><td>' + esc(r.value) + '</td></tr>'; });
-      h += '</table>';
+      var secs = itemSections(rows);
+      if (secs.innate.length) {
+        h += '<div class="modal-sec">Always on</div><table class="stat-table">';
+        secs.innate.forEach(function (r) { h += '<tr><td>' + DSC.statRow(r.label) + '</td><td>' + esc(r.value) + '</td></tr>'; });
+        h += '</table>';
+      }
+      if (secs.active.length) {
+        h += '<div class="modal-sec">While the buff is up</div><table class="stat-table">';
+        secs.active.forEach(function (r) { h += '<tr><td>' + DSC.statRow(r.label) + '</td><td>' + esc(r.value) + '</td></tr>'; });
+        h += '</table>';
+      }
     }
     if (it.upgrades_to.length) h += '<div class="modal-sec">Upgrades into</div><div>' + it.upgrades_to.map(function (n) { return '→ ' + esc(n); }).join('<br>') + '</div>';
     if (it.upgraded_from.length) h += '<div class="modal-sec">Upgraded from</div><div>' + it.upgraded_from.map(function (n) { return '← ' + esc(n); }).join('<br>') + '</div>';
     card.innerHTML = h;
-    $('#item-modal').classList.add('on');
+    var modal = $('#item-modal');
+    modal.classList.add('on');
+    /* the card is open, so it is not hidden from the readers of the screen */
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('modal-open');
+    var x = card.querySelector('.modal-x');
+    if (x) x.addEventListener('click', closeItem);
+    /* the focus goes into the card, so that a player who cannot see it can
+       still read it and leave it */
+    if (x && x.focus) x.focus();
+    else if (card && card.focus) card.focus();
+  }
+
+  function closeItem() {
+    var modal = $('#item-modal');
+    if (!modal) return;
+    modal.classList.remove('on');
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('modal-open');
+    /* the focus goes back to the row that opened the card */
+    var back = document.activeElement;
+    if (!back || back === document.body || !modal.contains(back)) {
+      var opener = $('#item-list .item-card:focus');
+      if (opener && opener.focus) opener.focus();
+    }
   }
 
   // ------------------------------------------------------------- stats UI
@@ -3188,7 +3288,9 @@
       if (b >= 3 && light.indexOf(q.type) < 0) return;
       keep.push(q);
     });
-    if (keep.length < 4) keep = qs;
+    /* A lesson of one question is a poor lesson, but a lesson that was
+       emptied of everything it had to ask is worse. */
+    if (keep.length < 2) keep = qs;
 
     L = { unit: unit, qs: keep, i: 0, right: 0, wrong: 0, xp: 0, answered: false, sel: null, inputVal: '', kind: 'lesson',
       track: trackKey() };
@@ -3270,6 +3372,15 @@
   }
 
   function startDailyNow() {
+    /* The run of the day is used from the moment it starts.
+       The XP is paid for every answer, and the day was written down only
+       when the run was over — so a run that was left half way and started
+       again paid twice for the same twelve questions, five times a day
+       for the free plan and as often as the player liked for a
+       subscriber. The day is written down now, and what was missed is
+       remembered as it happens. */
+    S.dailyDay = today();
+    save();
     var pool = dailyQuestions();
     var want = dailyLength();
     var picked = [], used = {};
@@ -3392,12 +3503,24 @@
       var sb = boxOf(b.item) * 2 + (S.seen[b.id] ? 1 : 0);
       return sa - sb;
     });
-    var picked = [], used = {};
+    /* The exam must ask about the whole track and not only about one kind
+       of question: the newcomer track teaches two kinds, and the exam was
+       ten "what does the item do" and never a "what does it give you". */
+    var kindsInTrack = {};
+    pool.forEach(function (q) { kindsInTrack[q.type] = 1; });
+    var perKind = Object.keys(kindsInTrack).length <= 3 ? 5 : 99;
+    var picked = [], used = {}, kinds = {};
     for (var i = 0; i < pool.length && picked.length < 10; i++) {
       var q = pool[i];
       if (used[q.item]) continue;
+      var k = kinds[q.type] || 0;
+      if (k >= perKind) continue;
       used[q.item] = 1;
+      kinds[q.type] = k + 1;
       picked.push(q);
+    }
+    for (var f = 0; f < pool.length && picked.length < 10; f++) {
+      if (picked.indexOf(pool[f]) < 0) picked.push(pool[f]);
     }
     for (var j = picked.length - 1; j > 0; j--) {
       var k = Math.floor(Math.random() * (j + 1));
@@ -3537,9 +3660,16 @@
        the XP of an answered question is not taken back either, so the counter
        and the XP have to agree. The number of them travels with the paused
        lesson, so the rest of the run is counted as well. */
-    if (L && L.kind === 'lesson' && L.unit && L.qs && L.i < L.qs.length) {
+    /* The run of the day can be put down as well: it is used from the
+       moment it starts, so a player who leaves it half way has to be able
+       to come back to it. */
+    if (L && (L.kind === 'lesson' || L.kind === 'daily' || L.kind === 'daily-retry')
+        && L.unit && L.qs && L.i < L.qs.length) {
       S.paused = {
         unit: L.unit.id,
+        title: L.unit.title,
+        subtitle: L.unit.subtitle,
+        kind: L.kind,
         track: lessonTrack(),
         qs: L.qs.map(function (q) { return q.id; }),
         i: L.i,
@@ -3562,13 +3692,22 @@
       allQuestions(u).forEach(function (q) { byId[q.id] = q; });
     });
     var qs = (p.qs || []).map(function (id) { return byId[id]; }).filter(Boolean);
-    if (!unit || !qs.length) { S.paused = null; save(); renderPath(); return; }
+    if (!qs.length) { S.paused = null; save(); renderPath(); return; }
+    if (!unit) {
+      /* the run of the day is no lesson of a unit: its questions are found
+         by their ids, and it gets its name back from the pause */
+      unit = { id: p.unit || 'daily-run', title: p.title || 'Daily Shop Run',
+        subtitle: p.subtitle || '', items: [], icon: '', questions: qs };
+    }
     L = { unit: unit, qs: qs, i: Math.min(p.i || 0, qs.length - 1), right: 0, wrong: 0,
-      xp: 0, answered: false, sel: null, inputVal: '', fields: [], kind: 'lesson',
+      xp: 0, answered: false, sel: null, inputVal: '', fields: [],
+      kind: p.kind || 'lesson',
+      drill: p.kind === 'daily-retry',
       track: p.track || trackKey(), runCount: p.runCount || 0 };
     S.paused = null;
     save();
     show('lesson');
+    if (L.kind === 'daily' || L.kind === 'daily-retry') startRunClock();
     $('#feedback').classList.remove('on');
     renderQ();
   }
@@ -3959,6 +4098,13 @@
         if (L.wrongItems.indexOf(q.item) < 0) L.wrongItems.push(q.item);
         if (!L.wrongQs) L.wrongQs = [];
         if (L.wrongQs.indexOf(q.id) < 0) L.wrongQs.push(q.id);
+        /* the run of the day is remembered as it goes: a run that is left
+           half way has to know what was missed, or the second go of the
+           day has nothing to ask */
+        if (L.kind === 'daily') {
+          if (!S.dailyMiss) S.dailyMiss = [];
+          if (S.dailyMiss.indexOf(q.id) < 0) S.dailyMiss.push(q.id);
+        }
         sfxNo();
         buzz(60);
       }
@@ -4000,6 +4146,13 @@
       if (L.wrongItems.indexOf(q.item) < 0) L.wrongItems.push(q.item);
       if (!L.wrongQs) L.wrongQs = [];
       if (L.wrongQs.indexOf(q.id) < 0) L.wrongQs.push(q.id);
+      /* the run of the day is remembered as it goes: a run that is left
+         half way has to know what was missed, or the second go of the day
+         has nothing to ask */
+      if (L.kind === 'daily') {
+        if (!S.dailyMiss) S.dailyMiss = [];
+        if (S.dailyMiss.indexOf(q.id) < 0) S.dailyMiss.push(q.id);
+      }
       sfxNo(); buzz(60);
     }
 
@@ -4191,10 +4344,11 @@
       S.lastDay = day;
     }
     S.lessons++;
-    if (L.kind === 'daily') {
+    if (L.kind === 'daily' || L.kind === 'daily-retry') {
       S.dailyDay = day;
       // what was missed is kept for the second go - a repeat of the run of
-      // the day, which pays nothing
+      // the day, which pays nothing. The second go is over as well: what
+      // was still missed then stays missed, and the rest is let go.
       S.dailyMiss = (L.wrongQs || []).slice();
     }
     // only a real path lesson counts as a completed unit
@@ -5562,6 +5716,10 @@
     if (c.buffed) sum.appendChild(el('div', 'upd-pill buff', c.buffed + ' buffed'));
     if (c.nerfed) sum.appendChild(el('div', 'upd-pill nerf', c.nerfed + ' nerfed'));
     if (c.mixed) sum.appendChild(el('div', 'upd-pill', c.mixed + ' mixed'));
+    /* the items whose numbers changed without growing or shrinking were
+       counted, and the count was never shown: the entry said "2 buffed,
+       1 nerfed" and listed five cards */
+    if (c.other) sum.appendChild(el('div', 'upd-pill', c.other + ' changed'));
     if (c.added) sum.appendChild(el('div', 'upd-pill new', c.added + ' new'));
     if (c.removed) sum.appendChild(el('div', 'upd-pill', c.removed + ' removed'));
     if (!sum.childNodes.length) sum.appendChild(el('div', 'upd-pill', 'no numbers moved'));
@@ -5868,6 +6026,11 @@
     startExam: startExam,
     loadProfile: function () { return load(storageKey()); },
     startLesson: startLesson,
+    /* the run of the day — the harness has to be able to start it, to prove
+       that it is used from the moment it starts */
+    startDaily: startDaily,
+    startDailyNow: startDailyNow,
+    pauseLesson: pauseLesson,
     show: show,
     openItem: openItem,
     /* the tour of the first run — the tests walk it, step by step */
@@ -6019,7 +6182,24 @@
     });
     $('#result-continue').addEventListener('click', function () { setActiveTab('path'); show('path'); });
     $('#item-modal').addEventListener('click', function (e) {
-      if (e.target.id === 'item-modal') $('#item-modal').classList.remove('on');
+      if (e.target.id === 'item-modal') closeItem();
+    });
+    /* the focus stays inside the card of the item while it is open: the
+       tab walked through the controls behind the overlay, and a player
+       who cannot see the overlay was lost in a screen he cannot reach */
+    $('#item-modal').addEventListener('keydown', function (e) {
+      if (e.key !== 'Tab') return;
+      var modal = $('#item-modal');
+      var f = $$('a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])', modal)
+        .filter(function (x) { return x.offsetParent !== null || x === document.activeElement; });
+      if (!f.length) return;
+      var at = f.indexOf(document.activeElement);
+      var to = e.shiftKey ? at - 1 : at + 1;
+      if (at < 0) to = e.shiftKey ? f.length - 1 : 0;
+      if (to < 0) to = f.length - 1;
+      if (to >= f.length) to = 0;
+      e.preventDefault();
+      f[to].focus();
     });
 
     // help & feedback
@@ -6398,7 +6578,7 @@
       var sn = $('#side-nav');
       if (sn && sn.classList.contains('on')) { e.preventDefault(); navClose(); return; }
       var im = $('#item-modal');
-      if (im.classList.contains('on')) { e.preventDefault(); im.classList.remove('on'); return; }
+      if (im.classList.contains('on')) { e.preventDefault(); closeItem(); return; }
       var wn = $('#whatsnew-modal');
       if (wn && wn.classList.contains('on')) { e.preventDefault(); wn.classList.remove('on'); return; }
       var lmd = $('#limit-modal');
