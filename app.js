@@ -255,6 +255,10 @@
         d.paused = p.paused || null;
       }
     } catch (e) { }
+    /* The map of the opened lessons is one map per track now — see
+       migrateUnlocked(). It runs here, because it needs to know which track
+       the player is on. */
+    migrateUnlocked(d);
     return d;
   }
   function migrateMastery(old) {
@@ -334,6 +338,39 @@
     if (!Array.isArray(S.unitsDone[t])) S.unitsDone[t] = [];
     if (S.unitsDone[t].indexOf(id) < 0) S.unitsDone[t].push(id);
   }
+  /* The lessons that were opened by hand — again, one map per track. The map
+     used to be one map for the three paths, so a lesson that was opened on
+     the path of the newcomer stood open on the path of the shopkeeper too —
+     and the two paths showed each other lessons that had never been done. */
+  function unlockedMap(track) {
+    var t = TRACKS[track] ? track : trackKey();
+    if (!S.unlocked || typeof S.unlocked !== 'object') S.unlocked = {};
+    if (!S.unlocked[t] || typeof S.unlocked[t] !== 'object') S.unlocked[t] = {};
+    return S.unlocked[t];
+  }
+  /* The path a lesson belongs to. A lesson that was started on one path and
+     finished on another — the player walked away, changed the path and came
+     back — is still a lesson of the path it was started on. */
+  function lessonTrack() { return (L && L.track) || trackKey(); }
+  /* The old map of the opened lessons was flat. Its lessons belong to the
+     path the player was walking when the profile was loaded. */
+  function migrateUnlocked(profile) {
+    var d = profile || S;
+    if (!d.unlocked || typeof d.unlocked !== 'object') { d.unlocked = {}; return; }
+    var legacy = {};
+    Object.keys(d.unlocked).forEach(function (k) {
+      var v = d.unlocked[k];
+      if (typeof v === 'boolean') { legacy[k] = v; delete d.unlocked[k]; }
+    });
+    var t = (d.track && TRACKS[d.track]) ? d.track : 'shopkeeper';
+    if (Object.keys(legacy).length) {
+      d.unlocked[t] = d.unlocked[t] || {};
+      Object.keys(legacy).forEach(function (k) { d.unlocked[t][k] = legacy[k]; });
+    }
+    Object.keys(d.unlocked).forEach(function (k) {
+      if (!d.unlocked[k] || typeof d.unlocked[k] !== 'object') delete d.unlocked[k];
+    });
+  }
   /* How many items the learner has touched on any track. */
   function masteryItemCount(map) {
     var seen = {};
@@ -391,6 +428,7 @@
     ownerKey: '',
     step: 'form',          // 'form' — or 'code', when the letter waits
     mail: '',
+    pass: '',              // the password of this session, in memory only
     priceUsd: 3
   };
   try { cloud.ownerKey = localStorage.getItem('deadshop-owner-key-v1') || ''; } catch (e) { }
@@ -672,6 +710,10 @@
     if (!mail) { toast('The e-mail first'); if ($('#cloud-email')) $('#cloud-email').focus(); return; }
     if (!pass) { toast('The password too'); if ($('#cloud-pass')) $('#cloud-pass').focus(); return; }
     if (kind === 'register' && pass.length < 8) { toast('At least 8 characters'); if ($('#cloud-pass')) $('#cloud-pass').focus(); return; }
+    // The password is kept in memory while the letter waits: the server asks
+    // for it when the address is confirmed already and the code of the
+    // letter is spent. It is never written down.
+    cloud.pass = pass;
     var fn = kind === 'register' ? DSCLOUD.register : DSCLOUD.login;
     fn(mail, pass, name).then(function (r) {
       if (!r) { toast('The server did not answer — try again in a moment'); return; }
@@ -730,10 +772,16 @@
     var mail = cloud.mail || ($('#cloud-email') && $('#cloud-email').value || '').trim();
     var code = ($('#cloud-code') && $('#cloud-code').value || '').trim();
     if (!code) { toast('The code from the letter'); return; }
-    DSCLOUD.verify(mail, code).then(function (r) {
+    /* The password goes along: when the address is confirmed already — the
+       letter came twice, or the code was already used and the answer was
+       lost on the way — the server asks for the password and gives the key
+       only to somebody who knows it. */
+    var pass = cloud.pass || ($('#cloud-pass') && $('#cloud-pass').value || '');
+    DSCLOUD.verify(mail, code, pass).then(function (r) {
       if (!r || !r.user) { toast('The server did not answer'); return; }
       cloud.step = 'form';
       cloud.mail = '';
+      cloud.pass = '';
       cloudDone(r, 'The address is confirmed');
     }).catch(function (e) {
       toast(e && e.message ? e.message : 'That code did not work');
@@ -1529,7 +1577,7 @@
   // ------------------------------------------------------------- support
   /* Everything a tester might want to tell us, in one block they can copy.
      This is the only place that knows where feedback goes. */
-  var APP_VERSION = '0.24.0';
+  var APP_VERSION = '0.25.0';
   var BUILD_DATE = '2026-11-16';
   // Where "report a problem" goes. Two options, both need no server:
   //   ISSUES_URL  a GitHub issue with the diagnostics already filled in
@@ -1549,6 +1597,8 @@
     : 'api/shop';
 
   var WHATS_NEW = [
+    ['Nobody opens the account of another player now', 'The address of a player is not a secret, and the code of the letter is six digits that somebody else may well have read. A key is now only given to somebody who can prove the account is theirs: the code of the letter, or — when the address is confirmed already — the password of the account. The server counts the lessons of the day in one step now, so a burst of requests cannot slip past the limit, and it forgets the letters of an hour instead of the letters of a lifetime.'],
+    ['The three paths keep their progress apart', 'A lesson that was interrupted and finished after the path was changed belonged to the wrong path; the lessons that were opened by hand opened on every path; the shut lesson of one path was shut on the others as well. Every lesson now belongs to the path it was started on, and the buttons of the statistics screen show another path without walking it.'],
     ['The middle path reads the card like a buyer', 'The shopoholic now walks the shelf card by card: what the thing gives you, how much of its main effect, what else it gives, and where the card sits in the shop. The numbers have to be remembered now, not picked from the table — 604 questions on the path.'],
     ['The deep path knows the price of a card', 'The shopkeeper wants the whole card, and the card has two faces: fifty of the 156 items take something away as well, and a player who knows only the gifts buys a card that slows him down. The path also asks where a card comes from — the upgrade path from both ends — and finds a card from a stat instead of from its name. 841 questions now.'],
     ['The beginner path teaches what the item does', 'A newcomer now meets every item the way a player reads a card: first what it does — the line the game itself carries — then what it gives you, then what else it gives you. The three answers of one item stay together, so the lesson makes a single sentence: "it does this, and it gives that". The path of the upgrades left the beginner path: that is the shopkeeper\'s business. 451 questions now, and the run of the day follows the path you walk.'],
@@ -2184,6 +2234,11 @@
         S.track = k;
         save();
         renderTrackPick();
+        /* The list of the lessons is drawn for the path that is walked: it
+           showed the old path until the player left the screen and came
+           back. */
+        renderPath();
+        renderCounters();
         toast('The path is now the ' + TRACKS[k].name.toLowerCase() + ' one.');
       });
     });
@@ -2253,7 +2308,7 @@
         });
         body.appendChild(strip);
         var why;
-        if (S.gate && S.gate.unit === u.id) {
+        if (S.gate && S.gate.unit === u.id && (S.gate.track || trackKey()) === trackKey()) {
           why = 'Shut until you get the ' + (S.gate.items || []).length +
             ' item' + ((S.gate.items || []).length === 1 ? '' : 's') + ' you missed right';
         } else {
@@ -2263,7 +2318,8 @@
         body.appendChild(el('div', 'unit-note unit-note-lock', why));
       }
       // a lesson that waits for its mistakes says so, and offers the drill
-      if (locked && S.gate && S.gate.unit === u.id) {
+      if (locked && S.gate && S.gate.unit === u.id &&
+          (S.gate.track || trackKey()) === trackKey()) {
         var fixBtn = el('button', 'unit-fix', 'FIX ' + (S.gate.items || []).length +
           (S.gate.items && S.gate.items.length === 1 ? ' MISTAKE' : ' MISTAKES'));
         fixBtn.type = 'button';
@@ -2313,14 +2369,19 @@
 
   function unitLocked(u, idx) {
     if (idx === 0) return false;
-    // a lesson that waits for its mistakes stays shut, whatever the path says
-    if (S.gate && S.gate.unit === u.id) return true;
-    if (S.unlocked[u.id]) return false;
+    /* A lesson that waits for its mistakes stays shut, whatever the path
+       says — but only on the path that made the gate: the questions of the
+       gate belong to that path, and the lesson of another path has its own
+       mistakes to answer. */
+    if (S.gate && S.gate.unit === u.id && (S.gate.track || trackKey()) === trackKey()) return true;
+    if (unlockedMap()[u.id]) return false;
     var prev = DS.units[idx - 1];
     return !unitDone(prev.id);
   }
   function unlockGroup(g) {
-    DS.units.forEach(function (u) { if (u.group === g) S.unlocked[u.id] = true; });
+    /* the lessons of the group open on the path the player is on */
+    var map = unlockedMap();
+    DS.units.forEach(function (u) { if (u.group === g) map[u.id] = true; });
     save();
   }
 
@@ -2749,13 +2810,15 @@
     var box = $('#group-list');
     if (!box) return;
     box.innerHTML = '';
+    /* the groups of the path the statistics screen shows */
+    var shown = S.statsTrack && TRACKS[S.statsTrack] ? S.statsTrack : trackKey();
     var byGroup = {};
     Object.keys(DS.items).forEach(function (s) {
       var it = DS.items[s];
       var g = it.group || it.slot;
       if (!byGroup[g]) byGroup[g] = { n: 0, mastered: 0 };
       byGroup[g].n++;
-      if (boxOf(s) >= 4) byGroup[g].mastered++;
+      if (boxOf(s, shown) >= 4) byGroup[g].mastered++;
     });
     Object.keys(byGroup).sort().forEach(function (g) {
       var d = byGroup[g];
@@ -2794,19 +2857,22 @@
     var box = $('#stats-track');
     if (!box) return;
     box.innerHTML = '';
+    /* The buttons of the statistics show the progress of another path — they
+       do not walk it. The path the player is on stayed the one of the
+       lessons, the run of the day and the shut lessons. */
+    var shown = S.statsTrack && TRACKS[S.statsTrack] ? S.statsTrack : trackKey();
     TRACK_ORDER.forEach(function (t) {
       var m = S.mastery[t] || {};
       var n = Object.keys(m).filter(function (s) { return DS.items[s]; }).length;
-      var b = el('button', 'track-seg-btn' + (trackKey() === t ? ' on' : ''), TRACKS[t].name);
+      var b = el('button', 'track-seg-btn' + (shown === t ? ' on' : ''), TRACKS[t].name);
       b.type = 'button';
       b.appendChild(el('span', 'track-seg-n',
         n ? n + (n === 1 ? ' item' : ' items') : 'nothing yet'));
       b.addEventListener('click', function () {
-        if (S.track === t) return;
-        S.track = t;
+        if (shown === t) return;
+        S.statsTrack = t;
         save();
         renderStats();
-        renderTrackPick();
         toast(TRACKS[t].name + ' — the progress of this path');
       });
       box.appendChild(b);
@@ -2817,11 +2883,14 @@
     renderWeek();
     renderGroupProgress();
     renderStatsTrack();
-    /* The progress belongs to the track the learner is on: the three paths
-       ask different questions, so their progress is counted apart. */
-    var myMap = trackMap();
+    /* The progress belongs to the path the statistics screen shows: the
+       three paths ask different questions, so their progress is counted
+       apart — and the buttons of the screen only change what is shown, not
+       the path the player walks. */
+    var shown = S.statsTrack && TRACKS[S.statsTrack] ? S.statsTrack : trackKey();
+    var myMap = trackMap(shown);
     var touched = Object.keys(myMap).filter(function (s) { return DS.items[s]; });
-    var mastered = touched.filter(function (s) { return boxOf(s) >= 4; }).length;
+    var mastered = touched.filter(function (s) { return boxOf(s, shown) >= 4; }).length;
     setText('#s-mastered', mastered);
     setText('#s-correct', S.right);
     setText('#s-wrong', S.wrong);
@@ -2899,7 +2968,8 @@
     });
     if (keep.length < 4) keep = qs;
 
-    L = { unit: unit, qs: keep, i: 0, right: 0, wrong: 0, xp: 0, answered: false, sel: null, inputVal: '', kind: 'lesson' };
+    L = { unit: unit, qs: keep, i: 0, right: 0, wrong: 0, xp: 0, answered: false, sel: null, inputVal: '', kind: 'lesson',
+      track: trackKey() };
     show('lesson');
     $('#feedback').classList.remove('on');
     renderQ();
@@ -2999,7 +3069,11 @@
     var ids = (S.dailyMiss || []);
     var pool = [];
     DS.units.forEach(function (u) {
-      u.questions.forEach(function (q) {
+      /* The missed questions carry the ids of the path they were asked on —
+         the newcomer, the shopoholic or the shopkeeper. Looking only at the
+         list of the shopkeeper found nothing, and the second go of the day
+         never happened. */
+      allQuestions(u).forEach(function (q) {
         if (ids.indexOf(q.id) >= 0) pool.push(q);
       });
     });
@@ -3138,7 +3212,8 @@
      open the door by accident. */
   function unlockGate() {
     if (S.gate && S.gate.unit) {
-      S.unlocked[S.gate.unit] = true;
+      /* the lesson opens on the path the gate belongs to */
+      unlockedMap(S.gate.track || trackKey())[S.gate.unit] = true;
       S.gate = null;
       save();
     }
@@ -3181,6 +3256,7 @@
         items: Object.keys(picked.reduce(function (a, q) { a[q.item] = 1; return a; }, {})), icon: '', questions: picked },
       qs: picked, i: 0, right: 0, wrong: 0, xp: 0, answered: false, sel: null, inputVal: '',
       kind: kind || 'mixed',
+      track: trackKey(),
       startedAt: Date.now(),
       // a drill is not a lesson: the mastery moves, the pay and the streak do not
       drill: kind === 'fix' || kind === 'review' || kind === 'daily-retry'
@@ -3228,21 +3304,17 @@
      from the path screen. */
   function pauseLesson() {
     stopExamTimer();
-    /* A run that was left half way does not count towards the daily goal:
-       the questions of an unfinished run are taken back out of the counter. */
-    if (L && L.runCount) {
-      S.todayCount = Math.max(0, (S.todayCount || 0) - L.runCount);
-      if (S.history && S.history[today()]) {
-        S.history[today()] = Math.max(0, S.history[today()] - L.runCount);
-      }
-      L.runCount = 0;
-      save();
-    }
+    /* The questions that were answered are counted, and they stay counted:
+       the XP of an answered question is not taken back either, so the counter
+       and the XP have to agree. The number of them travels with the paused
+       lesson, so the rest of the run is counted as well. */
     if (L && L.kind === 'lesson' && L.unit && L.qs && L.i < L.qs.length) {
       S.paused = {
         unit: L.unit.id,
+        track: lessonTrack(),
         qs: L.qs.map(function (q) { return q.id; }),
-        i: L.i
+        i: L.i,
+        runCount: L.runCount || 0
       };
       save();
     }
@@ -3263,7 +3335,8 @@
     var qs = (p.qs || []).map(function (id) { return byId[id]; }).filter(Boolean);
     if (!unit || !qs.length) { S.paused = null; save(); renderPath(); return; }
     L = { unit: unit, qs: qs, i: Math.min(p.i || 0, qs.length - 1), right: 0, wrong: 0,
-      xp: 0, answered: false, sel: null, inputVal: '', fields: [], kind: 'lesson' };
+      xp: 0, answered: false, sel: null, inputVal: '', fields: [], kind: 'lesson',
+      track: p.track || trackKey(), runCount: p.runCount || 0 };
     S.paused = null;
     save();
     show('lesson');
@@ -3633,7 +3706,7 @@
        that - which used to leave the record undefined and threw on
        "m.right", so CHECK did nothing at all. */
     if (L.drill) {
-      var dm = mst(q.item);
+      var dm = mst(q.item, lessonTrack());
       if (ok) {
         L.right++; S.right++; dm.right++;
         dm.box = Math.min(5, dm.box + 1);
@@ -3660,7 +3733,7 @@
     // and how much was done on every other day
     if (!S.history) S.history = {};
     S.history[today()] = (S.history[today()] || 0) + 1;
-    var m = mst(q.item);    // a hinted answer pays half — the hint is worth less than the recall
+    var m = mst(q.item, lessonTrack());    // a hinted answer pays half — the hint is worth less than the recall
     var gain = L.hinted ? 5 : 10;
     /* Sitting on a question for a long time pays less, but never nothing:
        the floor is a third of the full price. A slow answer is still an
@@ -3700,12 +3773,12 @@
     setText('#feedback-sub', L.exam
       ? (ok ? 'Correct' : 'Not quite') + ' · ' + L.right + ' of ' + L.qs.length + ' so far'
       : L.drill
-        ? (ok ? 'Correct · ' + item.name + ' · mastery L' + mst(item.slug).box
-          : 'Not quite · ' + (detail || 'mastery L' + mst(item.slug).box))
+        ? (ok ? 'Correct · ' + item.name + ' · mastery L' + mst(item.slug, lessonTrack()).box
+          : 'Not quite · ' + (detail || 'mastery L' + mst(item.slug, lessonTrack()).box))
         : ok
-          ? '+' + L.xpNow + ' XP · ' + item.name + ' · mastery L' + mst(item.slug).box
+          ? '+' + L.xpNow + ' XP · ' + item.name + ' · mastery L' + mst(item.slug, lessonTrack()).box
           : (partial > 0 ? '+' + partial + ' XP · ' + detail
-          : (detail || 'Mastery dropped to L' + mst(item.slug).box)));
+          : (detail || 'Mastery dropped to L' + mst(item.slug, lessonTrack()).box)));
     if (L.idleScale && L.idleScale < 0.95 && !L.exam && !L.drill) {
       var sub = $('#feedback-sub');
       if (sub) setText('#feedback-sub', sub.textContent + ' · a slow answer pays less');
@@ -3883,18 +3956,22 @@
       var idx = DS.units.map(function (u) { return u.id; }).indexOf(L.unit.id);
       if (idx >= 0 && DS.units[idx + 1]) {
         nextUnit = DS.units[idx + 1];
-        if (!unitDone(L.unit.id)) {
-          markUnitDone(L.unit.id);
+        /* The path of the lesson is the path it was started on: a lesson
+           that was interrupted and finished after the player changed the
+           path still belongs to the old one. */
+        var lt = lessonTrack();
+        if (!unitDone(L.unit.id, lt)) {
+          markUnitDone(L.unit.id, lt);
           /* The next lesson stays shut until the mistakes of this one are
              answered right. A wrong answer is not a mistake you can carry
              into the next lesson — you fix it here, now. */
           if (mistakes.length) {
             S.gate = {
-              unit: nextUnit.id, items: mistakes, from: L.unit.id,
+              unit: nextUnit.id, track: lt, items: mistakes, from: L.unit.id,
               qs: (L.wrongQs || []).slice(), at: Date.now()
             };
           } else {
-            S.unlocked[DS.units[idx + 1].id] = true;
+            unlockedMap(lt)[DS.units[idx + 1].id] = true;
           }
         }
       }
@@ -3938,7 +4015,7 @@
     var seen = {};
     L.qs.forEach(function (q) { seen[q.item] = 1; });
     Object.keys(seen).forEach(function (s) {
-      var it = DS.items[s], m = mst(s);
+      var it = DS.items[s], m = mst(s, lessonTrack());
       var row = el('div', 'ri');
       var img = iconEl(it.slug, '');
       row.appendChild(img);
@@ -4375,9 +4452,33 @@
         alert('That file does not contain any progress.');
         return;
       }
-      var merged = JSON.parse(JSON.stringify(DEFAULTS));
-      var taken = 0;
-      Object.keys(merged).forEach(function (k) {
+      var merged = mergeProfile(p);
+      if (!merged.taken) {
+        alert('That file does not contain any DeadShop progress.');
+        return;
+      }
+      if (!confirm('Importing replaces the progress of this profile (' +
+          (profileName() || 'guest') + '). Continue?')) return;
+      try { localStorage.setItem(storageKey(), JSON.stringify(merged.profile)); }
+      catch (e) { alert('This browser is not saving anything, so the import failed.'); return; }
+      reloadProfile();
+      show('path');
+      toast('Progress imported');
+    };
+    reader.onerror = function () { alert('That file could not be read.'); };
+    try { reader.readAsText(file); }
+    catch (e) { alert('That file could not be read.'); }
+  }
+
+  /* What a file of progress becomes. Everything the profile holds is
+     carried over — the lesson that was left half way, the shut lesson of the
+     mistakes, the questions of the day that were missed. They were dropped
+     before, and a round trip through a file has to keep the profile as it
+     was. */
+  function mergeProfile(p) {
+    var merged = JSON.parse(JSON.stringify(DEFAULTS));
+    var taken = 0;
+    Object.keys(merged).forEach(function (k) {
         if (p[k] === undefined || p[k] === null) return;
         if (k === 'settings') return;
         if (k === 'xp' || k === 'streak' || k === 'right' || k === 'wrong' ||
@@ -4388,6 +4489,24 @@
         if (k === 'mastery' || k === 'unlocked' || k === 'seen' || k === 'history' ||
             k === 'soulsLedger' || k === 'equipped' || k === 'bughunt') {
           if (typeof p[k] === 'object' && !Array.isArray(p[k])) { merged[k] = p[k]; taken++; }
+          return;
+        }
+        if (k === 'paused' || k === 'gate') {
+          /* The lesson that was left half way and the shut lesson of the
+             mistakes were dropped by the import: a round trip through a
+             file has to keep the profile as it was. */
+          if (p[k] && typeof p[k] === 'object' && !Array.isArray(p[k])) {
+            merged[k] = p[k];
+            taken++;
+          }
+          return;
+        }
+        if (k === 'dailyMiss') {
+          /* the questions of the run of the day that were missed */
+          if (Array.isArray(p[k])) {
+            merged.dailyMiss = p[k].filter(function (id) { return typeof id === 'string'; });
+            taken++;
+          }
           return;
         }
         if (k === 'cosmetics' && Array.isArray(p[k])) {
@@ -4406,21 +4525,15 @@
       merged.settings = Object.assign({}, DEFAULTS.settings, p.settings || {});
       merged.mastery = migrateMastery(merged.mastery || {});
       merged.unitsDone = migrateUnits(merged.unitsDone || {});
-      if (!taken) {
-        alert('That file does not contain any DeadShop progress.');
-        return;
-      }
-      if (!confirm('Importing replaces the progress of this profile (' +
-          (profileName() || 'guest') + '). Continue?')) return;
-      try { localStorage.setItem(storageKey(), JSON.stringify(merged)); }
-      catch (e) { alert('This browser is not saving anything, so the import failed.'); return; }
-      reloadProfile();
-      show('path');
-      toast('Progress imported');
-    };
-    reader.onerror = function () { alert('That file could not be read.'); };
-    try { reader.readAsText(file); }
-    catch (e) { alert('That file could not be read.'); }
+      /* the board of the player, the first run and the theme were dropped as
+         well — they are part of the profile too */
+      if (typeof p.board === 'boolean') merged.board = p.board;
+      if (typeof p.onboarded === 'boolean') merged.onboarded = p.onboarded;
+      if (typeof p.tourStep === 'number') merged.tourStep = p.tourStep;
+      if (typeof p.themeV === 'number') merged.themeV = p.themeV;
+      if (p.track && TRACKS[p.track]) merged.track = p.track;
+      if (p.statsTrack && TRACKS[p.statsTrack]) merged.statsTrack = p.statsTrack;
+    return { profile: merged, taken: taken };
   }
 
   function doReset() {
@@ -4766,13 +4879,24 @@
     return true;
   }
 
+  /* The code that carries a reward is written by hand, so anybody could
+     write one too. The reward it carries is a number of souls — the souls
+     of the shop of cosmetics, nothing that is written down on a board — but
+     even those may not be minted out of thin air: the code is only good
+     once in this browser, and it carries no more than a reward of the
+     owner. The codes of the server (DSG1-…) are checked by the server
+     itself, and they are the ones that count for good. */
+  var BH_GRANT_MAX = 500;
+
   function bhApplyGrant(g) {
     if (!g || !g.id) return false;
     var b = bhState();
     for (var i = 0; i < b.grants.length; i++) if (b.grants[i] === g.id) return false;
+    var amount = Math.max(0, Math.min(BH_GRANT_MAX, Math.round(Number(g.souls) || 0)));
+    if (!amount) return false;
     b.grants.push(g.id);
     save();
-    awardSouls(Number(g.souls) || 0, g.note || 'bughunt reward');
+    awardSouls(amount, g.note || 'bughunt reward');
     renderBughunt();
     return true;
   }
@@ -4813,7 +4937,7 @@
       if (bhImportReport(payload.r)) toast('Report imported');
       else toast('That report is already in the inbox');
     } else if (payload.t === 'grant') {
-      if (bhApplyGrant(payload)) toast('+' + (payload.souls || 0) + ' souls');
+      if (bhApplyGrant(payload)) toast('+' + Math.min(BH_GRANT_MAX, Math.round(Number(payload.souls) || 0)) + ' souls');
       else toast('That reward was already redeemed');
     } else {
       toast('That code does not look like one of ours');
@@ -5411,6 +5535,8 @@
     b64d: b64d,
     bhCode: bhCode,
     grantCode: grantCode,
+    mergeProfile: mergeProfile,
+    bhApplyGrant: bhApplyGrant,
     startLesson: startLesson,
     show: show,
     openItem: openItem,

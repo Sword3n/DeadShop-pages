@@ -180,8 +180,8 @@ window.DSCLOUD = (function () {
       });
   }
 
-  function verify(email, code) {
-    return call('POST', '/api/verify', { email: email, code: code })
+  function verify(email, code, password) {
+    return call('POST', '/api/verify', { email: email, code: code, password: password || '' })
       .then(function (r) {
         if (r && r.token) { setToken(r.token); user = r.user; fire(); }
         return r;
