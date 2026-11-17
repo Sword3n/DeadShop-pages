@@ -1586,7 +1586,7 @@
   // ------------------------------------------------------------- support
   /* Everything a tester might want to tell us, in one block they can copy.
      This is the only place that knows where feedback goes. */
-  var APP_VERSION = '0.28.0';
+  var APP_VERSION = '0.29.0';
   var BUILD_DATE = '2026-11-16';
   // Where "report a problem" goes. Two options, both need no server:
   //   ISSUES_URL  a GitHub issue with the diagnostics already filled in
@@ -2954,8 +2954,8 @@
     tier: 'Tier', counter: 'Counter pick',
     gives: 'What it gives', which_item: 'Which item',
     effect: 'What it does',
-    penalty: 'What it costs', chainUp: 'Upgrade from',
-    price: 'Price', slot: 'Shop tab', shelf: 'Where it stands',
+    penalty: 'What it takes away', chainUp: 'Upgrade from',
+    price: 'What it costs', slot: 'Shop tab', shelf: 'Where it stands',
     activation: 'Passive or active'
   };
 

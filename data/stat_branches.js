@@ -203,6 +203,7 @@ window.DSB = {
 "Spirit Power": "spirit",
 "Spirit Power (% of your spirit power)": "spirit",
 "Spirit Power (always on)": "spirit",
+"Spirit Power (flat)": "spirit",
 "Spirit Resist": "vital",
 "Spirit Resist (the enemy's)": "vital",
 "Spirit Resist (yours)": "vital",
