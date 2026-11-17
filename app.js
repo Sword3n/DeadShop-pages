@@ -219,8 +219,12 @@
     themeV: 0,
     // how many lessons were started today — the free plan allows five
     todayLessons: 0, lessonDay: null,
+    // the day the last exam paid — an exam pays once a day
+    examDay: null,
     // how deep the learner wants to go: newcomer, shopoholic, shopkeeper
     track: 'shopkeeper',
+    // the path the statistics screen shows — it only shows, it does not walk
+    statsTrack: '',
     // the name on the leaderboard is opt-in
     board: false,
     souls: 0, soulsEarned: 0, soulsLedger: [], cosmetics: [], equipped: {},
@@ -559,7 +563,12 @@
     renderLimitChip();
     if (cloud.sub) { go(); return; }
     if (DSCLOUD.available && DSCLOUD.getToken()) {
+      /* The answer of the server may come a moment later. If the player
+         walked away in the meantime, the lesson must not open behind their
+         back. */
+      var wanted = current;
       DSCLOUD.lessonStart(kind).then(function (r) {
+        if (current !== wanted) return;
         if (!r) { countLocalLesson(); go(); return; }
         if (r.allowed === false) { showLimitScreen(r); return; }
         if (cloud.serverUser) cloud.serverUser.daily = { used: r.used, limit: r.limit };
@@ -1577,7 +1586,7 @@
   // ------------------------------------------------------------- support
   /* Everything a tester might want to tell us, in one block they can copy.
      This is the only place that knows where feedback goes. */
-  var APP_VERSION = '0.25.0';
+  var APP_VERSION = '0.26.0';
   var BUILD_DATE = '2026-11-16';
   // Where "report a problem" goes. Two options, both need no server:
   //   ISSUES_URL  a GitHub issue with the diagnostics already filled in
@@ -1597,6 +1606,8 @@
     : 'api/shop';
 
   var WHATS_NEW = [
+    ['The progress of the guest came along', 'A new account made with an e-mail used to leave the progress of the guest behind: the form is drawn again for the code of the letter, and the box that said "keep my guest progress" was gone by then. The choice is now kept outside the box — and the points, the mastery and the streak travel with it.'],
+    ['The exam pays for what it measures', 'The exam asked ten questions and paid two souls even when every answer was wrong, as often as the button was pressed — and it walked around the daily limit. An exam now goes through the same door as every other session, and it pays only when it went well, and only once a day.'],
     ['Nobody opens the account of another player now', 'The address of a player is not a secret, and the code of the letter is six digits that somebody else may well have read. A key is now only given to somebody who can prove the account is theirs: the code of the letter, or — when the address is confirmed already — the password of the account. The server counts the lessons of the day in one step now, so a burst of requests cannot slip past the limit, and it forgets the letters of an hour instead of the letters of a lifetime.'],
     ['The three paths keep their progress apart', 'A lesson that was interrupted and finished after the path was changed belonged to the wrong path; the lessons that were opened by hand opened on every path; the shut lesson of one path was shut on the others as well. Every lesson now belongs to the path it was started on, and the buttons of the statistics screen show another path without walking it.'],
     ['The middle path reads the card like a buyer', 'The shopoholic now walks the shelf card by card: what the thing gives you, how much of its main effect, what else it gives, and where the card sits in the shop. The numbers have to be remembered now, not picked from the table — 604 questions on the path.'],
@@ -2921,8 +2932,8 @@
 
     var box = $('#mastery-list');
     box.innerHTML = '';
-    touched.sort(function (a, b) { return boxOf(b) - boxOf(a); }).forEach(function (s) {
-      var it = DS.items[s], b = boxOf(s);
+    touched.sort(function (a, b) { return boxOf(b, shown) - boxOf(a, shown); }).forEach(function (s) {
+      var it = DS.items[s], b = boxOf(s, shown);
       var row = el('div', 'mrow');
       var img = iconEl(it.slug, '');
       row.appendChild(img);
@@ -3153,6 +3164,13 @@
   }
 
   function startExam() {
+    /* The exam is a measurement, not a lesson — but it asks ten questions of
+       the shop, and it may not be a way around the daily limit. It goes
+       through the same door as every other session. */
+    gateLesson('exam', startExamNow);
+  }
+
+  function startExamNow() {
     var pool = [];
     DS.units.forEach(function (u) {
       questionsOf(u).forEach(function (q) { pool.push(q); });
@@ -3855,7 +3873,14 @@
       sfxDone();
       if (acc >= 80) confetti();
       // an exam pays a little, but it never touches XP, streak or mastery
-      awardSouls(SOUL_RULES.exam, 'self-test');
+      /* and only when it went well — and only once a day: an exam that
+         fails pays nothing, and a second exam of the day pays nothing
+         either. */
+      if (acc >= 80 && S.examDay !== today()) {
+        S.examDay = today();
+        awardSouls(SOUL_RULES.exam, 'self-test');
+        save();
+      }
       return;
     }
 
@@ -4096,6 +4121,11 @@
     if (lbl) lbl.hidden = !show;
   }
 
+  /* The choice to carry the guest progress over into a new profile. It lives
+     here and not only in the box on the screen, because the form asks for
+     the code of the letter next and the box is gone by then. */
+  var keepGuest = true;
+
   function renderAuth() {
     var signup = authMode === 'signup';
     var byMail = authKind === 'email';
@@ -4169,7 +4199,8 @@
     if (old) old.parentNode.removeChild(old);
     if (signup && !verifying && !resetting && !changing && guestItems > 0) {
       var row = el('label', 'guest-import');
-      var cb = el('input'); cb.type = 'checkbox'; cb.checked = true;
+      var cb = el('input'); cb.type = 'checkbox'; cb.checked = keepGuest;
+      cb.addEventListener('change', function () { keepGuest = cb.checked; });
       row.appendChild(cb);
       row.appendChild(el('span', null, 'Keep my guest progress (' + guestItems + ' items)'));
       $('#auth-error').parentNode.insertBefore(row, $('#auth-error'));
@@ -4178,9 +4209,13 @@
   }
 
   function finishAuth(name) {
-    // carry the guest progress over when asked
+    /* Carry the guest progress over when asked. The answer is kept in a
+       variable and not only in the box on the screen: the box is gone when
+       the form asks for the code of the letter, and the progress of the
+       guest was dropped on the way. */
     var gi = $('#guest-import');
-    if (gi && gi.querySelector('input').checked) {
+    if (gi && gi.querySelector('input').checked) keepGuest = true;
+    if (keepGuest) {
       var guest = null;
       try { guest = localStorage.getItem(PROFILE_PREFIX + GUEST); } catch (e) { }
       if (guest) {
@@ -4482,7 +4517,8 @@
         if (p[k] === undefined || p[k] === null) return;
         if (k === 'settings') return;
         if (k === 'xp' || k === 'streak' || k === 'right' || k === 'wrong' ||
-            k === 'lessons' || k === 'todayCount' || k === 'souls' || k === 'soulsEarned') {
+            k === 'lessons' || k === 'todayCount' || k === 'souls' || k === 'soulsEarned' ||
+            k === 'todayLessons') {
           if (typeof p[k] === 'number' && isFinite(p[k])) { merged[k] = p[k]; taken++; }
           return;
         }
@@ -4738,6 +4774,7 @@
     if (!Array.isArray(b.reports)) b.reports = [];
     if (!Array.isArray(b.inbox)) b.inbox = [];
     if (!Array.isArray(b.grants)) b.grants = [];
+    if (typeof b.localSouls !== 'number') b.localSouls = 0;
     return b;
   }
 
@@ -4880,13 +4917,16 @@
   }
 
   /* The code that carries a reward is written by hand, so anybody could
-     write one too. The reward it carries is a number of souls — the souls
-     of the shop of cosmetics, nothing that is written down on a board — but
-     even those may not be minted out of thin air: the code is only good
-     once in this browser, and it carries no more than a reward of the
-     owner. The codes of the server (DSG1-…) are checked by the server
-     itself, and they are the ones that count for good. */
-  var BH_GRANT_MAX = 500;
+     write one too. There is no secret in a browser that a code of another
+     browser could be checked against — that is what the server is for — so
+     the local code may not mint souls out of thin air: it is good once in
+     this browser, it carries a small reward, and the local codes of a
+     browser may not carry more than a little in all.
+
+     The codes of the server (DSG1-…) are checked by the server itself, and
+     they are the ones that count for good. */
+  var BH_GRANT_MAX = 50;        // one local code
+  var BH_GRANT_TOTAL = 150;     // all the local codes of one browser
 
   function bhApplyGrant(g) {
     if (!g || !g.id) return false;
@@ -4894,7 +4934,11 @@
     for (var i = 0; i < b.grants.length; i++) if (b.grants[i] === g.id) return false;
     var amount = Math.max(0, Math.min(BH_GRANT_MAX, Math.round(Number(g.souls) || 0)));
     if (!amount) return false;
+    var room = BH_GRANT_TOTAL - (b.localSouls || 0);
+    if (room <= 0) return false;
+    amount = Math.min(amount, room);
     b.grants.push(g.id);
+    b.localSouls = (b.localSouls || 0) + amount;
     save();
     awardSouls(amount, g.note || 'bughunt reward');
     renderBughunt();
@@ -4938,7 +4982,7 @@
       else toast('That report is already in the inbox');
     } else if (payload.t === 'grant') {
       if (bhApplyGrant(payload)) toast('+' + Math.min(BH_GRANT_MAX, Math.round(Number(payload.souls) || 0)) + ' souls');
-      else toast('That reward was already redeemed');
+      else toast('That reward is not good any more');
     } else {
       toast('That code does not look like one of ours');
     }
@@ -5291,7 +5335,10 @@
     row.appendChild(t);
     var chg = el('div', 'upd-chg');
     (it.changes || []).forEach(function (c) {
-      var s = el('span', c.dir === 'up' ? 'up' : (c.dir === 'down' ? 'down' : ''));
+      /* The price of a card is not a stat: a dearer card is a nerf, and it
+       must not wear the colour of a buff. */
+    var dir = c.kind === 'cost' ? (c.dir === 'up' ? 'down' : 'up') : c.dir;
+    var s = el('span', dir === 'up' ? 'up' : (dir === 'down' ? 'down' : ''));
       s.innerHTML = esc(c.label) + ' <b>' + esc(c.old) + '</b> → <b>' + esc(c.new) + '</b>';
       chg.appendChild(s);
     });
@@ -5512,7 +5559,14 @@
       if (tour.i === TOUR_STEPS.length - 1) tourEnd(); else tourGo(tour.i + 1);
       return true;
     }
-    if (e.key === 'ArrowLeft') { e.preventDefault(); tourGo(tour.i - 1); return true; }
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      /* The first step has no step before it: the button for it is hidden,
+         and the key did the same thing as "skip" — the tour was over and
+         the first run was marked as done. */
+      if (tour.i > 0) tourGo(tour.i - 1);
+      return true;
+    }
     return true;
   }
 
@@ -5537,6 +5591,8 @@
     grantCode: grantCode,
     mergeProfile: mergeProfile,
     bhApplyGrant: bhApplyGrant,
+    startExam: startExam,
+    loadProfile: function () { return load(storageKey()); },
     startLesson: startLesson,
     show: show,
     openItem: openItem,

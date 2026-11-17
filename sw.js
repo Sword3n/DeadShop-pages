@@ -1,7 +1,7 @@
 /* DeadShop service worker — offline shell + runtime cache for item icons.
    Only registers in a secure context (https:// or localhost); on a plain-http
    LAN address the browser refuses it, so the app must degrade gracefully. */
-var CACHE = 'deadshop-v35';
+var CACHE = 'deadshop-v36';
 
 /* Where the site lives. On GitHub Pages the service worker sits in
    /DeadShop-pages/, so every path in the site starts there. Without this
@@ -71,7 +71,13 @@ self.addEventListener('activate', function (e) {
   e.waitUntil(
     caches.keys().then(function (keys) {
       return Promise.all(keys.map(function (k) {
-        return k === CACHE ? null : caches.delete(k);
+        /* The cache storage belongs to the whole origin, not to this site:
+           another project of the same account may live here as well, and
+           its offline cache is not ours to throw away. Only the caches of
+           DeadShop go — they all carry the same name. */
+        if (k === CACHE) return null;
+        if (k.indexOf('deadshop-') !== 0) return null;
+        return caches.delete(k);
       }));
     }).then(function () { return self.clients.claim(); })
   );
@@ -127,7 +133,15 @@ self.addEventListener('fetch', function (e) {
         return res;
       }).catch(function () {
         return caches.match(key).then(function (r) {
-          return r || caches.match('./index.html');
+          if (r) return r;
+          /* The file is not in the cache and there is no network. The page
+             is the right answer for a page — but handing the HTML of the
+             page to a request for a script is a syntax error in the
+             browser, and the app simply does not start. */
+          if (req.mode === 'navigate') return caches.match('./index.html');
+          return new Response('offline and not cached', {
+            status: 504, statusText: 'Offline'
+          });
         });
       })
     );
@@ -144,7 +158,12 @@ self.addEventListener('fetch', function (e) {
         }
         return res;
       }).catch(function () { return cached; });
-      return cached || net;
+      /* Nothing in the cache and no network: the answer has to be a
+         response, not "nothing" — the browser refuses a promise that
+         resolves to undefined. */
+      return cached || net || new Response('offline and not cached', {
+        status: 504, statusText: 'Offline'
+      });
     })
   );
 });

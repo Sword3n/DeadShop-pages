@@ -67,6 +67,14 @@ window.DSCLOUD = (function () {
 
   // ------------------------------------------------------------------ calls
   function call(method, path, body, extraHeaders) {
+    /* There is no server to talk to — the app works as a guest. The old code
+       kept the address of the last candidate that did not answer, so every
+       later call went to a dead address instead of saying "no server". */
+    if (!base) {
+      var off = new Error('no server');
+      off.offline = true;
+      return Promise.reject(off);
+    }
     var headers = { 'Accept': 'application/json' };
     if (body !== undefined && body !== null) headers['Content-Type'] = 'application/json';
     var t = getToken();
@@ -114,7 +122,10 @@ window.DSCLOUD = (function () {
     var i = 0;
     function next() {
       if (i >= candidates.length) {
+        /* not one of them answered: the address of the last one is of no
+           use to anybody */
         available = false;
+        base = null;
         fire();
         if (done) done(false);
         return;

@@ -5,14 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0C1114">
 <title>DeadShop — page not found</title>
-<!-- The paths below point at the published build. When the site moves to a
-     domain of its own, the prefix /DeadShop-pages/ has to go with it. -->
-<link rel="icon" href="/DeadShop-pages/assets/favicon-32.png" sizes="32x32" type="image/png">
-<link rel="apple-touch-icon" href="/DeadShop-pages/assets/icon-180.png">
+<!-- The paths below are relative, so the page works wherever the site is
+     mounted: at /DeadShop-pages/ on GitHub Pages, at the root on Cloudflare
+     Pages and on the machine of the owner. An absolute prefix broke every
+     link of the page on two of the three. -->
+<link rel="icon" href="assets/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="assets/icon-180.png">
 <style>
   @font-face{
     font-family:'Saira';
-    src:url('/DeadShop-pages/assets/fonts/saira-var.woff2') format('woff2');
+    src:url('assets/fonts/saira-var.woff2') format('woff2');
     font-weight:100 900; font-style:normal; font-display:swap;
   }
   *{box-sizing:border-box;margin:0;padding:0}
@@ -47,16 +49,16 @@
 </head>
 <body>
   <div class="card">
-    <img class="owl" src="/DeadShop-pages/assets/owl.svg" alt="Grey Talon's owl" width="120" height="120">
+    <img class="owl" src="assets/owl.svg" alt="Grey Talon's owl" width="120" height="120">
     <div class="code">404 · wrong shop</div>
     <h1>Nothing here</h1>
     <p>The owl checked every shelf and found nothing. That page does not exist —
       but the shop is still where you left it.</p>
-    <a class="btn" href="/DeadShop-pages/">BACK TO THE SHOP</a>
+    <a class="btn" href="./">BACK TO THE SHOP</a>
     <div class="links">
-      <a href="/DeadShop-pages/#daily">Daily run</a>
-      <a href="/DeadShop-pages/#items">Item browser</a>
-      <a href="/DeadShop-pages/#stats">Your progress</a>
+      <a href="./#daily">Daily run</a>
+      <a href="./#items">Item browser</a>
+      <a href="./#stats">Your progress</a>
     </div>
   </div>
 </body>
