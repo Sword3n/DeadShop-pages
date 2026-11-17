@@ -1586,7 +1586,7 @@
   // ------------------------------------------------------------- support
   /* Everything a tester might want to tell us, in one block they can copy.
      This is the only place that knows where feedback goes. */
-  var APP_VERSION = '0.30.0';
+  var APP_VERSION = '0.31.0';
   var BUILD_DATE = '2026-11-16';
   // Where "report a problem" goes. Two options, both need no server:
   //   ISSUES_URL  a GitHub issue with the diagnostics already filled in
@@ -1606,6 +1606,8 @@
     : 'api/shop';
 
   var WHATS_NEW = [
+    ['The middle path asks how a card works', 'A card that has to be pressed does nothing until it is pressed, and the numbers of a passive card are always on — a card read the wrong way round is bought for the wrong reason. Every card of the middle path is now asked four things: what it gives, how much, where it stands in the shop and how it works. 884 questions on the path.'],
+    ['The cards have their slow back', 'The wiki writes the slow of the enemy as a negative move speed, and three cards had lost the number of it: the Arctic Blast had no slow at all, and the Lightning Scroll, the Glass Cannon and the Majestic Leap had no number either. The rule that cleans such a row now asks the card of the game first: the row goes away when the card shows the slow already, and it stays — in the words of the game — when the card does not. The Cold Front, the Mystic Slow, the Mystic Reverb and the Capacitor no longer teach that these cards slow *you* down, and the move speed of the Sharpshooter and of Weighted Shots is now a drawback of yours, as the files of the game say.'],
     ['The progress of the guest came along', 'A new account made with an e-mail used to leave the progress of the guest behind: the form is drawn again for the code of the letter, and the box that said "keep my guest progress" was gone by then. The choice is now kept outside the box — and the points, the mastery and the streak travel with it.'],
     ['The exam pays for what it measures', 'The exam asked ten questions and paid two souls even when every answer was wrong, as often as the button was pressed — and it walked around the daily limit. An exam now goes through the same door as every other session, and it pays only when it went well, and only once a day.'],
     ['Nobody opens the account of another player now', 'The address of a player is not a secret, and the code of the letter is six digits that somebody else may well have read. A key is now only given to somebody who can prove the account is theirs: the code of the letter, or — when the address is confirmed already — the password of the account. The server counts the lessons of the day in one step now, so a burst of requests cannot slip past the limit, and it forgets the letters of an hour instead of the letters of a lifetime.'],
