@@ -185,12 +185,44 @@ window.DSA = (function () {
     return s;
   }
   var CODE_TTL = 15 * 60 * 1000;
+  // the app promises the player "fifteen minutes and five tries" — the
+  // local code has to keep that promise too
+  var CODE_TRIES = 5;
   function codeFresh(rec) {
     return rec && rec.code && rec.codeAt && (Date.now() - rec.codeAt) < CODE_TTL;
+  }
+  /* A code belongs to one purpose: the code that confirms an address may
+     not open a password reset, and the other way round. The server keeps
+     the purpose of every code — here it lives in the record as well. */
+  function codePurpose(rec) {
+    return (rec && rec.purpose) || 'verify';
+  }
+  function sendCode(rec, purpose) {
+    rec.code = makeCode();
+    rec.codeAt = Date.now();
+    rec.purpose = purpose;
+    rec.tries = 0;
+    return rec;
+  }
+  /* The wrong guesses are counted, and the code dies with the fifth one. */
+  function wrongCode(u, name, rec, code) {
+    if (String(code || '').trim() !== rec.code) {
+      rec.tries = (rec.tries || 0) + 1;
+      u[name] = rec;
+      writeUsers(u);
+      var left = CODE_TRIES - rec.tries;
+      if (left <= 0) {
+        return { ok: false, error: 'Too many wrong tries. Send a new code.' };
+      }
+      return { ok: false, error: 'Wrong code. ' + left + (left === 1 ? ' try left.' : ' tries left.') };
+    }
+    return null;
   }
   function signUpEmail(email, pw, display) {
     var err = validEmail(email);
     if (err) return { ok: false, error: err };
+    var perr = validPassword(pw);
+    if (perr) return { ok: false, error: perr };
     email = normaliseEmail(email);
     var u = readUsers();
     if (findByEmail(email)) return { ok: false, error: 'That email already has a profile on this device.' };
@@ -200,7 +232,7 @@ window.DSA = (function () {
     u[name] = {
       kind: 'email', email: email, display: displayOf({ display: normalise(display) }, name),
       salt: salt, hash: hashPassword(pw, salt), created: Date.now(),
-      verified: false, code: code, codeAt: Date.now()
+      verified: false, code: code, codeAt: Date.now(), purpose: 'verify', tries: 0
     };
     if (!writeUsers(u)) {
       return { ok: false, error: 'This browser is not saving anything, so a profile cannot be stored here.' };
@@ -212,9 +244,16 @@ window.DSA = (function () {
     if (!name) return { ok: false, error: 'No profile for that email on this device.' };
     var u = readUsers(), rec = u[name];
     if (!codeFresh(rec)) return { ok: false, error: 'That code has expired. Send a new one.' };
-    if (String(code || '').trim() !== rec.code) return { ok: false, error: 'Wrong code.' };
+    if (codePurpose(rec) !== 'verify') {
+      return { ok: false, error: 'That code is not a confirmation code. Send a new one.' };
+    }
+    if ((rec.tries || 0) >= CODE_TRIES) {
+      return { ok: false, error: 'Too many wrong tries. Send a new code.' };
+    }
+    var wrong = wrongCode(u, name, rec, code);
+    if (wrong) return wrong;
     rec.verified = true;
-    delete rec.code; delete rec.codeAt;
+    delete rec.code; delete rec.codeAt; delete rec.tries; delete rec.purpose;
     u[name] = rec;
     writeUsers(u);
     return { ok: true, name: name };
@@ -222,11 +261,10 @@ window.DSA = (function () {
   function resendCode(email) {
     var name = findByEmail(email);
     if (!name) return { ok: false, error: 'No profile for that email on this device.' };
-    var u = readUsers(), rec = u[name], code = makeCode();
-    rec.code = code; rec.codeAt = Date.now();
+    var u = readUsers(), rec = sendCode(u[name], 'verify');
     u[name] = rec;
     writeUsers(u);
-    return { ok: true, name: name, code: code };
+    return { ok: true, name: name, code: rec.code };
   }
   function signInEmail(email, pw) {
     var name = findByEmail(email);
@@ -239,24 +277,30 @@ window.DSA = (function () {
   function requestReset(email) {
     var name = findByEmail(email);
     if (!name) return { ok: false, error: 'No profile with that email on this device.' };
-    var u = readUsers(), rec = u[name], code = makeCode();
-    rec.code = code; rec.codeAt = Date.now();
+    var u = readUsers(), rec = sendCode(u[name], 'reset');
     u[name] = rec;
     writeUsers(u);
-    return { ok: true, name: name, code: code };
+    return { ok: true, name: name, code: rec.code };
   }
   function resetPassword(email, code, pw) {
     var name = findByEmail(email);
     if (!name) return { ok: false, error: 'No profile for that email on this device.' };
     var u = readUsers(), rec = u[name];
     if (!codeFresh(rec)) return { ok: false, error: 'That code has expired. Ask for a new one.' };
-    if (String(code || '').trim() !== rec.code) return { ok: false, error: 'Wrong code.' };
+    if (codePurpose(rec) !== 'reset') {
+      return { ok: false, error: 'That code is not a reset code. Ask for a new one.' };
+    }
+    if ((rec.tries || 0) >= CODE_TRIES) {
+      return { ok: false, error: 'Too many wrong tries. Ask for a new code.' };
+    }
+    var wrong = wrongCode(u, name, rec, code);
+    if (wrong) return wrong;
     var perr = validPassword(pw);
     if (perr) return { ok: false, error: perr };
     rec.salt = makeSalt();
     rec.hash = hashPassword(pw, rec.salt);
     rec.verified = true;
-    delete rec.code; delete rec.codeAt;
+    delete rec.code; delete rec.codeAt; delete rec.tries; delete rec.purpose;
     u[name] = rec;
     writeUsers(u);
     return { ok: true, name: name };
@@ -290,6 +334,8 @@ window.DSA = (function () {
     return rec ? displayOf(rec, key) : key;
   }
   function signUp(name, pw) {
+    var perr = validPassword(pw);
+    if (perr) return { ok: false, error: perr };
     name = normalise(name);
     var u = readUsers();
     if (u[name]) return { ok: false, error: 'That name is taken on this device.' };

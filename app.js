@@ -158,8 +158,8 @@
     },
     shopoholic: {
       name: 'Shopoholic', list: 'q_shopoholic',
-      note: 'what it gives, the numbers, and where it sits in the shop',
-      light: ['gives', 'value', 'compare', 'shelf']
+      note: 'what it gives, the numbers, how it works, and where it sits in the shop',
+      light: ['gives', 'value', 'compare', 'shelf', 'activation']
     },
     shopkeeper: {
       name: 'Shopkeeper', list: 'questions',
@@ -236,6 +236,23 @@
 
   var S = load(storageKey());
 
+  /* A profile is written by the app, but a hand may touch it, an older
+     version may have written a different shape, and a broken storage may
+     hold anything at all. A value of the wrong kind must not take the
+     lesson down: a "seen" that is a string makes every answer throw, and
+     an XP that is a string turns "xp + 10" into "10010". */
+  function numField(v, dflt) {
+    var n = (typeof v === 'number') ? v : parseFloat(v);
+    if (typeof n !== 'number' || !isFinite(n)) return dflt;
+    return n;
+  }
+  function objField(v) {
+    return (v && typeof v === 'object' && !Array.isArray(v)) ? v : {};
+  }
+  function arrField(v) {
+    return Array.isArray(v) ? v : [];
+  }
+
   function load(key) {
     var d = JSON.parse(JSON.stringify(DEFAULTS));
     try {
@@ -254,9 +271,29 @@
            shopkeeper track — the one the app was asking before. */
         d.mastery = migrateMastery(p.mastery || {});
         d.unitsDone = migrateUnits(p.unitsDone);
-        d.unlocked = p.unlocked || {};
-        d.seen = p.seen || {};
-        d.paused = p.paused || null;
+        d.unlocked = objField(p.unlocked);
+        d.seen = objField(p.seen);
+        d.history = objField(p.history);
+        d.equipped = objField(p.equipped);
+        d.soulsLedger = arrField(p.soulsLedger);
+        d.cosmetics = arrField(p.cosmetics);
+        d.dailyMiss = arrField(p.dailyMiss);
+        d.paused = (p.paused && typeof p.paused === 'object') ? p.paused : null;
+        var bh = objField(p.bughunt);
+        d.bughunt = { reports: arrField(bh.reports), inbox: arrField(bh.inbox),
+                      grants: arrField(bh.grants) };
+        /* the counters are counters: a string in one of them poisons the
+           arithmetic of the whole run */
+        d.xp = numField(d.xp, 0);
+        d.streak = numField(d.streak, 0);
+        d.right = numField(d.right, 0);
+        d.wrong = numField(d.wrong, 0);
+        d.lessons = numField(d.lessons, 0);
+        d.todayCount = numField(d.todayCount, 0);
+        d.todayLessons = numField(d.todayLessons, 0);
+        d.souls = numField(d.souls, 0);
+        d.soulsEarned = numField(d.soulsEarned, 0);
+        d.tourStep = numField(d.tourStep, 0);
       }
     } catch (e) { }
     /* The map of the opened lessons is one map per track now — see
@@ -481,8 +518,15 @@
         cloud.serverUser = u;
         cloud.sub = !!(u.subscription && u.subscription.active);
         cloud.subUntil = (u.subscription && u.subscription.until) || 0;
-        if (typeof u.name === 'string' && u.name) { S.display = u.name; save(); }
+        /* The name of the server is the name on the board; the name of this
+           browser is the name of the player here. One does not overwrite
+           the other. */
+        if (typeof u.name === 'string' && u.name && !S.display) { S.display = u.name; save(); }
         S.board = !!u.public;
+        /* The account may be ahead of this browser — it was played on
+           another device. It is read and merged, so that the life of that
+           device is not lost when this one pushes. */
+        pullCloud().then(function () { syncCloud(); });
       }
       DSCLOUD.leaderboard().then(function (r) {
         if (r) { cloud.board = r.players || []; cloudRank(); }
@@ -818,7 +862,11 @@
     cloud.serverUser = r.user;
     cloud.sub = !!(r.user.subscription && r.user.subscription.active);
     cloud.subUntil = (r.user.subscription && r.user.subscription.until) || 0;
-    if (r.user.name) { S.display = r.user.name; save(); }
+    /* The name of the account belongs to the account; the name of this
+       browser belongs to the profile of this browser. The name of the
+       server may not be written over the name here — the player had a name
+       of their own. */
+    if (r.user.name && !S.display) { S.display = r.user.name; save(); }
     S.board = !!r.user.public;
     var pn = $('#cloud-pass'); if (pn) pn.value = '';
     renderCloudAccount();
@@ -827,7 +875,10 @@
     renderFriends();
     renderLimitChip();
     toast(message || 'Done');
-    syncCloud();
+    /* The account may hold a life of its own — played on another device.
+       It is read first and merged, so that the push below cannot take it
+       away. */
+    pullCloud().then(function () { syncCloud(); });
   }
 
   function cloudLogout() {
@@ -1305,6 +1356,116 @@
   }
 
   // ------------------------------------------------------------ syncing
+  /* Two lives of the same player meet: the progress of this browser and the
+     progress of the account on the server. Neither may be lost.
+
+     The push used to replace the account with what this browser held, so an
+     account with a week of work in it was emptied by a sign-in from another
+     device — and the account was never read back, so the work of the other
+     device was never seen here either.
+
+     So the two are merged: the numbers are the larger of the two, the
+     mastery keeps the better record of every card, and the list of the
+     lessons and of the cosmetics is the union of both. The merge never
+     takes anything away, and it never counts twice: the same merge twice
+     gives the same answer, or the numbers would grow at every sign-in.
+
+     The souls are the one thing that is NOT merged: they are spent here,
+     and the number on the server is the number before the spending. Taking
+     the larger of the two would hand the spent souls back. */
+  function mergeCloudState(remote) {
+    if (!remote || typeof remote !== 'object') return false;
+    var changed = false;
+    function num(v) {
+      var n = Number(v);
+      return isFinite(n) ? n : 0;
+    }
+    ['xp', 'lessons', 'streak'].forEach(function (k) {
+      var v = Math.max(num(S[k]), num(remote[k]));
+      if (v !== S[k]) { S[k] = v; changed = true; }
+    });
+    // the mastery: the better record of every card of every path
+    var tracks = {};
+    [S.mastery, remote.mastery].forEach(function (m) {
+      if (!m || typeof m !== 'object') return;
+      Object.keys(m).forEach(function (t) { tracks[t] = 1; });
+    });
+    var mast = {};
+    Object.keys(tracks).forEach(function (t) {
+      var ma = (S.mastery && S.mastery[t]) || {};
+      var mb = (remote.mastery && remote.mastery[t]) || {};
+      var out = {};
+      var slugs = Object.keys(ma).concat(Object.keys(mb));
+      slugs.forEach(function (slug) {
+        var ra = ma[slug] || {}, rb = mb[slug] || {};
+        var box = Math.max(num(ra.box), num(rb.box));
+        var right = Math.max(num(ra.right), num(rb.right));
+        var wrong = Math.max(num(ra.wrong), num(rb.wrong));
+        if (!out[slug]) out[slug] = { box: box, right: right, wrong: wrong };
+      });
+      mast[t] = out;
+    });
+    if (JSON.stringify(mast) !== JSON.stringify(S.mastery)) {
+      S.mastery = mast;
+      changed = true;
+    }
+    // the lessons that are done: the union of both
+    var ud = {};
+    var utracks = {};
+    [S.unitsDone, remote.unitsDone].forEach(function (m) {
+      if (!m || typeof m !== 'object') return;
+      Object.keys(m).forEach(function (t) { utracks[t] = 1; });
+    });
+    Object.keys(utracks).forEach(function (t) {
+      var la = (S.unitsDone && S.unitsDone[t]) || [];
+      var lb = (remote.unitsDone && remote.unitsDone[t]) || [];
+      if (!Array.isArray(la)) la = [];
+      if (!Array.isArray(lb)) lb = [];
+      var all = la.concat(lb.filter(function (x) { return la.indexOf(x) < 0; }));
+      ud[t] = all;
+    });
+    if (JSON.stringify(ud) !== JSON.stringify(S.unitsDone)) {
+      S.unitsDone = ud;
+      changed = true;
+    }
+    // the history of the days: the larger number of the two
+    var hist = {};
+    var days = {};
+    [S.history, remote.history].forEach(function (h) {
+      if (!h || typeof h !== 'object') return;
+      Object.keys(h).forEach(function (k) { days[k] = 1; });
+    });
+    Object.keys(days).forEach(function (k) {
+      var v = Math.max(num((S.history || {})[k]), num((remote.history || {})[k]));
+      hist[k] = v;
+    });
+    if (JSON.stringify(hist) !== JSON.stringify(S.history)) {
+      S.history = hist;
+      changed = true;
+    }
+    // the cosmetics: the union of both
+    var cos = (S.cosmetics || []).slice();
+    ((remote.cosmetics || []) || []).forEach(function (id) {
+      if (cos.indexOf(id) < 0) cos.push(id);
+    });
+    if (cos.length !== (S.cosmetics || []).length) {
+      S.cosmetics = cos;
+      changed = true;
+    }
+    // what is worn: the one of this browser, when what it wears is owned
+    var eq = S.equipped || {};
+    var wears = true;
+    Object.keys(eq).forEach(function (kind) {
+      if (cos.indexOf(eq[kind]) < 0) wears = false;
+    });
+    if (!wears && remote.equipped) {
+      S.equipped = remote.equipped;
+      changed = true;
+    }
+    if (changed) save();
+    return changed;
+  }
+
   function syncCloud() {
     if (!cloud.ready || !DSCLOUD.getToken()) return;
     DSCLOUD.saveProfile({
@@ -1312,6 +1473,19 @@
       mastery: S.mastery, history: S.history, cosmetics: S.cosmetics,
       equipped: S.equipped, unitsDone: S.unitsDone, display: S.display
     }, { xp: S.xp, lessons: S.lessons, streak: S.streak, souls: S.souls });
+  }
+
+  /* Read the account of the server and merge it into this browser. The
+     progress of a player who played on two devices belongs to both — so
+     the account is read before anything is written back to it. */
+  function pullCloud() {
+    if (!cloud.ready || !DSCLOUD.getToken()) return Promise.resolve(false);
+    return DSCLOUD.state().then(function (st) {
+      if (!st) return false;
+      var changed = mergeCloudState(st);
+      if (changed) { renderProfile(); renderAll(); }
+      return changed;
+    });
   }
 
 
@@ -1613,8 +1787,8 @@
   // ------------------------------------------------------------- support
   /* Everything a tester might want to tell us, in one block they can copy.
      This is the only place that knows where feedback goes. */
-  var APP_VERSION = '0.32.0';
-  var BUILD_DATE = '2026-11-16';
+  var APP_VERSION = '0.33.0';
+  var BUILD_DATE = '2026-11-17';
   // Where "report a problem" goes. Two options, both need no server:
   //   ISSUES_URL  a GitHub issue with the diagnostics already filled in
   //   SUPPORT_EMAIL  a mailbox (mailto:). Leave it empty to skip it.
@@ -1633,9 +1807,13 @@
     : 'api/shop';
 
   var WHATS_NEW = [
+    ['Signing in no longer throws the account away', 'The progress of the guest was copied over the account on every sign-in — so signing back into an account that had a thousand lessons gave the player the dozen answers of the guest, and the account was gone. The progress of the guest now only travels into a profile that was made in that very flow and that holds nothing yet. The code of the letter counts the wrong guesses as well: five tries, as the site promises.'],
+    ['The unit of an answer belongs to the answer', 'A learner who is told "value in %" and writes "45m" was told "Correct!" and got the points. The unit is checked now, and a bare number is still accepted — but "45m" is not a percentage. The card that takes a stat away is also asked in the right words now: it does not give "-16%", it weakens the stat of the other one by sixteen.'],
+    ['The account and the browser do not fight', 'The account on the server may have been played on another device, and the push of the browser replaced it — a week of work was gone after one sign-in, and the work of the other device was never seen here. The two are merged now: the numbers are the larger of the two, the mastery keeps the better record of every card, and the lists are the union of both. The name of the server no longer overwrites the name of the player.'],
+    ['The deep path knows the way of every card', 'The shopkeeper was asked the way of six cards less than it should have been: a card that upgrades into another one is a card whose way has to be known. Every card of the path is asked now, and the lesson has room for it: sixteen questions instead of fifteen. 979 questions on the path.'],
     ['The owner sees the code of the reward', 'The report leaves the queue when it is decided, and the queue is drawn again — so the code of the reward was gone in the same moment it appeared. It stays on the desk now, with the button that copies it.'],
     ['The deep path asks every card for its numbers', 'The pick of the lesson took one question of every kind, and a card could be walked past without a single number of it being asked: forty-two of the 156 cards were never asked for a number. Every card of the shopkeeper is asked for its gift and for its numbers now.'],
-    ['The middle path asks how a card works', 'A card that has to be pressed does nothing until it is pressed, and the numbers of a passive card are always on — a card read the wrong way round is bought for the wrong reason. Every card of the middle path is now asked four things: what it gives, how much, where it stands in the shop and how it works. 884 questions on the path.'],
+    ['The middle path asks how a card works', 'A card that has to be pressed does nothing until it is pressed, and the numbers of a passive card are always on — a card read the wrong way round is bought for the wrong reason. Every card of the middle path is now asked four things: what it gives, how much, where it stands in the shop and how it works. The six cards that take something away are asked for their price as well: a card is a trade as often as it is a gift, and the buyer has to know the trade before he pays for it. 882 questions on the path.'],
     ['The cards have their slow back', 'The wiki writes the slow of the enemy as a negative move speed, and three cards had lost the number of it: the Arctic Blast had no slow at all, and the Lightning Scroll, the Glass Cannon and the Majestic Leap had no number either. The rule that cleans such a row now asks the card of the game first: the row goes away when the card shows the slow already, and it stays — in the words of the game — when the card does not. The Cold Front, the Mystic Slow, the Mystic Reverb and the Capacitor no longer teach that these cards slow *you* down, and the move speed of the Sharpshooter and of Weighted Shots is now a drawback of yours, as the files of the game say.'],
     ['The progress of the guest came along', 'A new account made with an e-mail used to leave the progress of the guest behind: the form is drawn again for the code of the letter, and the box that said "keep my guest progress" was gone by then. The choice is now kept outside the box — and the points, the mastery and the streak travel with it.'],
     ['The exam pays for what it measures', 'The exam asked ten questions and paid two souls even when every answer was wrong, as often as the button was pressed — and it walked around the daily limit. An exam now goes through the same door as every other session, and it pays only when it went well, and only once a day.'],
@@ -3060,7 +3238,7 @@
      shopoholic the numbers of the main effects. */
   var DAILY_TYPES = {
     newcomer: { gives: 1, effect: 1 },
-    shopoholic: { gives: 1, value: 1, compare: 1, shelf: 1 },
+    shopoholic: { gives: 1, value: 1, compare: 1, shelf: 1, activation: 1 },
     shopkeeper: { gives: 1, value: 1, compare: 1, which_item: 1, price: 1 }
   };
   function dailyQuestions() {
@@ -3593,7 +3771,7 @@
         inp.setAttribute('aria-label', r.label + (r.unit ? ' in ' + r.unit : ''));
         inp.addEventListener('input', function () {
           L.fields = $$('.recall-input').map(function (x) { return x.value; });
-          $('#check-btn').disabled = !L.fields.some(function (v) { return String(v).trim(); });
+          $('#check-btn').disabled = false;
         });
         inp.addEventListener('keydown', function (e) {
           if (e.key !== 'Enter') return;
@@ -3640,6 +3818,10 @@
     setText('#lesson-count', (L.i + 1) + '/' + L.qs.length);
     $('#check-btn').disabled = true;
     $('#check-btn').textContent = 'CHECK';
+    /* The card fill says "leave a field empty if you do not know it" — so
+       a learner who knows nothing must be able to hand the card in anyway.
+       The answer will be wrong, and that is the truth. */
+    if (q.type === 'freeRecall') $('#check-btn').disabled = false;
     $('#action-bar').style.display = '';
 
     /* the things of the question walk in one after the other: the chips,
@@ -4124,6 +4306,10 @@
     if (acc >= 60) confetti();
     // the counters in the top bar move while the result screen is on
     renderAll();
+    /* The lesson is over, so the account of the server is behind: the work
+       of this lesson has to go up, or it stays on this device until the
+       browser is closed. */
+    syncCloud();
     // a goal that has just been reached deserves a word
     var goal = Number(S.settings.goal) || 12;
     if ((S.todayCount || 0) >= goal && (S.todayCount || 0) - L.qs.length < goal) {
@@ -4154,6 +4340,10 @@
   var authStep = 'form';     // form | verify | reset
   var authEmail = '';
   var authCode = '';
+  // Was the profile made in this very flow? Only then may the progress of
+  // the guest be carried over: signing in to an account that already exists
+  // must never touch what that account holds.
+  var authIsNew = false;
 
   function showField(id, show) {
     var n = $(id);
@@ -4236,34 +4426,66 @@
     // offer to carry the guest progress over
     var guest = load(PROFILE_PREFIX + GUEST);
     var guestItems = masteryItemCount(guest.mastery || {});
+    // the guest counts as "has progress" by anything, not only by the items
+    // it has studied: a guest with a hundred lessons and no item yet still
+    // has something to carry over, and the box must say so
+    var guestProgress = guestItems
+      + ((guest.xp || 0) > 0 ? 1 : 0)
+      + ((guest.lessons || 0) > 0 ? 1 : 0)
+      + ((guest.souls || 0) > 0 ? 1 : 0);
     var old = $('#guest-import');
     if (old) old.parentNode.removeChild(old);
-    if (signup && !verifying && !resetting && !changing && guestItems > 0) {
+    if (signup && !verifying && !resetting && !changing && guestProgress > 0) {
       var row = el('label', 'guest-import');
       var cb = el('input'); cb.type = 'checkbox'; cb.checked = keepGuest;
       cb.addEventListener('change', function () { keepGuest = cb.checked; });
       row.appendChild(cb);
-      row.appendChild(el('span', null, 'Keep my guest progress (' + guestItems + ' items)'));
+      var what = guestItems
+        ? guestItems + ' item' + (guestItems === 1 ? '' : 's')
+        : 'your lessons and XP';
+      row.appendChild(el('span', null, 'Keep my guest progress (' + what + ')'));
       $('#auth-error').parentNode.insertBefore(row, $('#auth-error'));
       row.id = 'guest-import';
     }
+  }
+
+  /* Does this profile hold a life of its own? An empty profile may take
+     the progress of the guest; a profile with anything in it may not. */
+  function profileHasProgress(p) {
+    if (!p) return false;
+    if ((p.xp || 0) > 0 || (p.lessons || 0) > 0) return true;
+    if ((p.right || 0) > 0 || (p.wrong || 0) > 0) return true;
+    if ((p.souls || 0) > 0 || (p.soulsEarned || 0) > 0) return true;
+    if (masteryItemCount(p.mastery || {}) > 0) return true;
+    return false;
   }
 
   function finishAuth(name) {
     /* Carry the guest progress over when asked. The answer is kept in a
        variable and not only in the box on the screen: the box is gone when
        the form asks for the code of the letter, and the progress of the
-       guest was dropped on the way. */
+       guest was dropped on the way.
+
+       The progress of the guest only goes into a profile that was made in
+       this very flow AND that holds nothing yet. The merge used to run on
+       every sign-in as well, and it copied the guest over the account — so
+       signing back into an account that had a thousand lessons gave the
+       player the guest's dozen answers, and the account was gone. */
     var gi = $('#guest-import');
     if (gi && gi.querySelector('input').checked) keepGuest = true;
-    if (keepGuest) {
-      var guest = null;
-      try { guest = localStorage.getItem(PROFILE_PREFIX + GUEST); } catch (e) { }
-      if (guest) {
-        try { localStorage.setItem(PROFILE_PREFIX + name, guest); } catch (e) { }
-        try { localStorage.removeItem(PROFILE_PREFIX + GUEST); } catch (e) { }
+    if (keepGuest && authIsNew) {
+      var target = null;
+      try { target = load(PROFILE_PREFIX + name); } catch (e) { target = null; }
+      if (!profileHasProgress(target)) {
+        var guest = null;
+        try { guest = localStorage.getItem(PROFILE_PREFIX + GUEST); } catch (e) { }
+        if (guest) {
+          try { localStorage.setItem(PROFILE_PREFIX + name, guest); } catch (e) { }
+          try { localStorage.removeItem(PROFILE_PREFIX + GUEST); } catch (e) { }
+        }
       }
     }
+    authIsNew = false;
     if (!DSA.setSession(name)) {
       setText('#auth-error', 'This browser is not saving anything, so the profile cannot be stored here.');
       return;
@@ -4300,6 +4522,7 @@
     if (authStep === 'reset') {
       res = DSA.resetPassword(authEmail, $('#auth-code').value, pw);
       if (!res.ok) { setText('#auth-error', res.error); buzz(60); return; }
+      authIsNew = false;
       finishAuth(res.name);
       return;
     }
@@ -4314,6 +4537,7 @@
         res = DSA.signUpEmail(email, pw, $('#auth-name').value);
         if (res.ok) {
           authEmail = email; authCode = res.code; authStep = 'verify';
+          authIsNew = true;
           renderAuth();
           return;
         }
@@ -4323,6 +4547,7 @@
           // the account exists but was never confirmed — send a fresh code
           var again = DSA.resendCode(email);
           authEmail = email; authCode = again.code; authStep = 'verify';
+          authIsNew = false;
           renderAuth();
           setText('#auth-error', res.error);
           return;
@@ -4337,8 +4562,10 @@
       if (authMode === 'signup') {
         if (DSA.exists(name)) { setText('#auth-error', 'That name is taken on this device.'); buzz(60); return; }
         res = DSA.signUp(name, pw);
+        authIsNew = !!(res && res.ok);
       } else {
         res = DSA.signIn(name, pw);
+        authIsNew = false;
       }
     }
     if (!res.ok) { setText('#auth-error', res.error); buzz(60); return; }
@@ -5636,6 +5863,7 @@
     bhCode: bhCode,
     grantCode: grantCode,
     mergeProfile: mergeProfile,
+    mergeCloudState: mergeCloudState,
     bhApplyGrant: bhApplyGrant,
     startExam: startExam,
     loadProfile: function () { return load(storageKey()); },
@@ -5658,6 +5886,15 @@
     },
     unlockAudio: unlockAudio,
     currentQuestion: function () { return (L && L.qs) ? L.qs[L.i] : null; },
+    /* jump to a question of the running lesson — the harness needs to reach
+       a certain kind of question without answering everything before it */
+    jumpTo: function (i) {
+      if (!L || !L.qs || !L.qs.length) return false;
+      if (i < 0 || i >= L.qs.length) return false;
+      L.i = i;
+      renderQ();
+      return true;
+    },
     lesson: function () { return L; },
     state: function () { return S; },
     kind: KIND,

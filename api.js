@@ -180,6 +180,18 @@ window.DSCLOUD = (function () {
     });
   }
 
+  /* The progress of the account on the server. The account may have been
+     played on another device, and this is the only way to learn what it
+     holds — the browser has to merge it with what is here, so that neither
+     life is lost. */
+  function state() {
+    if (!getToken()) return Promise.resolve(null);
+    return call('GET', '/api/me').then(function (r) {
+      if (r && r.user) { user = r.user; fire(); }
+      return (r && r.state) || null;
+    }).catch(function () { return null; });
+  }
+
   // ------------------------------------------------------------------ accounts
   function register(email, password, name) {
     return call('POST', '/api/register', { email: email, password: password, name: name || '' })
@@ -322,6 +334,7 @@ window.DSCLOUD = (function () {
     logout: logout,
     deleteAccount: deleteAccount,
     saveProfile: saveProfile,
+    state: state,
     setPublic: setPublic,
     lessonStart: lessonStart,
     report: report,

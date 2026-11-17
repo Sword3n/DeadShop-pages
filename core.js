@@ -12,11 +12,46 @@ window.DSC = (function () {
   }
   function norm(v) { return String(v).toLowerCase().replace(/[^a-z0-9]/g, ''); }
 
-  /* tolerant numeric grading: "0.75m", "+20%", "20" all accepted */
+  /* The unit of a written number: "45m" -> "m", "+8 %" -> "%", "45" -> "".
+     The card of the game writes the unit behind the number, and the field
+     of the app tells the learner which unit to use — so a "45m" written
+     where a per cent is wanted is a wrong answer, not a right one. */
+  function normUnit(u) {
+    return String(u == null ? '' : u).toLowerCase().replace(/\s+/g, '');
+  }
+  function unitOf(v) {
+    var m = String(v == null ? '' : v).match(/^\s*[+-]?(?:\d+[.,]?\d*|[.,]\d+)\s*(.*)$/);
+    if (!m) return '';
+    return normUnit(m[1]);
+  }
+
+  /* The unit the answer is waiting for: the first form of the answer that
+     carries one. A bare number ("170") has no unit, and then no unit is
+     asked for either. */
+  function wantedUnit(accept) {
+    for (var i = 0; i < (accept || []).length; i++) {
+      var u = unitOf(accept[i]);
+      if (u) return u;
+    }
+    return '';
+  }
+
+  /* Does the unit the learner wrote belong to the unit of the answer?
+     A learner who leaves the unit out is let through — the field told
+     him the unit, and a bare number is what many people write. */
+  function unitFits(input, want) {
+    if (!want) return true;
+    var got = unitOf(input);
+    return !got || got === want;
+  }
+
+  /* tolerant numeric grading: "0.75m", "+20%", "20" all accepted —
+     but only with the unit of the answer */
   function gradeNumber(input, accept) {
     if (!accept || !accept.length) return false;
     var v = num(input);
     if (isNaN(v)) return false;
+    if (!unitFits(input, wantedUnit(accept))) return false;
     for (var i = 0; i < accept.length; i++) {
       var a = num(accept[i]);
       if (!isNaN(a) && Math.abs(a - v) < 0.011) return true;
@@ -33,7 +68,10 @@ window.DSC = (function () {
       var raw = (values[i] === undefined || values[i] === null ? '' : String(values[i])).trim();
       var v = num(raw);
       var target = num(rows[i].value);
-      var ok = raw !== '' && !isNaN(v) && !isNaN(target) && Math.abs(v - target) < 0.011;
+      var want = normUnit(rows[i].unit || wantedUnit([rows[i].value]));
+      var ok = raw !== '' && !isNaN(v) && !isNaN(target)
+               && Math.abs(v - target) < 0.011
+               && unitFits(raw, want);
       per.push(ok);
       if (ok) matched++;
     }
@@ -311,6 +349,7 @@ window.DSC = (function () {
   return {
     num: num, norm: norm,
     gradeNumber: gradeNumber, gradeFields: gradeFields,
+    unitOf: unitOf, wantedUnit: wantedUnit,
     setItems: setItems, setStats: setStats, setIcons: setIcons,
     setBranches: setBranches, baseLabel: baseLabel,
     decorate: decorate, decorateStat: decorateStat,
