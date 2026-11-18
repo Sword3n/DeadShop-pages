@@ -188,7 +188,12 @@ window.DSCLOUD = (function () {
     if (!getToken()) return Promise.resolve(null);
     return call('GET', '/api/me').then(function (r) {
       if (r && r.user) { user = r.user; fire(); }
-      return (r && r.state) || null;
+      /* The server keeps the progress inside the account: the answer of
+         GET /api/me is {"ok":true,"user":{…,"state":{…}}}. Reading it from
+         the top of the answer found nothing there, so the progress of an
+         account played on another device never came down. The old place is
+         still read as a fallback, so an older server keeps working. */
+      return (r && r.user && r.user.state) || (r && r.state) || null;
     }).catch(function () { return null; });
   }
 

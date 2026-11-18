@@ -248,6 +248,12 @@
     if (typeof n !== 'number' || !isFinite(n)) return dflt;
     return n;
   }
+  /* A counter that cannot be negative: the XP, the balance of the souls, the
+     number of lessons. A file may carry a negative number, and the arithmetic
+     of the whole app works on it. */
+  function counterField(v, dflt) {
+    return Math.max(0, numField(v, dflt));
+  }
   function objField(v) {
     return (v && typeof v === 'object' && !Array.isArray(v)) ? v : {};
   }
@@ -263,10 +269,6 @@
         var p = JSON.parse(raw);
         for (var k in d) if (p[k] !== undefined && p[k] !== null) d[k] = p[k];
         d.settings = Object.assign({}, DEFAULTS.settings, p.settings || {});
-        /* One-time switch of the default look: the old default was "auto",
-           the vault (dark) is the default now. A player who picks a theme
-           afterwards keeps it — the switch runs once and never again. */
-        if (!d.themeV) { d.settings.theme = 'dark'; d.themeV = 1; }
         /* The mastery used to be one record for the whole shop. Now every
            track keeps its own: a newcomer must not be marked as knowing what
            only the shopkeeper was asked about. The old record goes to the
@@ -286,18 +288,25 @@
                       grants: arrField(bh.grants) };
         /* the counters are counters: a string in one of them poisons the
            arithmetic of the whole run */
-        d.xp = numField(d.xp, 0);
-        d.streak = numField(d.streak, 0);
-        d.right = numField(d.right, 0);
-        d.wrong = numField(d.wrong, 0);
-        d.lessons = numField(d.lessons, 0);
-        d.todayCount = numField(d.todayCount, 0);
-        d.todayLessons = numField(d.todayLessons, 0);
-        d.souls = numField(d.souls, 0);
-        d.soulsEarned = numField(d.soulsEarned, 0);
-        d.tourStep = numField(d.tourStep, 0);
+        d.xp = counterField(d.xp, 0);
+        d.streak = counterField(d.streak, 0);
+        d.right = counterField(d.right, 0);
+        d.wrong = counterField(d.wrong, 0);
+        d.lessons = counterField(d.lessons, 0);
+        d.todayCount = counterField(d.todayCount, 0);
+        d.todayLessons = counterField(d.todayLessons, 0);
+        d.souls = counterField(d.souls, 0);
+        d.soulsEarned = counterField(d.soulsEarned, 0);
+        d.tourStep = counterField(d.tourStep, 0);
       }
     } catch (e) { }
+    /* One-time switch of the default look: the old default was "auto", the
+       vault (dark) is the default now. A player who picks a theme afterwards
+       keeps it — the switch runs once and never again. It has to run for a
+       fresh profile too: it used to sit inside the branch of a stored
+       profile, so a brand-new profile kept the flag at zero and every load
+       forced the dark theme over the choice of the player. */
+    if (!d.themeV) { d.settings.theme = 'dark'; d.themeV = 1; }
     /* The map of the opened lessons is one map per track now — see
        migrateUnlocked(). It runs here, because it needs to know which track
        the player is on. */
@@ -505,6 +514,21 @@
         }
         renderCloudAccount();
         renderLimitChip();
+        /* The place of the player on the board was only worked out when the
+           board was fetched at the start of the session: a player who signed
+           in while the app was open saw no place at all until the page was
+           loaded again. The board is fetched once more and the place is
+           counted from the fresh rows. */
+        if (u) {
+          cloudRank();
+          if (DSCLOUD.leaderboard) {
+            DSCLOUD.leaderboard().then(function (r) {
+              if (r) { cloud.board = r.players || []; }
+              cloudRank();
+              renderFriends();
+            }).catch(function () { });
+          }
+        }
       });
     }
     DSCLOUD.init(function (up) {
@@ -546,9 +570,19 @@
     cloud.rank = 0;
     if (!cloud.serverUser) return;
     var me = cloud.serverUser;
-    var list = cloud.board || [];
+    /* The place has to be counted in the order the rows are drawn in — the
+       board is sorted by the XP before it is drawn, so it is sorted here
+       too. */
+    var list = (cloud.board || []).filter(function (p) { return p && typeof p === 'object'; })
+      .slice().sort(function (a, b) {
+        return (Number(b.xp) || 0) - (Number(a.xp) || 0)
+          || (Number(b.lessons) || 0) - (Number(a.lessons) || 0);
+      });
     for (var i = 0; i < list.length; i++) {
-      if (list[i].name === me.name && list[i].xp === me.xp) { cloud.rank = i + 1; break; }
+      if (list[i].name === me.name && Number(list[i].xp) === Number(me.xp)) {
+        cloud.rank = i + 1;
+        break;
+      }
     }
   }
 
@@ -1122,8 +1156,9 @@
     if (cloud.serverUser) {
       mine.appendChild(el('div', 'board-mine-n', 'You: ' + (cloud.serverUser.name || 'unnamed')));
       mine.appendChild(el('div', 'board-mine-s',
-        cloud.serverUser.xp + ' XP · ' + cloud.serverUser.lessons + ' lessons · ' +
-        cloud.serverUser.streak + ' day streak · ' + cloud.serverUser.souls + ' souls'));
+        boardNum(cloud.serverUser.xp, 'XP') + ' · ' + boardNum(cloud.serverUser.lessons, 'lessons') +
+        ' · ' + boardNum(cloud.serverUser.streak, 'day streak') + ' · ' +
+        boardNum(cloud.serverUser.souls, 'souls')));
       if (cloud.rank) mine.appendChild(el('div', 'board-mine-r', 'Place #' + cloud.rank));
     } else {
       mine.appendChild(el('div', 'board-mine-n', 'You are not on the board yet'));
@@ -1138,12 +1173,21 @@
     if (!cloud.board.length) {
       list.appendChild(el('p', 'note', 'Nobody has put their name up yet. Be the first.'));
     }
-    cloud.board.forEach(function (p, i) {
+    /* The places are numbered by the order of the rows, so the rows have to
+       be in the order of the XP: a board that arrives unsorted — from an
+       older server, from a cache — would show Bob with the most XP as the
+       second place. */
+    var rows = cloud.board.filter(function (p) { return p && typeof p === 'object'; })
+      .slice().sort(function (a, b) {
+        return (Number(b.xp) || 0) - (Number(a.xp) || 0)
+          || (Number(b.lessons) || 0) - (Number(a.lessons) || 0);
+      });
+    rows.forEach(function (p, i) {
       var row = el('div', 'board-row');
       row.appendChild(el('span', 'board-place', String(i + 1)));
       row.appendChild(el('span', 'board-name', safeName(p.name) || 'unnamed'));
-      row.appendChild(el('span', 'board-xp', p.xp + ' XP'));
-      row.appendChild(el('span', 'board-lessons', p.lessons + ' lessons'));
+      row.appendChild(el('span', 'board-xp', boardNum(p.xp, 'XP')));
+      row.appendChild(el('span', 'board-lessons', boardNum(p.lessons, 'lessons')));
       list.appendChild(row);
     });
     box.appendChild(list);
@@ -1451,7 +1495,12 @@
     }
     // the cosmetics: the union of both
     var cos = (S.cosmetics || []).slice();
-    ((remote.cosmetics || []) || []).forEach(function (id) {
+    /* A remote state that carries something else instead of a list must not
+       take the merge down: the merge threw, the pull rejected, and the push
+       after it never ran — so the progress of the session never reached the
+       server. */
+    var remoteCos = Array.isArray(remote.cosmetics) ? remote.cosmetics : [];
+    remoteCos.forEach(function (id) {
       if (cos.indexOf(id) < 0) cos.push(id);
     });
     if (cos.length !== (S.cosmetics || []).length) {
@@ -1488,7 +1537,11 @@
     if (!cloud.ready || !DSCLOUD.getToken()) return Promise.resolve(false);
     return DSCLOUD.state().then(function (st) {
       if (!st) return false;
-      var changed = mergeCloudState(st);
+      /* A state that cannot be merged must not stop the push that follows:
+         the progress of this session has to reach the server either way. */
+      var changed = false;
+      try { changed = mergeCloudState(st); }
+      catch (e) { changed = false; }
       if (changed) { renderProfile(); renderAll(); }
       return changed;
     });
@@ -1727,6 +1780,14 @@
     if (!name) return name;
     return offensiveName(name) ? '—' : name;
   }
+  /* A number of the board: a row that comes without it shows a dash, not
+     "undefined XP" — a broken row must not take the screen down with it. */
+  function boardNum(v, unit) {
+    var n = Number(v);
+    if (typeof v !== 'number' && !isFinite(n)) return '— ' + unit;
+    if (!isFinite(n)) return '— ' + unit;
+    return n + ' ' + unit;
+  }
 
   // ------------------------------------------------------------- motion
   /* The counters roll up instead of jumping, the chips bounce when a number
@@ -1793,7 +1854,7 @@
   // ------------------------------------------------------------- support
   /* Everything a tester might want to tell us, in one block they can copy.
      This is the only place that knows where feedback goes. */
-  var APP_VERSION = '0.34.0';
+  var APP_VERSION = '0.35.0';
   var BUILD_DATE = '2026-11-17';
   // Where "report a problem" goes. Two options, both need no server:
   //   ISSUES_URL  a GitHub issue with the diagnostics already filled in
@@ -2633,15 +2694,19 @@
   ];
   var LEAGUE_STEP = 300;
   function leagueInfo() {
-    var lvl = Math.min(LEAGUES.length, Math.floor((Number(S.xp) || 0) / LEAGUE_STEP) + 1);
+    /* The level is clamped at both ends: a profile that carries a negative
+       XP (an imported file can) must not point at a league that is not
+       there — the boot died on it and no screen was shown at all. */
+    var xp = Math.max(0, Number(S.xp) || 0);
+    var lvl = Math.max(1, Math.min(LEAGUES.length, Math.floor(xp / LEAGUE_STEP) + 1));
     var cur = LEAGUES[lvl - 1];
     var base = (lvl - 1) * LEAGUE_STEP;
     var next = lvl < LEAGUES.length ? lvl * LEAGUE_STEP : null;
-    var pct = next ? Math.max(0, Math.min(1, ((Number(S.xp) || 0) - base) / (next - base))) : 1;
+    var pct = next ? Math.max(0, Math.min(1, (xp - base) / (next - base))) : 1;
     return {
       level: lvl, name: cur.name, color: cur.color,
       next: next, nextName: lvl < LEAGUES.length ? LEAGUES[lvl].name : null,
-      pct: pct, xp: Number(S.xp) || 0
+      pct: pct, xp: xp
     };
   }
   function league() { return leagueInfo().name; }
@@ -3212,8 +3277,18 @@
     var touched = Object.keys(myMap).filter(function (s) { return DS.items[s]; });
     var mastered = touched.filter(function (s) { return boxOf(s, shown) >= 4; }).length;
     setText('#s-mastered', mastered);
-    setText('#s-correct', S.right);
-    setText('#s-wrong', S.wrong);
+    /* The counters belong to the path that is shown as well: the lists come
+       from the path, so the numbers of the answers have to come from it too
+       — the totals of every path together stood next to the lists of one
+       path. */
+    var pathRight = 0, pathWrong = 0;
+    touched.forEach(function (s) {
+      var m = myMap[s] || {};
+      pathRight += Number(m.right) || 0;
+      pathWrong += Number(m.wrong) || 0;
+    });
+    setText('#s-correct', pathRight);
+    setText('#s-wrong', pathWrong);
     setText('#s-streak', S.streak);
 
     // weak items — the ones worth another look
@@ -3260,6 +3335,7 @@
   var KIND = {
     family: 'Which stat?', value: 'Exact value', blank: 'Missing stat', compare: 'Comparison',
     chain: 'Upgrade path', freeRecall: 'Full recall', valueBlind: 'Exact value',
+    cardFill: 'Card fill',
     tier: 'Tier', counter: 'Counter pick',
     gives: 'What it gives', which_item: 'Which item',
     effect: 'What it does',
@@ -3881,7 +3957,7 @@
       card.appendChild(statTable(q.rows));
       card.appendChild(el('div', 'hint', 'One value is hidden — type it. Units are optional.'));
       card.appendChild(numInput(q));
-    } else if (q.type === 'freeRecall') {
+    } else if (q.type === 'freeRecall' || q.type === 'cardFill') {
       card.appendChild(el('div', 'hint',
         'Fill in the values you remember — every stat you get right counts. Leave a field empty if you do not know it. ' +
         'Two rows can share a name: the block each one sits in tells them apart.'));
@@ -3933,7 +4009,7 @@
        tracks (where the questions come with options) the hint never showed at
        all. The free recall question carries its advice in its own text, so it
        gets no second one. */
-    if (q.type !== 'freeRecall') {
+    if (q.type !== 'freeRecall' && q.type !== 'cardFill') {
       var htext = q.hint ? q.hint : hintFor(q, item);
       if (htext) {
         var hbtn = el('button', 'hint-btn', '💡 Hint');
@@ -3960,7 +4036,7 @@
     /* The card fill says "leave a field empty if you do not know it" — so
        a learner who knows nothing must be able to hand the card in anyway.
        The answer will be wrong, and that is the truth. */
-    if (q.type === 'freeRecall') $('#check-btn').disabled = false;
+    if (q.type === 'freeRecall' || q.type === 'cardFill') $('#check-btn').disabled = false;
     $('#action-bar').style.display = '';
 
     /* the things of the question walk in one after the other: the chips,
@@ -4047,7 +4123,7 @@
         if (raw === q.answer) { b.classList.add('right'); b.appendChild(el('span', 'opt-mark', '✓')); }
         else if (b.classList.contains('sel')) { b.classList.add('wrong'); b.appendChild(el('span', 'opt-mark', '✕')); }
       });
-    } else if (q.type === 'freeRecall') {
+    } else if (q.type === 'freeRecall' || q.type === 'cardFill') {
       var rows = q.rows || [];
       var inputs = $$('.recall-input');
       var g = DSC.gradeFields(inputs.map(function (x) { return x.value; }), rows);
@@ -4179,7 +4255,7 @@
     }
     var body = $('#feedback-body');
     body.innerHTML = decorate(q.explain || '');
-    if (q.type === 'freeRecall' && q.rows) {
+    if ((q.type === 'freeRecall' || q.type === 'cardFill') && q.rows) {
       var g = L.lastGrade;
       var recap = '<div class="recap">';
       q.rows.forEach(function (r, i) {
@@ -4811,7 +4887,8 @@
       moodEl.textContent = (h ? h.name + ' · ' : '') + mood.label;
       moodEl.className = 'pc-mood ' + mood.id;
     }
-    setText('#profile-meta', (name ? label + ' · ' : '') + league() + ' · ' + S.xp + ' XP · ' +
+    setText('#profile-meta', (name ? label + ' · ' : '') + 'Level ' + leagueInfo().level +
+      ' · ' + league() + ' · ' + S.xp + ' XP · ' +
       lessons + (lessons === 1 ? ' lesson' : ' lessons'));
 
     // account details
@@ -4825,7 +4902,11 @@
     $$('#goal-seg .seg-btn').forEach(function (b) {
       b.classList.toggle('on', Number(b.dataset.goal) === goal);
     });
-    setText('#set-today', (S.todayCount || 0) + ' / ' + goal + ' questions');
+    /* The counter of today belongs to today: the count is only reset when
+       the next answer comes, so the screen of the morning used to show
+       yesterday's count and yesterday's "goal reached". */
+    var answeredToday = (S.todayDay === today()) ? (S.todayCount || 0) : 0;
+    setText('#set-today', answeredToday + ' / ' + goal + ' questions');
 
     // audio state — the quickest way to tell a silent phone from a broken one
     var as = $('#audio-state');
@@ -4945,7 +5026,7 @@
           return;
         }
         if (k === 'mastery' || k === 'unlocked' || k === 'seen' || k === 'history' ||
-            k === 'soulsLedger' || k === 'equipped' || k === 'bughunt') {
+            k === 'equipped' || k === 'bughunt') {
           if (typeof p[k] === 'object' && !Array.isArray(p[k])) { merged[k] = p[k]; taken++; }
           return;
         }
@@ -4967,6 +5048,18 @@
           }
           return;
         }
+        if (k === 'soulsLedger') {
+          /* the ledger of the souls is a list of entries — the import used to
+             ask for an object, so a round trip through a file lost it and the
+             profile forgot the last payment of the shop */
+          if (Array.isArray(p[k])) {
+            merged.soulsLedger = p[k].filter(function (e) {
+              return e && typeof e === 'object' && isFinite(Number(e.amount));
+            }).slice(-40);
+            taken++;
+          }
+          return;
+        }
         if (k === 'cosmetics' && Array.isArray(p[k])) {
           merged.cosmetics = p[k].filter(function (id) { return !!COS_BY_ID[id]; });
           taken++;
@@ -4980,7 +5073,10 @@
         }
         if (typeof p[k] === 'string' || p[k] === null) { merged[k] = p[k]; taken++; }
       });
-      merged.settings = Object.assign({}, DEFAULTS.settings, p.settings || {});
+      /* The settings belong to the device, not to the file: the theme, the
+         sound and the daily goal of this browser are not the progress, and
+         an import must not take them away. */
+      merged.settings = Object.assign({}, DEFAULTS.settings, (S && S.settings) || {});
       merged.mastery = migrateMastery(merged.mastery || {});
       merged.unitsDone = migrateUnits(merged.unitsDone || {});
       /* the board of the player, the first run and the theme were dropped as
@@ -5020,6 +5116,21 @@
   function awardSouls(n, why) {
     n = Math.round(Number(n) || 0);
     if (!n) return 0;
+    /* The balance of the souls never goes below zero: a negative award (the
+       reward of the server can carry one) left a negative balance behind —
+       the screen showed 0 while the stored profile said -5. */
+    if (n < 0) {
+      var back = Math.min(-n, souls());
+      if (back) {
+        S.souls = souls() - back;
+        S.soulsLedger = soulLedger().concat([{ at: Date.now(), amount: -back, why: why || '' }]);
+        if (S.soulsLedger.length > 40) S.soulsLedger = S.soulsLedger.slice(-40);
+        save();
+        renderSouls();
+        return -back;
+      }
+      return 0;
+    }
     S.souls = souls() + n;
     if (n > 0) S.soulsEarned = (Number(S.soulsEarned) || 0) + n;
     S.soulsLedger = soulLedger().concat([{ at: Date.now(), amount: n, why: why || '' }]);
@@ -6073,6 +6184,7 @@
     countLocalLesson: countLocalLesson,
     renderAds: renderAds,
     renderFriends: renderFriends,
+    cloudRank: cloudRank,
     renderSub: renderSub,
     renderCloudAccount: renderCloudAccount,
     // the desk of the owner — the checks drive it with a stub of the server

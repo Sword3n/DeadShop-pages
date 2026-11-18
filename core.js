@@ -38,10 +38,12 @@ window.DSC = (function () {
 
   /* Does the unit the learner wrote belong to the unit of the answer?
      A learner who leaves the unit out is let through — the field told
-     him the unit, and a bare number is what many people write. */
+     him the unit, and a bare number is what many people write. An answer
+     that has no unit at all asks for a plain number, and a unit written
+     in it is as wrong as a per cent where metres are wanted. */
   function unitFits(input, want) {
-    if (!want) return true;
     var got = unitOf(input);
+    if (!want) return !got;
     return !got || got === want;
   }
 
@@ -61,7 +63,13 @@ window.DSC = (function () {
 
   /* Card fill: one field per stat, each graded on its own. A learner who
      knows two of six stats still scores for those two — asking for a whole
-     card in one free-text box was never realistic. */
+     card in one free-text box was never realistic.
+
+     The sign of a row that takes something away is not part of the answer:
+     the question about that row asks "how much does it take away" and takes
+     the number with or without the minus, so the fill of a card has to
+     judge it the same way. A learner who wrote "16" for a row of "-16 %"
+     was told so by the card of the game and must not lose the point. */
   function gradeFields(values, rows) {
     var per = [], matched = 0;
     for (var i = 0; i < rows.length; i++) {
@@ -69,9 +77,10 @@ window.DSC = (function () {
       var v = num(raw);
       var target = num(rows[i].value);
       var want = normUnit(rows[i].unit || wantedUnit([rows[i].value]));
-      var ok = raw !== '' && !isNaN(v) && !isNaN(target)
-               && Math.abs(v - target) < 0.011
-               && unitFits(raw, want);
+      var close = !isNaN(v) && !isNaN(target) &&
+                  (Math.abs(v - target) < 0.011 ||
+                   (target < 0 && Math.abs(Math.abs(v) - Math.abs(target)) < 0.011));
+      var ok = raw !== '' && close && unitFits(raw, want);
       per.push(ok);
       if (ok) matched++;
     }
