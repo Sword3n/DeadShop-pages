@@ -193,8 +193,22 @@ window.DSCLOUD = (function () {
          the top of the answer found nothing there, so the progress of an
          account played on another device never came down. The old place is
          still read as a fallback, so an older server keeps working. */
-      return (r && r.user && r.user.state) || (r && r.state) || null;
+      var st = (r && r.user && r.user.state) || (r && r.state) || null;
+      /* the gift of the owner travels with the account: it waits on the
+         server until the browser takes it */
+      if (st && r && r.user && r.user.grant) st.grant = r.user.grant;
+      return st;
     }).catch(function () { return null; });
+  }
+
+  /* Take the gift of souls the owner gave to this account. The number of
+     the gift is written down in the browser first and the server is told
+     afterwards — a browser that dies in between finds the gift waiting
+     again and takes it once, never twice. */
+  function claimGrant(id) {
+    if (!available) return Promise.resolve(null);
+    return call('POST', '/api/claim-grant', { id: id || '' })
+      .catch(function () { return null; });
   }
 
   // ------------------------------------------------------------------ accounts
@@ -346,6 +360,7 @@ window.DSCLOUD = (function () {
     reports: reports,
     decide: decide,
     claim: claim,
+    claimGrant: claimGrant,
     leaderboard: leaderboard,
     subscription: subscription,
     subscribe: subscribe,

@@ -235,6 +235,9 @@
     // the name on the leaderboard is opt-in
     board: false,
     souls: 0, soulsEarned: 0, soulsLedger: [], cosmetics: [], equipped: {},
+    // the gift of the owner that this browser has already taken: the number
+    // of the gift, so that it is never taken twice
+    grantTaken: '',
     // the things that came out of the cases: id of the thing, how many of it
     collection: {},
     gate: null,
@@ -1619,9 +1622,32 @@
       var changed = false;
       try { changed = mergeCloudState(st); }
       catch (e) { changed = false; }
+      if (takeGrant(st)) changed = true;
       if (changed) { renderProfile(); renderAll(); }
       return changed;
     });
+  }
+
+  /* The gift of the owner: a number of souls that waits on the server until
+     the browser takes it. It is taken once — the number of the gift is
+     written down here, and the server is told afterwards. A browser that
+     dies in between finds the same gift waiting and takes it again, so the
+     souls are never lost and never counted twice. */
+  function takeGrant(st) {
+    var g = st && st.grant;
+    if (!g || !g.amount || g.amount <= 0) return false;
+    var id = g.id || '';
+    if (S.grantTaken === id) {
+      /* it was taken already on this device: the server only has to forget it */
+      DSCLOUD.claimGrant(id);
+      return false;
+    }
+    awardSouls(g.amount, 'a gift from the shop');
+    S.grantTaken = id;
+    save();
+    DSCLOUD.claimGrant(id);
+    toast('+' + g.amount + ' souls — a gift from the shop');
+    return true;
   }
 
 
@@ -2026,7 +2052,7 @@
   // ------------------------------------------------------------- support
   /* Everything a tester might want to tell us, in one block they can copy.
      This is the only place that knows where feedback goes. */
-  var APP_VERSION = '0.36.0';
+  var APP_VERSION = '0.37.0';
   var BUILD_DATE = '2026-11-17';
   // Where "report a problem" goes. Two options, both need no server:
   //   ISSUES_URL  a GitHub issue with the diagnostics already filled in
@@ -4047,16 +4073,35 @@
     return DSC.decorateStat(raw);
   }
 
-  /* The owl of the background does something different every time: she flies
-     across, beats her wings, sits and looks about, fills with air and bursts
-     or walks away. A player who waits for the answer watches her instead of
-     an empty screen. */
+  /* The owls of the background do something different every time. The big
+     one in the corner flies across, beats her wings, sits and looks about,
+     fills with air and bursts or walks away; the four small ones along the
+     edges keep moving all the time. A player who waits for the answer
+     watches them instead of an empty screen. */
   var OWL_MOODS = ['owl-fly', 'owl-flap', 'owl-sit', 'owl-pop', 'owl-walk'];
+  var OWL_SMALL = ['p2', 'p3', 'p4', 'p5'];
+
+  /* The flock is made once, out of the big owl: the four small ones are
+     copies of her, each in her own corner and in her own way of moving. */
+  function setupOwls() {
+    var hero = $('#think-owl');
+    var flock = $('#think-flock');
+    if (!hero || !flock || flock.children.length) return;
+    for (var i = 0; i < OWL_SMALL.length; i++) {
+      var c = hero.cloneNode(true);
+      c.removeAttribute('id');
+      c.className = 'think-owl ' + OWL_SMALL[i];
+      c.style.animationDelay = (i * 0.9).toFixed(2) + 's';
+      flock.appendChild(c);
+    }
+  }
+
   function owlMood() {
     var box = $('#think-owl');
     if (!box) return;
+    setupOwls();
     var mood = OWL_MOODS[Math.floor(Math.random() * OWL_MOODS.length)];
-    box.className = 'think-owl';
+    box.className = 'think-owl hero';
     // a small pause before she starts, so that two questions in a row do not
     // look like the same bird twice
     box.style.animationDelay = (0.2 + Math.random() * 0.8).toFixed(2) + 's';
@@ -5635,38 +5680,88 @@
         names.appendChild(el('div', 'case-tag', c.tagline));
         head.appendChild(names);
         card.appendChild(head);
-        /* the collection of this case: every slot shows what it is, and the
-           ones that are still empty stay dark */
-        var slots = el('div', 'case-slots');
-        (c.items || []).forEach(function (it) {
-          var rar = caseRarity(it.rarity);
-          var have = !!col[it.id];
-          var slot = el('div', 'case-slot' + (have ? ' have' : '') +
-            (it.rarity === 'contraband' ? ' top' : ''));
-          slot.style.setProperty('--rar', rar ? rar.color : '#888');
-          var pic2 = document.createElement('img');
-          pic2.src = itemArt(it);
-          pic2.alt = '';
-          pic2.loading = 'lazy';
-          slot.appendChild(pic2);
-          slot.title = (have ? it.name : '???') + ' · ' + (rar ? rar.name : '');
-          slots.appendChild(slot);
-        });
-        card.appendChild(slots);
+        /* The list of the vault shows the cases, not the things inside them:
+           twelve slots of grey on every case is a wall of nothing. The
+           collection of a case is opened by the player who wants to see it. */
         var foot = el('div', 'case-foot');
         var found = (c.items || []).filter(function (it) { return !!col[it.id]; }).length;
         foot.appendChild(el('div', 'case-found', found + ' / ' + (c.items || []).length + ' found'));
+        var look = el('button', 'btn btn-ghost btn-sm case-collect', 'COLLECTION');
+        look.type = 'button';
+        look.addEventListener('click', function () { openCaseDetail(c.id); });
+        foot.appendChild(look);
         var btn = el('button', 'btn btn-green btn-sm case-open', 'OPEN · ' + c.cost);
         btn.type = 'button';
         if (souls() < c.cost) btn.setAttribute('disabled', 'disabled');
         btn.addEventListener('click', function () { openCase(c.id); });
         foot.appendChild(btn);
         card.appendChild(foot);
+        /* the whole card opens the collection too */
+        var headBtn = el('button', 'case-head case-head-btn');
+        headBtn.type = 'button';
+        headBtn.setAttribute('aria-label', 'The collection of the ' + c.name + ' case');
+        while (head.firstChild) headBtn.appendChild(head.firstChild);
+        card.replaceChild(headBtn, head);
         box.appendChild(card);
       });
     }
     setText('#vault-souls', souls());
     renderCosmetics();
+  }
+
+  /* The collection of a case: everything that can come out of it. The owner
+     asked for it — the vault shows the cases, and the player who wants to
+     see what is inside opens the collection of the case he wants. */
+  function openCaseDetail(id) {
+    var c = caseById(id);
+    if (!c) return;
+    var m = $('#case-detail-modal');
+    if (!m) return;
+    var col = collection();
+    var pic = $('#case-detail-pic');
+    if (pic) { pic.src = 'assets/heroes/' + c.hero + '.png'; pic.alt = c.name; }
+    setText('#case-detail-title', c.name + ' collection');
+    var found = (c.items || []).filter(function (it) { return !!col[it.id]; }).length;
+    setText('#case-detail-meta', found + ' / ' + (c.items || []).length + ' found');
+    setText('#case-detail-lead', c.tagline + ' Every case costs ' + c.cost +
+      ' souls, and what comes out of it goes into this collection for good.');
+    var box = $('#case-items');
+    if (box) {
+      box.innerHTML = '';
+      (c.items || []).forEach(function (it) {
+        var rar = caseRarity(it.rarity) || { name: 'Common', color: '#9FB0B8' };
+        var have = !!col[it.id];
+        /* the name is not the one of the opened case: that one is the thing
+           that stands in the light of its rarity */
+        var row = el('div', 'col-item' + (have ? '' : ' missing'));
+        row.style.setProperty('--rar', rar.color);
+        var img = document.createElement('img');
+        img.className = 'ci-img';
+        img.src = itemArt(it);
+        img.alt = '';
+        img.loading = 'lazy';
+        row.appendChild(img);
+        var text = el('div', 'ci-text');
+        text.appendChild(el('div', 'ci-name', it.name));
+        text.appendChild(el('div', 'ci-rar', rar.name));
+        if (it.desc) text.appendChild(el('div', 'ci-desc', it.desc));
+        row.appendChild(text);
+        if (have) text.appendChild(el('div', 'ci-have', 'IN YOUR COLLECTION'));
+        box.appendChild(row);
+      });
+    }
+    var open = $('#case-detail-open');
+    if (open) {
+      open.textContent = 'OPEN · ' + c.cost;
+      open.disabled = souls() < c.cost;
+      open.setAttribute('data-case', c.id);
+    }
+    m.classList.add('on');
+  }
+
+  function closeCaseDetail() {
+    var m = $('#case-detail-modal');
+    if (m) m.classList.remove('on');
   }
 
   /* the opening: the case is shaken, it is torn open, and the thing inside
@@ -6616,6 +6711,10 @@
        that it is used from the moment it starts */
     startDaily: startDaily,
     startDailyNow: startDailyNow,
+    /* the gift of the owner and the reading of the account — the harness
+       has to be able to drive them */
+    pullCloud: pullCloud,
+    takeGrant: takeGrant,
     pauseLesson: pauseLesson,
     show: show,
     openItem: openItem,
@@ -6739,6 +6838,14 @@
     $('#vault-profile').addEventListener('click', function () { openProfile(); });
     var caseOk = $('#case-ok');
     if (caseOk) caseOk.addEventListener('click', function () { closeCase(); });
+    var caseDetailClose = $('#case-detail-close');
+    if (caseDetailClose) caseDetailClose.addEventListener('click', closeCaseDetail);
+    var caseDetailOpen = $('#case-detail-open');
+    if (caseDetailOpen) caseDetailOpen.addEventListener('click', function () {
+      var id = caseDetailOpen.getAttribute('data-case');
+      closeCaseDetail();
+      if (id) openCase(id);
+    });
     $('#sub-back').addEventListener('click', function () { setActiveTab('path'); show('path'); });
     $('#friends-profile').addEventListener('click', function () { openProfile(); });
     $('#sub-profile').addEventListener('click', function () { openProfile(); });

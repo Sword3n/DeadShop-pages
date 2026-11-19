@@ -12,6 +12,9 @@
  * The art of an item is either the portrait of the hero or the icon of a
  * stat of the game — so every case is drawn with what the game files gave
  * us, and nothing has to be drawn by hand.
+ *
+ * Every case costs the same: the owner asked for it, and it is fair — the
+ * difference between the cases is the collection, not the price.
  */
 window.DSCASES = {
   rarities: [
@@ -24,7 +27,7 @@ window.DSCASES = {
   ],
   cases: [
     {
-      id: 'shiv', name: 'Shiv', hero: 'shiv', slot: 'Spirit', cost: 40,
+      id: 'shiv', name: 'Shiv', hero: 'shiv', slot: 'Spirit', cost: 50,
       tagline: 'The poison of the lane. He cuts first and bleeds you after.',
       items: [
         { id: 'shiv-01', name: 'Rusty Shiv', rarity: 'common', art: 'stat', icon: 'melee-damage', desc: 'A blade that has seen more walls than flesh.' },
@@ -38,7 +41,7 @@ window.DSCASES = {
         { id: 'shiv-09', name: 'Deadly Rhythm', rarity: 'legendary', art: 'stat', icon: 'tech-duration', desc: 'The beat of the blades, over and over.' },
         { id: 'shiv-10', name: 'Toxic Cloud', rarity: 'legendary', art: 'stat', icon: 'spirit-damage', desc: 'The air itself is on his side.' },
         { id: 'shiv-11', name: 'Killer Mark', rarity: 'contraband', art: 'stat', icon: 'bullet-lifesteal', desc: 'Written on the ones he has already killed.' },
-        { id: 'shiv-12', name: 'Shiv himself', rarity: 'contraband', art: 'hero', desc: 'The hero of the lane. The rarest thing in his case.' }
+        { id: 'shiv-12', name: 'Shiv himself', rarity: 'contraband', art: 'hero', hero: 'shiv', desc: 'The hero of the lane. The rarest thing in his case.' }
       ]
     },
     {
@@ -56,11 +59,11 @@ window.DSCASES = {
         { id: 'vindicta-09', name: 'Assassinate', rarity: 'legendary', art: 'stat', icon: 'damage', desc: 'One strike, one answer.' },
         { id: 'vindicta-10', name: 'Death Mark', rarity: 'legendary', art: 'stat', icon: 'crit-reduction', desc: 'The seal of the pit on the foreheads of the doomed.' },
         { id: 'vindicta-11', name: 'Crimson Contract', rarity: 'contraband', art: 'stat', icon: 'spirit-lifesteal', desc: 'Signed in blood, paid in souls.' },
-        { id: 'vindicta-12', name: 'Vindicta herself', rarity: 'contraband', art: 'hero', desc: 'The hero of the shadows. The rarest thing in her case.' }
+        { id: 'vindicta-12', name: 'Vindicta herself', rarity: 'contraband', art: 'hero', hero: 'vindicta', desc: 'The hero of the shadows. The rarest thing in her case.' }
       ]
     },
     {
-      id: 'viscous', name: 'Viscous', hero: 'viscous', slot: 'Spirit', cost: 60,
+      id: 'viscous', name: 'Viscous', hero: 'viscous', slot: 'Spirit', cost: 50,
       tagline: 'The slime that thinks. He walls the lane and waits for you.',
       items: [
         { id: 'viscous-01', name: 'Goo Sample', rarity: 'common', art: 'stat', icon: 'spirit-damage', desc: 'A drop of him, in a jar.' },
@@ -74,11 +77,11 @@ window.DSCASES = {
         { id: 'viscous-09', name: 'Viscous Ball', rarity: 'legendary', art: 'stat', icon: 'cooldown', desc: 'A ball of him, rolling down the lane.' },
         { id: 'viscous-10', name: 'Rejuvenating Aurora', rarity: 'legendary', art: 'stat', icon: 'healing', desc: 'The green light of the pit, over the team.' },
         { id: 'viscous-11', name: 'Living Wall', rarity: 'contraband', art: 'stat', icon: 'status-unstoppable', desc: 'He does not move. He does not have to.' },
-        { id: 'viscous-12', name: 'Viscous himself', rarity: 'contraband', art: 'hero', desc: 'The hero of the slime. The rarest thing in his case.' }
+        { id: 'viscous-12', name: 'Viscous himself', rarity: 'contraband', art: 'hero', hero: 'viscous', desc: 'The hero of the slime. The rarest thing in his case.' }
       ]
     },
     {
-      id: 'abrams', name: 'Abrams', hero: 'abrams', slot: 'Vitality', cost: 70,
+      id: 'abrams', name: 'Abrams', hero: 'abrams', slot: 'Vitality', cost: 50,
       tagline: 'The wall of the lane. He does not dodge, and he does not move.',
       items: [
         { id: 'abrams-01', name: 'Rusty Plate', rarity: 'common', art: 'stat', icon: 'health', desc: 'Bent, but it held once.' },
@@ -92,11 +95,11 @@ window.DSCASES = {
         { id: 'abrams-09', name: 'Seismic Impact', rarity: 'legendary', art: 'stat', icon: 'damage-heart', desc: 'The ground gives in first.' },
         { id: 'abrams-10', name: 'Iron Will', rarity: 'legendary', art: 'stat', icon: 'spirit-armor', desc: 'The shot that does not get through.' },
         { id: 'abrams-11', name: 'Heavy Melee', rarity: 'contraband', art: 'stat', icon: 'clip-size', desc: 'The whole magazine of the fist.' },
-        { id: 'abrams-12', name: 'Abrams himself', rarity: 'contraband', art: 'hero', desc: 'The hero of the wall. The rarest thing in his case.' }
+        { id: 'abrams-12', name: 'Abrams himself', rarity: 'contraband', art: 'hero', hero: 'abrams', desc: 'The hero of the wall. The rarest thing in his case.' }
       ]
     },
     {
-      id: 'dynamo', name: 'Dynamo', hero: 'dynamo', slot: 'Spirit', cost: 80,
+      id: 'dynamo', name: 'Dynamo', hero: 'dynamo', slot: 'Spirit', cost: 50,
       tagline: 'The coil of the lane. He pulls the fight into himself.',
       items: [
         { id: 'dynamo-01', name: 'Spark Plug', rarity: 'common', art: 'stat', icon: 'tech-duration', desc: 'Old, and it still fires.' },
@@ -110,7 +113,7 @@ window.DSCASES = {
         { id: 'dynamo-09', name: 'Singularity', rarity: 'legendary', art: 'stat', icon: 'max-charges', desc: 'Everything goes into the coil.' },
         { id: 'dynamo-10', name: 'Magnet', rarity: 'legendary', art: 'stat', icon: 'springy-boots', desc: 'The boots that cannot stand still.' },
         { id: 'dynamo-11', name: 'Overcharged', rarity: 'contraband', art: 'stat', icon: 'spirit-damage', desc: 'The coil past what it was built for.' },
-        { id: 'dynamo-12', name: 'Dynamo himself', rarity: 'contraband', art: 'hero', desc: 'The hero of the coil. The rarest thing in his case.' }
+        { id: 'dynamo-12', name: 'Dynamo himself', rarity: 'contraband', art: 'hero', hero: 'dynamo', desc: 'The hero of the coil. The rarest thing in his case.' }
       ]
     }
   ]

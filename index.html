@@ -8,7 +8,7 @@
 <!-- the build of the page itself. The script reads it and compares it with
      its own version: a page from an older build next to a newer script is
      a site that throws, so the two are put back together. -->
-<meta name="ds-version" content="0.36.0">
+<meta name="ds-version" content="0.37.0">
 <!-- a private test build: it stays out of the search engines, the link is
      the only way in. Remove this line when the site goes public on purpose. -->
 <meta name="robots" content="noindex, nofollow">
@@ -623,6 +623,25 @@
     </div>
   </section>
 
+  <!-- the collection of a case: everything that can come out of it -->
+  <div class="modal" id="case-detail-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="case-detail-title">
+    <div class="modal-card case-detail-card">
+      <div class="case-detail-head">
+        <div class="case-detail-pic"><img id="case-detail-pic" src="assets/heroes/shiv.png" alt=""></div>
+        <div class="case-detail-t">
+          <div class="modal-title" id="case-detail-title">The collection</div>
+          <div class="modal-meta" id="case-detail-meta">0 / 12 found</div>
+        </div>
+      </div>
+      <p class="vault-lead" id="case-detail-lead"></p>
+      <div class="case-items" id="case-items"></div>
+      <div class="limit-actions">
+        <button class="btn btn-green btn-block" id="case-detail-open">OPEN · 50</button>
+        <button class="btn btn-ghost btn-block btn-plain" id="case-detail-close">CLOSE</button>
+      </div>
+    </div>
+  </div>
+
   <!-- the opening of a case: the case shakes, the light comes out of it and
        the item stands there with its rarity -->
   <div class="modal" id="case-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="case-modal-title">
@@ -698,47 +717,54 @@
       <div class="lesson-count" id="lesson-count">1/1</div>
     </header>
 
-    <!-- the owl that thinks with the player: it waits in the background of
-         every question and does something different every time -->
+    <!-- the owls that think with the player: a small flock in the
+         background of every question. The big one does something different
+         every time, the four small ones keep moving all the time. -->
     <div class="think-bg" id="think-bg" aria-hidden="true">
       <span class="think-glow"></span>
-      <div class="think-owl" id="think-owl">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 230" width="220" height="230" focusable="false">
+      <div class="think-flock" id="think-flock"></div>
+      <div class="think-owl hero" id="think-owl">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 240" width="220" height="240" focusable="false">
           <defs>
-            <linearGradient id="mw-body" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stop-color="#9BE86E"/><stop offset=".55" stop-color="#63BE3E"/><stop offset="1" stop-color="#2E7A16"/>
+            <linearGradient id="ow-body" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#9BE86E"/><stop offset=".55" stop-color="#63BE3E"/><stop offset="1" stop-color="#3E8E2A"/>
             </linearGradient>
-            <linearGradient id="mw-head" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id="ow-head" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0" stop-color="#B6F07C"/><stop offset="1" stop-color="#6FC648"/>
             </linearGradient>
-            <linearGradient id="mw-wing" x1="0" y1="0" x2="1" y2="1">
+            <linearGradient id="ow-wing" x1="0" y1="0" x2="1" y2="1">
               <stop offset="0" stop-color="#7FD156"/><stop offset="1" stop-color="#357F1B"/>
             </linearGradient>
-            <radialGradient id="mw-eye" cx="40%" cy="35%" r="70%">
+            <radialGradient id="ow-eye" cx="40%" cy="35%" r="70%">
               <stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#DCE7DE"/>
             </radialGradient>
           </defs>
-          <g id="m-feet">
-            <path fill="#F5A524" d="M84 196c-6 0-10 5-10 10 0 6 5 10 12 10h10c4 0 6-3 6-7v-6c0-4-4-7-8-7z"/>
-            <path fill="#F5A524" d="M136 196c-6 0-10 5-10 10 0 6 5 10 12 10h10c4 0 6-3 6-7v-6c0-4-4-7-8-7z"/>
-            <path fill="#3C8F12" d="M96 188h28l6 18H90z"/>
+          <ellipse class="ow-shadow" cx="110" cy="229" rx="50" ry="7" fill="#000" opacity=".25"/>
+          <g class="ow-feet">
+            <path fill="#F5A524" d="M86 202c-7 0-12 6-12 12 0 7 6 12 13 12h12c5 0 8-4 8-9v-7c0-5-5-8-9-8z"/>
+            <path fill="#F5A524" d="M134 202c-7 0-12 6-12 12 0 7 6 12 13 12h12c5 0 8-4 8-9v-7c0-5-5-8-9-8z"/>
+            <path fill="#DC8A10" d="M78 222h18v7H78zM126 222h18v7h-18z"/>
           </g>
-          <g id="m-body">
-            <ellipse cx="110" cy="138" rx="60" ry="70" fill="url(#mw-body)"/>
-            <ellipse cx="110" cy="152" rx="40" ry="50" fill="#DCF3C2" opacity=".92"/>
-            <path fill="#B6E08E" d="M92 150c4 0 7 3 7 6s-3 6-7 6-7-3-7-6 3-6 7-6zM128 150c4 0 7 3 7 6s-3 6-7 6-7-3-7-6 3-6 7-6zM110 168c4 0 7 3 7 6s-3 6-7 6-7-3-7-6 3-6 7-6z"/>
+          <g class="ow-body">
+            <ellipse cx="110" cy="146" rx="62" ry="74" fill="url(#ow-body)" stroke="#2F6B1B" stroke-width="3"/>
+            <ellipse cx="110" cy="158" rx="42" ry="54" fill="#E9F8D6" opacity=".95"/>
+            <path fill="#CDEBA4" d="M92 158c4 0 7 3 7 6s-3 6-7 6-7-3-7-6 3-6 7-6zM128 158c4 0 7 3 7 6s-3 6-7 6-7-3-7-6 3-6 7-6zM110 178c4 0 7 3 7 6s-3 6-7 6-7-3-7-6 3-6 7-6z"/>
           </g>
-          <g id="m-wing-l"><ellipse cx="52" cy="140" rx="19" ry="44" fill="url(#mw-wing)"/></g>
-          <g id="m-wing-r"><ellipse cx="168" cy="140" rx="19" ry="44" fill="url(#mw-wing)"/></g>
-          <g id="m-head">
-            <path fill="#5FBB3C" d="M62 44l14-26 20 20z"/><path fill="#5FBB3C" d="M158 44l-14-26-20 20z"/>
-            <ellipse cx="110" cy="72" rx="58" ry="52" fill="url(#mw-head)"/>
-            <circle cx="88" cy="68" r="23" fill="url(#mw-eye)"/><circle cx="132" cy="68" r="23" fill="url(#mw-eye)"/>
-            <circle cx="90" cy="70" r="11" fill="#1B2A20"/><circle cx="134" cy="70" r="11" fill="#1B2A20"/>
-            <circle cx="85" cy="65" r="4" fill="#FFFFFF" opacity=".9"/><circle cx="129" cy="65" r="4" fill="#FFFFFF" opacity=".9"/>
-            <path stroke="#3C8F12" stroke-width="6" stroke-linecap="round" fill="none" d="M70 40c6-6 16-7 23-3"/>
-            <path stroke="#3C8F12" stroke-width="6" stroke-linecap="round" fill="none" d="M150 40c-6-6-16-7-23-3"/>
-            <path fill="#F5A524" d="M110 84l11 12-11 12-11-12z"/><path fill="#D98C12" d="M110 96l11 0-11 12z"/>
+          <g class="ow-wing-l"><ellipse cx="44" cy="146" rx="22" ry="50" fill="url(#ow-wing)" stroke="#2F6B1B" stroke-width="3"/></g>
+          <g class="ow-wing-r"><ellipse cx="176" cy="146" rx="22" ry="50" fill="url(#ow-wing)" stroke="#2F6B1B" stroke-width="3"/></g>
+          <g class="ow-head">
+            <path fill="#5FBB3C" stroke="#2F6B1B" stroke-width="2" d="M58 46l16-30 22 22z"/>
+            <path fill="#5FBB3C" stroke="#2F6B1B" stroke-width="2" d="M162 46l-16-30-22 22z"/>
+            <ellipse cx="110" cy="74" rx="62" ry="56" fill="url(#ow-head)" stroke="#2F6B1B" stroke-width="3"/>
+            <ellipse cx="76" cy="94" rx="12" ry="7" fill="#F7A9A0" opacity=".45"/>
+            <ellipse cx="144" cy="94" rx="12" ry="7" fill="#F7A9A0" opacity=".45"/>
+            <circle cx="86" cy="70" r="25" fill="url(#ow-eye)"/>
+            <circle cx="134" cy="70" r="25" fill="url(#ow-eye)"/>
+            <circle cx="89" cy="72" r="12" fill="#1B2A20"/>
+            <circle cx="137" cy="72" r="12" fill="#1B2A20"/>
+            <circle cx="84" cy="66" r="4.5" fill="#FFFFFF" opacity=".95"/>
+            <circle cx="132" cy="66" r="4.5" fill="#FFFFFF" opacity=".95"/>
+            <path fill="#F5A524" stroke="#D98C12" stroke-width="1.5" d="M110 86l12 13-12 13-12-13z"/>
           </g>
         </svg>
       </div>
