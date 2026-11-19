@@ -2115,7 +2115,7 @@
   // ------------------------------------------------------------- support
   /* Everything a tester might want to tell us, in one block they can copy.
      This is the only place that knows where feedback goes. */
-  var APP_VERSION = '0.38.4';
+  var APP_VERSION = '0.38.5';
   var BUILD_DATE = '2026-11-17';
   // Where "report a problem" goes. Two options, both need no server:
   //   ISSUES_URL  a GitHub issue with the diagnostics already filled in
@@ -2135,6 +2135,7 @@
     : 'api/shop';
 
   var WHATS_NEW = [
+    ['A lesson is worth sixty souls', 'A finished lesson paid two souls, and the shop asked fifty for a case: the free player could never open one, and the only way to get the souls was to buy the Rejuvenator. A lesson is worth sixty souls now, a flawless one a hundred, the run of the day sixty, and a self-test that went well sixty — a case of the shop is one lesson away. A run that the limit of the day cut short is paid for by the questions that were answered: the work is never thrown away.'],
     ['The shop gives every account three hundred souls', 'There is no server yet — the site lives on GitHub Pages, and the account of a player is the profile of this browser. So the gift of the shop is written into your own profile: 300 souls, once, the next time you open the site. The number of the gift is written down with it, so it is not given twice, and it is not given again on any other day. When the server of the shop is stood up for good, the gift of the server takes the place of this one — nobody gets 600 souls.'],
     ['A partly right answer is not a mistake', 'A card that carries six numbers, three of them right and three of them wrong, was counted as a wrong answer — and in the drill that fixes the mistakes it locked the next lesson for good: the drill asked for a card that the drill itself did not consider a mistake. A partly right answer is neither right nor a mistake now. The mastery of the card stays where it is, the door of the next lesson opens, and the result of the run carries a third number: how many answers were only partly right.'],
     ['The card of the item shows only what the question is about', 'The questions about the tab of the shop, about the price and about the shelf of a card hid the whole card — so the player could not even see which card the question was about. The card shows its name and its picture now and hides only the part the question is about: the tab, the tier, the price. The window of the hint ("somewhere between 29 and 35 m") holds more than one possible value too: a window with a single value in it was the answer itself, not a hint.'],
@@ -4054,7 +4055,10 @@
         right: L.right || 0,
         wrong: L.wrong || 0,
         partial: L.partial || 0,
-        xp: L.xp || 0
+        xp: L.xp || 0,
+        /* a run the day cut short was paid for already: the run that is
+           taken up again does not pay the same questions twice */
+        cutClosed: !!L.cutClosed
       };
       save();
     }
@@ -4082,7 +4086,7 @@
     }
     L = { unit: unit, qs: qs, i: Math.min(p.i || 0, qs.length - 1), right: p.right || 0,
       wrong: p.wrong || 0, partial: p.partial || 0,
-      xp: p.xp || 0, answered: false, sel: null, inputVal: '', fields: [],
+      xp: p.xp || 0, cutClosed: !!p.cutClosed, answered: false, sel: null, inputVal: '', fields: [],
       kind: p.kind || 'lesson',
       drill: p.kind === 'daily-retry',
       track: p.track || trackKey(), runCount: p.runCount || 0 };
@@ -4730,11 +4734,29 @@
        here, in the middle of the lesson — with the clash of the parry and
        not with a form. */
     if (L.i < L.qs.length && limitHit() && !freeRun(L.kind)) {
+      /* The day cut the run short. The questions that were answered are
+         paid for — the work was done, and it is not thrown away — and the
+         run is closed: a lesson that was not finished is not a lesson that
+         is done, so the streak and the door of the next lesson wait. */
+      closeCutRun();
       showLimitScreen();
       return;
     }
     if (L.i >= L.qs.length) finish();
     else renderQ();
+  }
+
+  /* A run that the limit of the day cut short. It pays for the questions
+     that were answered, and it pays only once: a run that is put down and
+     taken up again does not pay the same questions twice. */
+  function closeCutRun() {
+    if (!L || L.cutClosed) return;
+    L.cutClosed = true;
+    var answered = L.runCount || 0;
+    if (answered > 0) {
+      awardSouls(SOUL_RULES.question * answered, 'questions of a run the day cut short');
+    }
+    save();
   }
 
   function finish() {
@@ -5620,10 +5642,17 @@
   // export carries it to another device.
   // ==================================================================
   var SOUL_RULES = {
-    lesson: 2,      // a finished path lesson
-    perfect: 5,     // a lesson without a single mistake
-    daily: 3,       // the daily run
-    exam: 2         // a self-test
+    /* The owner asked for it: a lesson has to be worth at least sixty souls,
+       so that a player who does not buy the Rejuvenator can still open the
+       cases of the shop (fifty souls each) and the colours of the vault.
+       A flawless lesson is worth more, a run that the limit of the day cut
+       short is paid for by the questions that were answered, and nothing
+       that was answered is ever thrown away. */
+    lesson: 60,     // a finished path lesson
+    perfect: 100,   // a lesson without a single mistake
+    daily: 60,      // the daily run
+    exam: 60,       // a self-test that went well
+    question: 4     // a question of a run the day cut short
   };
 
   function souls() { return Math.max(0, Number(S.souls) || 0); }
@@ -6924,6 +6953,7 @@
     takeLocalGift: takeLocalGift,
     shopGift: SHOP_GIFT,
     pauseLesson: pauseLesson,
+    resumeLesson: resumeLesson,
     show: show,
     openItem: openItem,
     /* the tour of the first run — the tests walk it, step by step */
