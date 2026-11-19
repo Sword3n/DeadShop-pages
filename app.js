@@ -237,7 +237,7 @@
     souls: 0, soulsEarned: 0, soulsLedger: [], cosmetics: [], equipped: {},
     // the gift of the owner that this browser has already taken: the number
     // of the gift, so that it is never taken twice
-    grantTaken: '',
+    grantTaken: '', giftTaken: '',
     // the things that came out of the cases: id of the thing, how many of it
     collection: {},
     gate: null,
@@ -1693,6 +1693,26 @@
     return true;
   }
 
+  /* The gift of the shop to every account: 300 souls.
+     The site runs on GitHub Pages and there is no server yet, so the account
+     of a player is the profile of this browser — there is no list of the
+     accounts anywhere. The gift is therefore written into the profile of
+     every player, once: the number of the gift is written down with it, so
+     the next visit does not give it again. A player who has an account on a
+     server takes the gift of the server instead — the two never come at the
+     same time, so nobody gets 600 souls. */
+  var SHOP_GIFT = { id: 'shop-gift-300-2026-11', souls: 300 };
+  function takeLocalGift() {
+    if (S.giftTaken === SHOP_GIFT.id) return false;
+    /* a player who is signed in to a server takes the gift of the server */
+    if (cloud.ready && DSCLOUD.getToken()) return false;
+    awardSouls(SHOP_GIFT.souls, 'a gift from the shop');
+    S.giftTaken = SHOP_GIFT.id;
+    save();
+    toast('+' + SHOP_GIFT.souls + ' souls — a gift from the shop');
+    return true;
+  }
+
 
   // -------------------------------------------------------------- sounds
   /* Deadlock's interface is metal and steam: a bright ping when an answer
@@ -2095,7 +2115,7 @@
   // ------------------------------------------------------------- support
   /* Everything a tester might want to tell us, in one block they can copy.
      This is the only place that knows where feedback goes. */
-  var APP_VERSION = '0.38.1';
+  var APP_VERSION = '0.38.2';
   var BUILD_DATE = '2026-11-17';
   // Where "report a problem" goes. Two options, both need no server:
   //   ISSUES_URL  a GitHub issue with the diagnostics already filled in
@@ -2476,6 +2496,9 @@
     if (name === 'friends') renderFriends();
     if (name === 'vault') renderVault();
     if (name === 'sub') renderSub();
+    /* the flock sits under the head of the lesson: the head moves with the
+       safe area of the phone and with the width of the screen */
+    owlTop();
     var lm = $('#limit-modal');
     if (lm) lm.classList.remove('on');
     syncNavActive(name);
@@ -4181,10 +4204,24 @@
     }
   }
 
+  /* The flock lives under the head of the lesson. The head holds the
+     progress bar, and on a phone with a notch it is pushed down by the safe
+     area — a flock that keeps a fixed distance from the top of the screen
+     ends up sitting on the bar, and the player cannot see the bar of the
+     lesson. The head is measured, and the flock starts under it. */
+  function owlTop() {
+    var flock = $('#think-flock');
+    if (!flock) return;
+    var head = document.querySelector('.lesson-head');
+    var h = head ? Math.round(head.getBoundingClientRect().height) : 0;
+    flock.style.top = h > 0 ? h + 'px' : '';
+  }
+
   function owlMood() {
     var box = $('#think-owl');
     if (!box) return;
     setupOwls();
+    owlTop();
     var mood = OWL_MOODS[Math.floor(Math.random() * OWL_MOODS.length)];
     box.className = 'think-owl hero';
     // a small pause before she starts, so that two questions in a row do not
@@ -6881,6 +6918,8 @@
        has to be able to drive them */
     pullCloud: pullCloud,
     takeGrant: takeGrant,
+    takeLocalGift: takeLocalGift,
+    shopGift: SHOP_GIFT,
     pauseLesson: pauseLesson,
     show: show,
     openItem: openItem,
@@ -7317,12 +7356,16 @@
       });
     }
     window.addEventListener('resize', function () {
+      owlTop();
       if (!tour.on) return;
       clearTimeout(tour.raf);
       tour.raf = setTimeout(function () { tourPlace(TOUR_STEPS[tour.i]); }, 160);
     });
 
     applySettings();
+    /* the gift of the shop to every account: 300 souls, once, into the
+       profile of this browser — there is no server yet to hand it out */
+    takeLocalGift();
     renderAll();
 
     // the counts on screen come from the data file, not from a hand-written
