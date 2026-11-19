@@ -2095,7 +2095,7 @@
   // ------------------------------------------------------------- support
   /* Everything a tester might want to tell us, in one block they can copy.
      This is the only place that knows where feedback goes. */
-  var APP_VERSION = '0.38.0';
+  var APP_VERSION = '0.38.1';
   var BUILD_DATE = '2026-11-17';
   // Where "report a problem" goes. Two options, both need no server:
   //   ISSUES_URL  a GitHub issue with the diagnostics already filled in
@@ -3990,7 +3990,15 @@
     if (!wrap) return;
     var num = $('#r-part');
     if (num) num.textContent = String(n || 0);
-    wrap.style.display = n ? '' : 'none';
+    /* the tile carries the attribute "hidden" in the page, and the style of
+       the page keeps it hidden: the attribute has to go with it, or the
+       number is there and the player does not see it */
+    if (n) {
+      wrap.removeAttribute('hidden');
+      wrap.style.display = '';
+    } else {
+      wrap.style.display = 'none';
+    }
   }
 
   /* Pause a lesson: the place is remembered, so it can be picked up later
