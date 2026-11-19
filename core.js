@@ -15,9 +15,38 @@ window.DSC = (function () {
   /* The unit of a written number: "45m" -> "m", "+8 %" -> "%", "45" -> "".
      The card of the game writes the unit behind the number, and the field
      of the app tells the learner which unit to use — so a "45m" written
-     where a per cent is wanted is a wrong answer, not a right one. */
+     where a per cent is wanted is a wrong answer, not a right one.
+
+     The question, though, asks for the unit in words: "how much Cast Range
+     does it give, in metres?". A learner who writes "32 metres" has
+     answered the question that was asked — and the comparison used to be
+     made letter by letter, so the answer was refused. The words of a unit
+     are therefore folded into the unit of the card before the two are
+     compared. */
+  var UNIT_WORDS = {
+    'percent': '%', 'per cent': '%', 'percentage': '%', 'pct': '%',
+    'metre': 'm', 'metres': 'm', 'meter': 'm', 'meters': 'm',
+    'second': 's', 'seconds': 's', 'sec': 's', 'secs': 's',
+    'metrespersecond': 'm/s', 'meterspersecond': 'm/s', 'ms': 'm/s',
+    'healthpersecond': 'hp/s', 'hp/s': 'hp/s', 'hp': 'hp/s',
+    'damagepersecond': 'dps', 'dps': '%dps', '%dps': '%dps', 'm/s': 'm/s',
+    'ammo': '', 'souls': '', 'health': ''
+  };
   function normUnit(u) {
-    return String(u == null ? '' : u).toLowerCase().replace(/\s+/g, '');
+    var raw = String(u == null ? '' : u).toLowerCase().trim();
+    if (!raw) return '';
+    /* a trailing dot is a full stop, not a part of the unit */
+    raw = raw.replace(/[.\u00b7]+$/, '');
+    var tight = raw.replace(/\s+/g, '');
+    if (UNIT_WORDS[tight] !== undefined) return UNIT_WORDS[tight];
+    /* a unit written in two words: "m / s", "hp / s", "% dps" */
+    var spaced = raw.replace(/\s*\/\s*/g, '/').replace(/\s+/g, '');
+    if (UNIT_WORDS[spaced] !== undefined) return UNIT_WORDS[spaced];
+    /* a unit with words around it: "per cent of your damage per second" */
+    if (spaced.indexOf('dps') >= 0) return '%dps';
+    if (spaced.indexOf('percent') >= 0 && spaced.indexOf('persecond') >= 0) return '%dps';
+    if (spaced.indexOf('%') >= 0 || spaced.indexOf('percent') >= 0) return '%';
+    return tight;
   }
   function unitOf(v) {
     var m = String(v == null ? '' : v).match(/^\s*[+-]?(?:\d+[.,]?\d*|[.,]\d+)\s*(.*)$/);
@@ -44,7 +73,12 @@ window.DSC = (function () {
   function unitFits(input, want) {
     var got = unitOf(input);
     if (!want) return !got;
-    return !got || got === want;
+    if (!got) return true;
+    if (got === want) return true;
+    /* A card that writes "1.9% DPS" asks for a per cent of the damage per
+       second: "1.9%" is what a learner writes, and it is the same answer. */
+    if (want === '%dps' && got === '%') return true;
+    return false;
   }
 
   /* tolerant numeric grading: "0.75m", "+20%", "20" all accepted —

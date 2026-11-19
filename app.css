@@ -365,7 +365,7 @@ textarea.answer-input{min-height:130px;resize:vertical;font-size:15px;font-weigh
 .result-emoji{font-size:52px;line-height:1;animation:pop .4s cubic-bezier(.2,1.6,.4,1)}
 @keyframes pop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
 .result-title{font-size:clamp(21px,1.1vw + 18px,26px);margin:8px 0 18px}
-.result-stats{display:flex;justify-content:center;gap:26px;margin-bottom:18px}
+.result-stats{display:flex;justify-content:center;gap:26px;margin-bottom:18px;flex-wrap:wrap}
 .rs-num{font-size:22px;color:var(--blue-d)}
 .rs-lbl{font-size:11.5px;color:var(--ink-2);font-weight:800;text-transform:uppercase;letter-spacing:.5px}
 .result-items{border-top:2px solid var(--line);padding-top:14px;margin-bottom:18px;text-align:left}
@@ -406,6 +406,7 @@ textarea.answer-input{min-height:130px;resize:vertical;font-size:15px;font-weigh
 
 /* ============================== stats ============================== */
 .stat-cards{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:12px 0 20px}
+.stat-card.wide{grid-column:span 2}
 .stat-card{background:var(--card);border:2px solid var(--line);border-radius:14px;padding:14px;text-align:center;
   box-shadow:var(--shadow)}
 .stat-num{font-size:26px;color:var(--blue-d)}
@@ -772,7 +773,7 @@ body.modal-open .scroll{overflow:hidden}
 .think-owl.hero .ow-shadow{opacity:.25}
 /* the four small ones: they keep moving, each in its own way */
 .think-owl.p2{width:92px;left:4px;bottom:80px;opacity:.62}
-.think-owl.p3{width:76px;right:26%;bottom:74px;opacity:.5}
+.think-owl.p3{width:68px;right:2%;bottom:230px;opacity:.5}
 .think-owl.p4{width:70px;left:8%;top:64px;opacity:.5}
 .think-owl.p5{width:62px;right:10%;top:70px;opacity:.45}
 
@@ -1170,6 +1171,7 @@ picture.urn-timer-pic img{display:block;width:100%;height:100%;object-fit:contai
 :root[data-theme="dark"] #r-souls{color:var(--green-d)}
 .ri-box.good{color:var(--green-d)}
 .ri-box.bad{color:var(--red-d)}
+.ri-box.half{color:var(--amber-d)}
 
 /* ======================= small phones ============================== */
 @media(max-width:400px){
@@ -1266,7 +1268,8 @@ picture.urn-timer-pic img{display:block;width:100%;height:100%;object-fit:contai
 
   /* ---- stats + profile: two columns ---- */
   .cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 34px;align-items:start}
-  .stat-cards{grid-template-columns:repeat(4,1fr);gap:14px}
+  .stat-cards{grid-template-columns:repeat(5,1fr);gap:14px}
+  .stat-card.wide{grid-column:auto}
   .stat-card{padding:20px 14px}
   .stat-num{font-size:32px}
   .mastery-list{padding:6px 14px}

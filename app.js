@@ -208,7 +208,7 @@
   }
 
   var DEFAULTS = {
-    xp: 0, streak: 0, lastDay: null, dailyDay: null, mastery: {}, right: 0, wrong: 0,
+    xp: 0, streak: 0, lastDay: null, dailyDay: null, mastery: {}, right: 0, wrong: 0, partial: 0,
     lessons: 0, unitsDone: {}, unlocked: {}, seen: {}, onboarded: false, tourStep: 0, paused: null,
     display: '', avatar: '', todayCount: 0, todayDay: null, history: {},
     // the questions of the day that count against the limit of the day —
@@ -406,7 +406,7 @@
   }
   function mst(slug, track) {
     var m = trackMap(track || trackKey());
-    if (!m[slug]) m[slug] = { box: 0, right: 0, wrong: 0 };
+    if (!m[slug]) m[slug] = { box: 0, right: 0, wrong: 0, partial: 0 };
     return m[slug];
   }
   function boxOf(slug, track) {
@@ -636,7 +636,11 @@
       if (!ad) { box.style.display = 'none'; return; }
       box.style.display = '';
       var link = el('a', 'ad-banner');
-      link.href = ad.url || '#';
+      /* a banner may only lead to http(s): a "javascript:" address is a
+         script on our own page, and the token of the account of the player
+         who clicks it sits in this very page */
+      var adUrl = String(ad.url || '');
+      link.href = /^(https?:)?\/\//i.test(adUrl) ? adUrl : '#';
       link.target = '_blank';
       link.rel = 'noopener sponsored nofollow';
       if (ad.image) {
@@ -1074,6 +1078,45 @@
       ownerLoadQueue();
     });
     acts.appendChild(open);
+    /* The gift of the owner: souls to every account at once. It waits on
+       the server and every browser takes it once, the next time it reads
+       the account — so the owner does not have to touch the database. */
+    var giftRow = el('div', 'set-row set-row-col');
+    var giftLabel = el('label', 'set-label', 'Give souls to every account');
+    giftLabel.setAttribute('for', 'owner-gift');
+    giftRow.appendChild(giftLabel);
+    var giftInput = el('input', 'set-input');
+    giftInput.type = 'number';
+    giftInput.id = 'owner-gift';
+    giftInput.min = '1';
+    giftInput.max = '100000';
+    giftInput.value = '300';
+    giftRow.appendChild(giftInput);
+    giftRow.appendChild(el('div', 'footnote',
+      'Every account of the server is given this many souls. The gift waits ' +
+      'on the server and every player takes it once, the next time the ' +
+      'player signs in.'));
+    var giftActs = el('div', 'set-actions');
+    var giftBtn = el('button', 'btn btn-green btn-sm', 'GIVE TO EVERY ACCOUNT');
+    giftBtn.type = 'button';
+    giftBtn.id = 'owner-gift-btn';
+    giftBtn.addEventListener('click', function () {
+      var n = Math.max(1, Math.min(100000, parseInt(giftInput.value, 10) || 0));
+      giftBtn.disabled = true;
+      DSCLOUD.grantSoulsAll(cloud.ownerKey, n).then(function (r) {
+        giftBtn.disabled = false;
+        if (r && r.ok) {
+          toast(n + ' souls given to ' + r.accounts + ' account' +
+            (r.accounts === 1 ? '' : 's'));
+        } else {
+          toast('The server did not take it — is the key the right one?');
+        }
+      });
+    });
+    giftActs.appendChild(giftBtn);
+    giftRow.appendChild(giftActs);
+    box.appendChild(giftRow);
+
     var forget = el('button', 'btn btn-ghost btn-sm btn-plain', 'FORGET THE KEY');
     forget.type = 'button';
     forget.addEventListener('click', function () {
@@ -2052,7 +2095,7 @@
   // ------------------------------------------------------------- support
   /* Everything a tester might want to tell us, in one block they can copy.
      This is the only place that knows where feedback goes. */
-  var APP_VERSION = '0.37.0';
+  var APP_VERSION = '0.38.0';
   var BUILD_DATE = '2026-11-17';
   // Where "report a problem" goes. Two options, both need no server:
   //   ISSUES_URL  a GitHub issue with the diagnostics already filled in
@@ -2316,7 +2359,8 @@
         (meta.units || '?') + ' lessons · ' + (meta.questions || '?') + ' questions',
       'device: ' + browser + ' on ' + os + ' · screen ' + window.innerWidth + '×' + window.innerHeight,
       'profile: ' + (profileName() || 'guest') + ' · ' + S.xp + ' XP · ' + S.streak + ' day streak · ' +
-        S.right + ' right / ' + S.wrong + ' wrong · ' + S.lessons + ' lessons',
+        S.right + ' right / ' + S.wrong + ' wrong / ' + (S.partial || 0) +
+          ' partly · ' + S.lessons + ' lessons',
       'mastery: ' + learned + ' learned · ' + weak + ' still weak',
       'audio: ' + (!S.settings.sound ? 'off' : (AC ? AC.state : 'not started')) +
         ' · channel ' + ((navigator.audioSession && navigator.audioSession.type) || 'n/a'),
@@ -3477,14 +3521,18 @@
        from the path, so the numbers of the answers have to come from it too
        — the totals of every path together stood next to the lists of one
        path. */
-    var pathRight = 0, pathWrong = 0;
+    var pathRight = 0, pathWrong = 0, pathPartly = 0;
     touched.forEach(function (s) {
       var m = myMap[s] || {};
       pathRight += Number(m.right) || 0;
       pathWrong += Number(m.wrong) || 0;
+      pathPartly += Number(m.partial) || 0;
     });
     setText('#s-correct', pathRight);
     setText('#s-wrong', pathWrong);
+    /* the third number: the answers that were partly right. They are not
+       mistakes and not correct answers — they are counted on their own. */
+    setText('#s-partly', pathPartly);
     setText('#s-streak', S.streak);
 
     // weak items — the ones worth another look
@@ -3564,7 +3612,7 @@
        emptied of everything it had to ask is worse. */
     if (keep.length < 2) keep = qs;
 
-    L = { unit: unit, qs: keep, i: 0, right: 0, wrong: 0, xp: 0, answered: false, sel: null, inputVal: '', kind: 'lesson',
+    L = { unit: unit, qs: keep, i: 0, right: 0, wrong: 0, partial: 0, xp: 0, answered: false, sel: null, inputVal: '', kind: 'lesson',
       track: trackKey() };
     show('lesson');
     $('#feedback').classList.remove('on');
@@ -3809,7 +3857,7 @@
     L = {
       unit: { id: 'exam', title: 'Test yourself', subtitle: '10 questions from the whole shop',
         items: Object.keys(used), icon: '', questions: picked },
-      qs: picked, i: 0, right: 0, wrong: 0, xp: 0, answered: false, sel: null, inputVal: '',
+      qs: picked, i: 0, right: 0, wrong: 0, partial: 0, xp: 0, answered: false, sel: null, inputVal: '',
       kind: 'exam', exam: true, startedAt: Date.now(), wrongItems: []
     };
     show('lesson');
@@ -3886,7 +3934,7 @@
     L = {
       unit: { id: title.toLowerCase().replace(/\s+/g, '-'), title: title, subtitle: subtitle,
         items: Object.keys(picked.reduce(function (a, q) { a[q.item] = 1; return a; }, {})), icon: '', questions: picked },
-      qs: picked, i: 0, right: 0, wrong: 0, xp: 0, answered: false, sel: null, inputVal: '',
+      qs: picked, i: 0, right: 0, wrong: 0, partial: 0, xp: 0, answered: false, sel: null, inputVal: '',
       kind: kind || 'mixed',
       track: trackKey(),
       startedAt: Date.now(),
@@ -3929,7 +3977,20 @@
       return;
     }
     box.hidden = false;
-    box.textContent = L.right + ' ✓';
+    box.textContent = L.right + ' ✓' + (L.partial ? ' · ' + L.partial + ' ~' : '') +
+      (L.wrong ? ' · ' + L.wrong + ' ✗' : '');
+  }
+
+  /* The third number of a run: how many answers were partly right. The
+     numbers of the result have to add up — right + wrong + partly = the
+     questions of the run — so the partly right ones are counted on their
+     own and shown on their own. */
+  function setPartly(n) {
+    var wrap = $('#rs-part');
+    if (!wrap) return;
+    var num = $('#r-part');
+    if (num) num.textContent = String(n || 0);
+    wrap.style.display = n ? '' : 'none';
   }
 
   /* Pause a lesson: the place is remembered, so it can be picked up later
@@ -3953,7 +4014,13 @@
         track: lessonTrack(),
         qs: L.qs.map(function (q) { return q.id; }),
         i: L.i,
-        runCount: L.runCount || 0
+        runCount: L.runCount || 0,
+        /* the numbers of the run travel with it: a lesson that was put down
+           and taken up again has to end on the numbers it really reached */
+        right: L.right || 0,
+        wrong: L.wrong || 0,
+        partial: L.partial || 0,
+        xp: L.xp || 0
       };
       save();
     }
@@ -3979,8 +4046,9 @@
       unit = { id: p.unit || 'daily-run', title: p.title || 'Daily Shop Run',
         subtitle: p.subtitle || '', items: [], icon: '', questions: qs };
     }
-    L = { unit: unit, qs: qs, i: Math.min(p.i || 0, qs.length - 1), right: 0, wrong: 0,
-      xp: 0, answered: false, sel: null, inputVal: '', fields: [],
+    L = { unit: unit, qs: qs, i: Math.min(p.i || 0, qs.length - 1), right: p.right || 0,
+      wrong: p.wrong || 0, partial: p.partial || 0,
+      xp: p.xp || 0, answered: false, sel: null, inputVal: '', fields: [],
       kind: p.kind || 'lesson',
       drill: p.kind === 'daily-retry',
       track: p.track || trackKey(), runCount: p.runCount || 0 };
@@ -4036,23 +4104,32 @@
     return kind + branch + (range ? ' It is <b>' + range + '</b>.' : '');
   }
 
-  /* A window around the answer that never touches it. */
+  /* A window around the answer that never touches it, and that holds more
+     than one possible value: a window with two of them is a coin toss, and a
+     window with one of them is the answer itself. The same window the
+     generator builds in tools/curriculum.py. */
   function rangeHint(v) {
-    var m = String(v == null ? '' : v).match(/([+-]?)(\d+(?:\.\d+)?)\s*(%|m\/s|m|s)?/);
+    var m = String(v == null ? '' : v).match(/([+-]?)(\d+(?:\.\d+)?)\s*(%|m\/s|m|s|hp\/s)?/);
     if (!m) return '';
     var n = parseFloat(m[2]);
     if (isNaN(n)) return '';
     var unit = m[3] || '';
-    var lo, hi;
-    if (n >= 100) { lo = Math.round(n / 50) * 50 - 50; hi = lo + 100; }
-    else if (n >= 10) { lo = Math.floor(n / 5) * 5 - 5; hi = lo + 10; }
-    else if (n >= 1) { lo = Math.floor(n) - 1; hi = lo + 3; }
-    else { lo = Math.max(0, Math.floor(n * 4) / 4 - 0.25); hi = lo + 0.5; }
-    if (lo < 0) lo = 0;
-    // the answer may never be the edge of the window
-    if (lo === n) lo = n - 1;
-    if (hi === n) hi = n + 1;
-    if (lo < 0) lo = 0;
+    var dec = (m[2].split('.')[1] || '').length;
+    var step = dec >= 2 ? 0.5 : (dec === 1 ? 0.1 : 1);
+    var neg = m[1] === '-';
+    var s = neg ? -n : n;
+    var k = Math.round(s / step);
+    var cands = [];
+    for (var d = -3; d <= 3; d++) cands.push((k + d) * step);
+    if (neg) {
+      cands = cands.filter(function (c) { return c <= 0; });
+      while (cands.length < 6) cands.unshift(cands[0] - step);
+    } else if (s > 0) {
+      cands = cands.filter(function (c) { return c >= 0; });
+      while (cands.length < 6) cands.push(cands[cands.length - 1] + step);
+    }
+    if (cands.length < 2) return '';
+    var lo = cands[0], hi = cands[cands.length - 1];
     if (hi <= lo) return '';
     var f = function (x) { return String(Math.round(x * 100) / 100); };
     return 'somewhere between ' + f(lo) + ' and ' + f(hi) + (unit ? ' ' + unit : '');
@@ -4146,18 +4223,35 @@
     function optionIsTheItem(opt) {
       var t = String(opt === undefined || opt === null ? '' : opt).toLowerCase()
         .replace(/\s*\(tier\s*\d+\)\s*$/, '').trim();
-      return t === itemName;
+      if (t === itemName) return true;
+      // "Bullet Lifesteal|+15%" is the card itself with its number on it
+      var bare = t.split('|')[0].trim();
+      return bare === itemName;
     }
+    /* What the head may not show. The data says it, per question: a question
+       about the tab of the card may not show the tab, a question about the
+       price may not show the price, and a question about the shelf may not
+       show the tab, the tier or the price — the price of a card follows the
+       tier. What is left, stays: a learner who cannot see which card the
+       question is about cannot answer it at all. */
+    var hideParts = (q.headHide || []).slice();
     var leaks = q.hideHead === true || !!(q.options && q.options.some(optionIsTheItem));
     if (!leaks) {
+      var showSlot = hideParts.indexOf('slot') < 0;
+      var showTier = hideParts.indexOf('tier') < 0;
+      var showCost = hideParts.indexOf('cost') < 0;
       // The head only names the subject. It is deliberately not a link:
       // opening the full card would show every stat and hand over the answer.
-      var head = el('div', 'item-head ic-slot-' + slotClass(item.slot));
+      var head = el('div', 'item-head' + (showSlot ? ' ic-slot-' + slotClass(item.slot) : ''));
       var img = iconEl(item.slug, item.name);
       head.appendChild(img);
       var hb = el('div');
       hb.appendChild(el('div', 'ih-name', item.name));
-      hb.appendChild(el('div', 'ih-meta', item.slot + ' · Tier ' + item.tier + ' · ' + item.cost.toLocaleString() + ' souls'));
+      var meta = [];
+      if (showSlot) meta.push(item.slot);
+      if (showTier) meta.push('Tier ' + item.tier);
+      if (showCost) meta.push(item.cost.toLocaleString() + ' souls');
+      if (meta.length) hb.appendChild(el('div', 'ih-meta', meta.join(' · ')));
       head.appendChild(hb);
       card.appendChild(head);
     }
@@ -4257,12 +4351,19 @@
         hbtn.type = 'button';
         var hbox = el('div', 'hint-text');
         hbox.innerHTML = htext;
+        /* The hint is in the page from the start, and a screen reader reads
+           the page — so the hint was read out before the button was
+           pressed, and the answer that was paid for in full was the one
+           the hint had given away. It stays out of the way of the reader
+           until the player asks for it. */
+        hbox.setAttribute('aria-hidden', 'true');
         hbtn.addEventListener('click', function () {
           if (L.hinted) return;
           L.hinted = true;
           hbtn.classList.add('used');
           hbtn.textContent = 'Hint used';
           hbox.classList.add('on');
+          hbox.setAttribute('aria-hidden', 'false');
           buzz(20);
         });
         card.appendChild(hbtn);
@@ -4384,9 +4485,16 @@
 
     L.answered = true;
     renderRunScore();
+    /* One rule for every path: a partly right answer is NOT right and NOT a
+       mistake. It does not count as right (the accuracy is honest), it does
+       not count as wrong either: the mastery of the card stays where it is,
+       the card does not go into the list of the mistakes, and the door of the
+       next lesson opens. The number of them is counted on its own, so the
+       numbers of the result add up: right + wrong + partly = the questions. */
     if (L.exam) {
       // an exam only measures — it never touches mastery, XP or the streak
       if (ok) L.right++;
+      else if (partial > 0) L.partial++;
       else {
         L.wrong++;
         if (!L.wrongItems) L.wrongItems = [];
@@ -4408,6 +4516,17 @@
         L.right++; S.right++; dm.right++;
         dm.box = Math.min(5, dm.box + 1);
         sfxOk();
+      } else if (partial > 0) {
+        /* Partly right: the answer is not right, so it is not counted as
+           right — but it is not a mistake either: the mastery of the card
+           stays where it is and the card is not a mistake to fix, so the
+           door of the next lesson opens. It used to be counted as wrong,
+           and the door stayed shut for ever: the drill asked for a card
+           that the drill itself did not consider a mistake. */
+        L.partial++; S.partial++;
+        dm.partial = (dm.partial || 0) + 1;
+        if (!L.partialItems) L.partialItems = [];
+        if (L.partialItems.indexOf(q.item) < 0) L.partialItems.push(q.item);
       } else {
         L.wrong++; S.wrong++; dm.wrong++;
         dm.box = Math.max(0, dm.box - 1);
@@ -4452,11 +4571,26 @@
     L.xpNow = gain;
     if (ok) { L.right++; S.right++; m.right++; m.box = Math.min(5, m.box + 1); L.xp += gain; S.xp += gain; sfxOk(); floatXP($('#check-btn'), '+' + gain); }
     else if (partial > 0) {
-      // partly right — keep the mastery where it is and pay for what was right
-      L.xp += partial; S.xp += partial;
-      L.right += 0; S.right += 0;
-      L.xpNow = partial;
-      floatXP($('#check-btn'), '+' + partial);
+      /* Partly right: the answer is not right, so it does not count as
+         right — and it is not a mistake either, so it does not count as
+         wrong: the mastery of the card stays where it is (the player knows
+         most of it, and the box must not punish what was answered right),
+         the card does not go into the list of the mistakes, and the number
+         of partly right answers is counted on its own.
+
+         The pay is what a right answer pays, in proportion to the rows that
+         were right. It used to be a point for every row, and a card with
+         twelve rows paid twelve points for an answer that was not right —
+         more than a perfect answer pays. */
+      L.partial++; S.partial++;
+      m.partial = (m.partial || 0) + 1;
+      if (!L.partialItems) L.partialItems = [];
+      if (L.partialItems.indexOf(q.item) < 0) L.partialItems.push(q.item);
+      var rows = (L.lastGrade && L.lastGrade.total) || 0;
+      var part = rows ? Math.max(1, Math.round(gain * partial / rows)) : 1;
+      L.xp += part; S.xp += part;
+      L.xpNow = part;
+      floatXP($('#check-btn'), '+' + part);
     }
     else {
       L.wrong++; S.wrong++; m.wrong++; m.box = Math.max(0, m.box - 1); L.xp += 2; S.xp += 2;
@@ -4485,13 +4619,14 @@
     fb.className = 'feedback on ' + (ok ? 'ok' : (partial > 0 ? 'half' : 'no'));
     setText('#feedback-title', ok ? 'Correct!' : (partial > 0 ? 'Partly right' : 'Not quite'));
     setText('#feedback-sub', L.exam
-      ? (ok ? 'Correct' : 'Not quite') + ' · ' + L.right + ' of ' + L.qs.length + ' so far'
+      ? (ok ? 'Correct' : (partial > 0 ? 'Partly right' : 'Not quite')) + ' · ' + L.right + ' of ' + L.qs.length + ' so far'
       : L.drill
         ? (ok ? 'Correct · ' + item.name + ' · mastery L' + mst(item.slug, lessonTrack()).box
-          : 'Not quite · ' + (detail || 'mastery L' + mst(item.slug, lessonTrack()).box))
+          : (partial > 0 ? 'Partly right · ' + (detail || 'mastery L' + mst(item.slug, lessonTrack()).box)
+          : 'Not quite · ' + (detail || 'mastery L' + mst(item.slug, lessonTrack()).box)))
         : ok
           ? '+' + L.xpNow + ' XP · ' + item.name + ' · mastery L' + mst(item.slug, lessonTrack()).box
-          : (partial > 0 ? '+' + partial + ' XP · ' + detail
+          : (partial > 0 ? '+' + L.xpNow + ' XP · ' + detail
           : (detail || 'Mastery dropped to L' + mst(item.slug, lessonTrack()).box)));
     if (L.idleScale && L.idleScale < 0.95 && !L.exam && !L.drill) {
       var sub = $('#feedback-sub');
@@ -4530,7 +4665,17 @@
 
   function next() {
     if (!L || L.i >= L.qs.length) return;
-    $('#feedback').classList.remove('on');
+    var fb = $('#feedback');
+    if (fb) {
+      fb.classList.remove('on');
+      /* The panel of the answer is gone from the eye, but it was still in
+         the page for the screen reader: the explanation of the question
+         that was answered was read out with the next question — and that
+         explanation often holds the answer of the next one. */
+      fb.setAttribute('aria-hidden', 'true');
+      var body = $('#feedback-body');
+      if (body) body.innerHTML = '';
+    }
     $('#action-bar').style.display = '';
     L.i++;
     /* The last question of the day was answered: the player is stopped
@@ -4559,6 +4704,7 @@
       setText('#r-lbl-acc', 'score');
       setText('#r-lbl-streak', 'time');
       setText('#r-lbl-souls', 'souls');
+      setPartly(L.partial);
       setText('#result-emoji', acc >= 80 ? '🏆' : acc >= 50 ? '📖' : '💪');
       setText('#result-title', acc >= 80 ? 'Exam passed!' : acc >= 50 ? 'Solid run' : 'Keep drilling');
       mascotMood(acc >= 80 ? 'perfect' : (acc >= 50 ? 'good' : ''));
@@ -4569,11 +4715,13 @@
       Object.keys(exSeen).forEach(function (s) {
         var it = DS.items[s];
         var missed = (L.wrongItems || []).indexOf(s) >= 0;
+        var half = !missed && (L.partialItems || []).indexOf(s) >= 0;
         var row = el('div', 'ri');
         var img = iconEl(it.slug, '');
         row.appendChild(img);
         row.appendChild(el('div', 'ri-name', it.name));
-        row.appendChild(el('div', 'ri-box ' + (missed ? 'bad' : 'good'), missed ? 'missed' : 'got it'));
+        row.appendChild(el('div', 'ri-box ' + (missed ? 'bad' : (half ? 'half' : 'good')),
+          missed ? 'missed' : (half ? 'partly' : 'got it')));
         exBox.appendChild(row);
       });
       var exBtn = $('#result-next');
@@ -4620,6 +4768,7 @@
       setText('#r-lbl-acc', 'score');
       setText('#r-lbl-streak', fixed ? 'all fixed' : 'still wrong');
       setText('#r-lbl-souls', 'souls');
+      setPartly(L.partial);
       setText('#r-souls', '+0');
       var dBox = $('#result-items');
       dBox.innerHTML = '';
@@ -4628,11 +4777,13 @@
       Object.keys(dSeen).forEach(function (s) {
         var it = DS.items[s];
         var missed = (L.wrongItems || []).indexOf(s) >= 0;
+        var half = !missed && (L.partialItems || []).indexOf(s) >= 0;
         var row = el('div', 'ri');
         var img = iconEl(it.slug, '');
         row.appendChild(img);
         row.appendChild(el('div', 'ri-name', it.name));
-        row.appendChild(el('div', 'ri-box ' + (missed ? 'bad' : 'good'), missed ? 'missed' : 'got it'));
+        row.appendChild(el('div', 'ri-box ' + (missed ? 'bad' : (half ? 'half' : 'good')),
+          missed ? 'missed' : (half ? 'partly' : 'got it')));
         dBox.appendChild(row);
       });
       var drillBtn = $('#result-next');
@@ -4641,11 +4792,17 @@
           unlockGate();
           sfxUnlock();
           setText('#result-emoji', '✅');
-          setText('#result-title', 'All fixed!');
-          setText('#result-note', afterUnit
+          /* a partly right answer is not a mistake, so the door opens — but
+             the run says so, so the player knows what is still shaky */
+          var halfNote = L.partial
+            ? ' ' + L.partial + (L.partial === 1 ? ' answer was' : ' answers were') +
+              ' partly right — the door opens, but those rows are worth another look.'
+            : '';
+          setText('#result-title', L.partial ? 'The door is open' : 'All fixed!');
+          setText('#result-note', (afterUnit
             ? 'The door is open. Next: ' + afterUnit.title +
               ' — that is the part that sticks.'
-            : 'The next lesson is open. Well done — that is the part that sticks.');
+            : 'The next lesson is open. Well done — that is the part that sticks.') + halfNote);
           /* the mistakes are fixed, so the next lesson is one tap away and
              not one menu deep */
           if (afterUnit) {
@@ -4738,6 +4895,7 @@
       setText('#r-lbl-streak', 'day streak');
     }
     setText('#r-lbl-souls', 'souls');
+    setPartly(L.partial);
     // the shop pays you back: a lesson is worth souls, a flawless one more
     var soulPay = 0, soulWhy = '';
     if (L.kind === 'daily') {
@@ -6783,6 +6941,9 @@
     renderPath: renderPath,
     // the third pass — the checks of the ten changes
     gradeNumber: function (input, accept) { return DSC.gradeNumber(input, accept); },
+    /* the window of the hint — the browser builds one itself when the
+       question of the data has no hint of its own */
+    rangeHint: rangeHint,
     num: function (v) { return DSC.num(v); },
     pauseLesson: pauseLesson,
     startFixMistakes: startFixMistakes,

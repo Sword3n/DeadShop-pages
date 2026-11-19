@@ -304,6 +304,15 @@ window.DSCLOUD = (function () {
     return call('POST', '/api/claim', { code: code });
   }
 
+  /* Give souls to every account of the server: the gift waits on the
+     server and every browser takes it once, the next time it reads the
+     account. Only the owner key may do it. */
+  function grantSoulsAll(ownerKey, amount) {
+    if (!available) return Promise.resolve(null);
+    return call('POST', '/api/owner/grant-souls', { amount: amount || 300 },
+      { 'X-Owner-Key': ownerKey }).catch(function () { return null; });
+  }
+
   function pendingSubs(ownerKey) {
     if (!available) return Promise.resolve(null);
     return call('GET', '/api/owner/pending', null, { 'X-Owner-Key': ownerKey })
@@ -366,6 +375,7 @@ window.DSCLOUD = (function () {
     subscribe: subscribe,
     pendingSubs: pendingSubs,
     grant: grant,
+    grantSoulsAll: grantSoulsAll,
     refreshAds: refreshAds
   };
 })();
