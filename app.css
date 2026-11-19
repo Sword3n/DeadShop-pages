@@ -97,10 +97,21 @@ body{
    tall. Nothing scrolls but the screen that is meant to scroll, and
    the check button stays where the thumb is. */
 @media(max-width:899px){
-  html,body{overflow:hidden;overscroll-behavior:none;position:fixed;inset:0;width:100%}
+  /* The canvas of the page is the colour of the app: a phone that shows a
+     strip of white or of black under the app looks broken, and the strip
+     grew with the browser bar of the phone. */
+  html{background:var(--bg)}
+  html,body{overflow:hidden;overscroll-behavior:none;position:fixed;inset:0;width:100%;
+    background:var(--bg)}
   body{height:auto;min-height:100%}
   #app{height:var(--app-h,100dvh);position:fixed;top:0;left:0;right:0;
     padding-bottom:env(safe-area-inset-bottom)}
+  /* The strip between the app and the bottom of the window (the browser bar
+     of the phone) is painted in the colour of the app, so the page does not
+     show a black band under the content. */
+  #app::after{content:"";position:fixed;left:0;right:0;z-index:0;pointer-events:none;
+    top:var(--app-h,100dvh);height:calc(var(--app-gap,0px) + 120px);
+    background:var(--bg)}
 }
 button{font-family:inherit;font-weight:800;cursor:pointer}
 /* the display face carries the Deadlock feel: headings, item names,
@@ -121,7 +132,8 @@ h1,h2,h3,.hero h1,.topbar-title,.unit-title,.ic-name,.ih-name,.modal-title,
   opacity:0;visibility:hidden;pointer-events:none;
   transition:opacity .18s ease,visibility .18s ease}
 .screen.on{opacity:1;visibility:visible;pointer-events:auto}
-.scroll{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 16px 24px}
+.scroll{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding:0 16px calc(24px + env(safe-area-inset-bottom))}
 /* min-height:0 is what makes the screen scroll instead of grow: without it
    a flex item refuses to be smaller than its content, the screen becomes
    taller than the window, and the page itself starts to scroll - which is
@@ -724,6 +736,242 @@ body.modal-open .scroll{overflow:hidden}
 }
 .chip.bump{animation:chipPop .45s cubic-bezier(.2,1.6,.3,1)}
 
+/* the order of a comparison: a list, so the names and the numbers do not
+   wrap into a ragged line */
+.cmp-list{margin-top:12px;display:flex;flex-direction:column;gap:6px}
+.cmp-row{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:12px;
+  background:rgba(0,0,0,.06);border:1px solid transparent}
+.cmp-row img,.cmp-row .mini-item{width:26px;height:26px;flex:none}
+.cmp-name{font-weight:800;font-size:14.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap}
+.cmp-val{font-weight:800;font-size:15px;color:var(--ink-2)}
+.cmp-row.win{background:rgba(88,204,2,.14);border-color:rgba(88,204,2,.45)}
+.cmp-row.win .cmp-val{color:var(--green-d)}
+
+/* ================== the owl that thinks with you ==================
+   The background of every question has an owl in it. She does not wait
+   for the answer: she flies across, beats her wings, sits and looks from
+   side to side, blows up or walks away — a different one every time, so
+   the pause of thinking has something in it. */
+.think-bg{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;
+  display:flex;align-items:flex-end;justify-content:flex-end;padding:0 10px 70px}
+.think-glow{position:absolute;right:-14px;bottom:34px;width:190px;height:190px;border-radius:50%;
+  background:radial-gradient(circle,rgba(61,220,200,.14),transparent 66%)}
+.think-owl{width:100px;height:auto;opacity:.5;transform-origin:50% 100%;
+  filter:drop-shadow(0 10px 20px rgba(0,0,0,.4));will-change:transform}
+.think-owl svg{display:block;width:100%;height:auto;overflow:visible}
+#m-head{transform-box:fill-box;transform-origin:50% 94%}
+#m-body{transform-box:fill-box;transform-origin:50% 100%}
+#m-wing-l{transform-box:fill-box;transform-origin:94% 24%;transform:rotate(-7deg)}
+#m-wing-r{transform-box:fill-box;transform-origin:6% 24%;transform:rotate(7deg)}
+
+/* one: she flies across the screen */
+.think-owl.owl-fly{animation:owlAcross 11s linear infinite}
+@keyframes owlAcross{
+  0%{transform:translate(-45vw,10vh) scale(.8) rotate(-7deg)}
+  50%{transform:translate(25vw,-5vh) scale(.92) rotate(4deg)}
+  100%{transform:translate(150vw,8vh) scale(.8) rotate(-5deg)}}
+.owl-fly #m-wing-l{animation:owlBeatL .32s ease-in-out infinite}
+.owl-fly #m-wing-r{animation:owlBeatR .32s ease-in-out infinite}
+@keyframes owlBeatL{0%,100%{transform:rotate(-7deg)}50%{transform:rotate(-58deg)}}
+@keyframes owlBeatR{0%,100%{transform:rotate(7deg)}50%{transform:rotate(58deg)}}
+
+/* two: she beats her wings where she stands */
+.think-owl.owl-flap{animation:owlHop 2.6s ease-in-out infinite}
+@keyframes owlHop{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-12px) rotate(-2deg)}}
+.owl-flap #m-wing-l{animation:owlFlapL .46s ease-in-out infinite}
+.owl-flap #m-wing-r{animation:owlFlapR .46s ease-in-out infinite}
+@keyframes owlFlapL{0%,100%{transform:rotate(-7deg)}50%{transform:rotate(-42deg)}}
+@keyframes owlFlapR{0%,100%{transform:rotate(7deg)}50%{transform:rotate(42deg)}}
+
+/* three: she sits and looks from side to side */
+.think-owl.owl-sit{animation:owlBreathe 3.6s ease-in-out infinite}
+@keyframes owlBreathe{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(4px) scale(.97)}}
+.owl-sit #m-head{animation:owlLook 2.4s ease-in-out infinite}
+@keyframes owlLook{0%,100%{transform:rotate(-9deg)}45%{transform:rotate(2deg)}70%{transform:rotate(10deg)}}
+
+/* four: she fills with air and bursts */
+.think-owl.owl-pop{animation:owlInflate 4s ease-in-out infinite}
+@keyframes owlInflate{
+  0%,58%{transform:scale(1)}
+  74%{transform:scale(1.18)}
+  84%{transform:scale(1.32)}
+  90%{transform:scale(.12);opacity:0}
+  92%{transform:scale(1);opacity:1}
+  100%{transform:scale(1);opacity:1}}
+
+/* five: she walks from side to side, the way a bird walks */
+.think-owl.owl-walk{animation:owlStroll 5.2s ease-in-out infinite}
+@keyframes owlStroll{0%,100%{transform:translateX(-16px) rotate(-5deg)}50%{transform:translateX(16px) rotate(5deg)}}
+.owl-walk #m-body{animation:owlBob .44s ease-in-out infinite}
+@keyframes owlBob{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-6px) rotate(4deg)}}
+.owl-walk #m-head{animation:owlTilt .44s ease-in-out infinite}
+@keyframes owlTilt{0%,100%{transform:rotate(3deg)}50%{transform:rotate(-4deg)}}
+.owl-walk #m-wing-l{animation:owlFlapL .9s ease-in-out infinite}
+.owl-walk #m-wing-r{animation:owlFlapR .9s ease-in-out infinite}
+
+/* ================== the vault: cases, collections, cosmetics ======== */
+.vault-wallet{display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  background:var(--card);border:2px solid var(--line);border-radius:16px;padding:12px 14px;margin-bottom:4px}
+.vault-souls{display:flex;align-items:center;gap:7px;font-size:19px;font-family:var(--font-ui)}
+.vault-souls img{width:20px;height:20px}
+.vault-note{flex:1;min-width:180px;font-size:13px;color:var(--ink-2);font-weight:700;line-height:1.4}
+.vault-lead{font-size:13.5px;color:var(--ink-2);font-weight:700;line-height:1.5;margin:0 0 14px}
+
+.case-grid{display:grid;gap:14px;grid-template-columns:1fr}
+@media(min-width:720px){.case-grid{grid-template-columns:1fr 1fr}}
+.case-card{background:var(--card);border:2px solid var(--line);border-radius:18px;padding:14px;
+  display:flex;flex-direction:column;gap:12px}
+.case-head{display:flex;gap:12px;align-items:center}
+.case-pic{width:64px;height:64px;flex:none;border-radius:14px;overflow:hidden;
+  background:var(--soft);border:1px solid var(--line);display:grid;place-items:center}
+.case-pic img{width:100%;height:100%;object-fit:cover}
+.case-head-t{min-width:0}
+.case-name{font-family:var(--font-ui);font-size:19px;letter-spacing:.3px}
+.case-tag{font-size:12.5px;color:var(--ink-2);font-weight:700;line-height:1.35;margin-top:2px}
+
+/* the collection of the case: every slot knows what it is, and the ones
+   that are still empty stay dark */
+.case-slots{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.case-slot{position:relative;aspect-ratio:1;border-radius:9px;background:var(--soft);
+  border:1px solid var(--line);display:grid;place-items:center;overflow:hidden}
+.case-slot img{width:74%;height:74%;object-fit:contain;opacity:0;filter:grayscale(1)}
+.case-slot.have img{opacity:1;filter:none}
+.case-slot.have{border-color:var(--rar);box-shadow:0 0 0 1px var(--rar) inset,0 0 10px -4px var(--rar)}
+.case-slot.top{background:var(--soft)}
+.case-slot.top.have{background:linear-gradient(180deg,rgba(255,255,255,.14),transparent),var(--soft)}
+.case-foot{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.case-found{font-size:12.5px;color:var(--ink-2);font-weight:800}
+.case-open{white-space:nowrap}
+
+/* the opening of a case */
+.case-open-card{width:100%;max-width:420px;text-align:center;overflow:hidden;
+  background:var(--card);border:2px solid var(--line)}
+.case-stage{position:relative;height:270px;display:grid;place-items:center;overflow:hidden;
+  border-radius:18px;background:radial-gradient(120% 90% at 50% 120%,rgba(61,220,200,.12),transparent 60%),var(--bg)}
+.case-box{position:relative;width:132px;height:132px;display:grid;place-items:center;
+  transition:opacity .3s ease,transform .3s ease}
+.case-box img{width:100%;height:100%;object-fit:cover;border-radius:16px;
+  border:2px solid var(--line);filter:saturate(.9)}
+.case-box-name{position:absolute;left:0;right:0;bottom:-22px;text-align:center;
+  font-family:var(--font-ui);font-size:15px;letter-spacing:1px;color:var(--ink-2)}
+.case-beam{position:absolute;left:50%;bottom:-40px;width:150px;height:150px;transform:translateX(-50%) scaleY(.2);
+  opacity:0;background:radial-gradient(ellipse at 50% 100%,var(--rar,#3DDCC8),transparent 68%);
+  transition:opacity .35s ease,transform .45s cubic-bezier(.2,.9,.3,1)}
+.case-item{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:4px;opacity:0;transform:scale(.6);pointer-events:none}
+.case-item img{width:128px;height:128px;object-fit:contain;filter:drop-shadow(0 0 22px var(--rar,#3DDCC8))}
+.case-item-name{font-family:var(--font-ui);font-size:18px;margin-top:6px}
+.case-item-rar{font-size:12px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:var(--rar,#9FB0B8)}
+.case-item-desc{font-size:12.5px;color:var(--ink-2);font-weight:700;max-width:280px;line-height:1.35;margin-top:2px}
+.case-item-new{margin-top:8px;font-size:11.5px;font-weight:800;letter-spacing:2px;color:var(--green-d);
+  background:rgba(88,204,2,.16);border-radius:99px;padding:3px 12px}
+.case-item-dup{margin-top:8px;font-size:11.5px;font-weight:800;color:var(--amber)}
+.case-modal-title{font-family:var(--font-ui);font-size:21px;margin:14px 0 2px}
+.case-modal-sub{font-size:13px;color:var(--ink-2);font-weight:700;margin:0 0 16px}
+
+.case-stage.rattle .case-box{animation:caseRattle .12s linear infinite}
+@keyframes caseRattle{
+  0%{transform:translate(-3px,1px) rotate(-2deg)}
+  50%{transform:translate(3px,-1px) rotate(2deg)}
+  100%{transform:translate(-2px,0) rotate(-1deg)}}
+.case-stage.burst .case-box{animation:caseBurst .45s cubic-bezier(.3,1.4,.5,1) forwards}
+@keyframes caseBurst{
+  0%{transform:scale(1) rotate(0)}
+  35%{transform:scale(1.12) rotate(-4deg)}
+  100%{transform:scale(.2) translateY(-40px) rotate(8deg);opacity:0}}
+.case-stage.burst .case-beam{opacity:1;transform:translateX(-50%) scaleY(1.7)}
+.case-stage.reveal .case-box{opacity:0}
+.case-stage.reveal .case-item{animation:caseReveal .5s cubic-bezier(.2,1.5,.4,1) forwards}
+@keyframes caseReveal{
+  0%{opacity:0;transform:scale(.55)}
+  60%{opacity:1;transform:scale(1.08)}
+  100%{opacity:1;transform:scale(1)}}
+
+/* ================== the parry: the moment the limit is reached ====== */
+.parry-fx{position:fixed;inset:0;z-index:70;pointer-events:none;opacity:0;
+  display:grid;place-items:center}
+.parry-fx.on{animation:parryFade 1.15s ease-out forwards}
+@keyframes parryFade{0%{opacity:0}12%{opacity:1}78%{opacity:1}100%{opacity:0}}
+.parry-ring{position:absolute;left:50%;top:50%;width:60px;height:60px;margin:-30px;border-radius:50%;
+  border:5px solid var(--accent);opacity:0;transform:scale(.2)}
+.parry-fx.on .parry-ring{animation:parryRing .85s cubic-bezier(.1,.75,.25,1) forwards}
+.parry-fx.on .parry-ring2{animation-delay:.12s;border-color:#fff}
+@keyframes parryRing{0%{opacity:.95;transform:scale(.15)}100%{opacity:0;transform:scale(9)}}
+.parry-clash{position:absolute;left:50%;top:50%;width:220px;height:220px;margin:-110px}
+.parry-clash span{position:absolute;left:50%;top:50%;width:170px;height:16px;margin:-8px 0 0 -85px;
+  border-radius:8px;background:linear-gradient(90deg,rgba(255,255,255,.15),#E9F6FF 45%,rgba(255,255,255,.2));
+  box-shadow:0 0 24px rgba(180,235,255,.75)}
+.parry-clash span:first-child{transform:rotate(38deg)}
+.parry-clash span:last-child{transform:rotate(-38deg)}
+.parry-fx.on .parry-clash span:first-child{animation:parryBlade1 .9s cubic-bezier(.2,.9,.3,1) forwards}
+.parry-fx.on .parry-clash span:last-child{animation:parryBlade2 .9s cubic-bezier(.2,.9,.3,1) forwards}
+@keyframes parryBlade1{0%{transform:rotate(120deg) translateY(-150px);opacity:0}
+  35%{transform:rotate(38deg) translateY(0);opacity:1}100%{transform:rotate(44deg);opacity:0}}
+@keyframes parryBlade2{0%{transform:rotate(-120deg) translateY(150px);opacity:0}
+  35%{transform:rotate(-38deg) translateY(0);opacity:1}100%{transform:rotate(-44deg);opacity:0}}
+.parry-flash{position:absolute;left:50%;top:50%;width:180px;height:180px;margin:-90px;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,255,255,.95),rgba(120,220,255,.35) 45%,transparent 70%);
+  opacity:0}
+.parry-fx.on .parry-flash{animation:parryFlash .5s ease-out forwards}
+@keyframes parryFlash{0%{opacity:0;transform:scale(.3)}18%{opacity:1;transform:scale(1.5)}100%{opacity:0;transform:scale(2.6)}}
+.parry-word{position:absolute;top:58%;font-family:var(--font-ui);font-size:34px;letter-spacing:8px;
+  color:#fff;text-shadow:0 0 26px rgba(61,220,200,.9);opacity:0}
+.parry-fx.on .parry-word{animation:parryWord .9s ease-out forwards}
+@keyframes parryWord{0%{opacity:0;transform:scale(.7)}25%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.12)}}
+
+/* ================== the crystal of the pit ========================= */
+.crystal-fx{position:fixed;inset:0;z-index:72;pointer-events:none;opacity:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+  background:radial-gradient(70% 55% at 50% 48%,rgba(61,220,200,.22),transparent 70%)}
+.crystal-fx.on{animation:crystalFade 2.8s ease-out forwards}
+@keyframes crystalFade{0%{opacity:0}10%{opacity:1}82%{opacity:1}100%{opacity:0}}
+.crystal-stage{position:relative;width:220px;height:220px;display:grid;place-items:center}
+.crystal-img{width:150px;height:150px;object-fit:contain;position:relative;z-index:2;
+  filter:drop-shadow(0 0 30px rgba(61,220,200,.85))}
+.crystal-fx.on .crystal-img{animation:crystalDrop .85s cubic-bezier(.2,1.5,.4,1) forwards}
+@keyframes crystalDrop{0%{transform:translateY(-160px) scale(.35);opacity:0}
+  55%{transform:translateY(0) scale(1.14);opacity:1}100%{transform:scale(1);opacity:1}}
+.crystal-fx.shatter .crystal-img{animation:crystalShatter .65s ease-in forwards}
+@keyframes crystalShatter{0%{transform:scale(1);opacity:1;
+  filter:drop-shadow(0 0 30px rgba(61,220,200,.85))}
+  35%{transform:scale(1.22);opacity:1;filter:brightness(2.6) drop-shadow(0 0 60px #fff)}
+  100%{transform:scale(.25) rotate(20deg);opacity:0;filter:brightness(3)}}
+.crystal-shards{position:absolute;inset:0;z-index:3}
+.crystal-shards i{position:absolute;left:50%;top:50%;width:26px;height:26px;margin:-13px;
+  background:linear-gradient(140deg,#DFFBFF,#3DDCC8 55%,rgba(61,220,200,.1));
+  clip-path:polygon(50% 0,100% 38%,78% 100%,22% 100%,0 38%);opacity:0}
+.crystal-fx.shatter .crystal-shards i{animation:shardFly .95s cubic-bezier(.2,.7,.4,1) forwards}
+.crystal-shards i:nth-child(1){--dx:-150px;--dy:-90px;--rot:180deg}
+.crystal-shards i:nth-child(2){--dx:130px;--dy:-120px;--rot:-140deg}
+.crystal-shards i:nth-child(3){--dx:170px;--dy:20px;--rot:90deg}
+.crystal-shards i:nth-child(4){--dx:110px;--dy:130px;--rot:-60deg}
+.crystal-shards i:nth-child(5){--dx:-40px;--dy:160px;--rot:220deg}
+.crystal-shards i:nth-child(6){--dx:-170px;--dy:90px;--rot:-200deg}
+.crystal-shards i:nth-child(7){--dx:-120px;--dy:-140px;--rot:150deg}
+.crystal-shards i:nth-child(8){--dx:40px;--dy:-170px;--rot:-30deg}
+@keyframes shardFly{0%{opacity:1;transform:translate(0,0) rotate(0)}
+  100%{opacity:0;transform:translate(var(--dx),var(--dy)) rotate(var(--rot))}}
+.crystal-word{font-family:var(--font-ui);font-size:26px;letter-spacing:10px;color:#DFFBFF;
+  text-shadow:0 0 24px rgba(61,220,200,.9);opacity:0}
+.crystal-fx.on .crystal-word{animation:crystalWord 1s ease-out .5s forwards}
+@keyframes crystalWord{0%{opacity:0;transform:translateY(10px)}30%{opacity:1;transform:translateY(0)}
+  80%{opacity:1}100%{opacity:0}}
+
+/* the screen of the limit: the crystal above the numbers */
+.limit-card{text-align:center}
+.limit-crystal{position:relative;width:96px;height:96px;margin:0 auto 6px;display:grid;place-items:center}
+.limit-crystal img{position:relative;z-index:2;animation:crystalFloat 3.4s ease-in-out infinite}
+@keyframes crystalFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+.limit-crystal-glow{position:absolute;inset:-14px;border-radius:50%;
+  background:radial-gradient(circle,rgba(61,220,200,.34),transparent 68%);animation:crystalGlow 2.6s ease-in-out infinite}
+@keyframes crystalGlow{0%,100%{opacity:.55;transform:scale(.92)}50%{opacity:1;transform:scale(1.08)}}
+.limit-title{font-family:var(--font-ui);font-size:21px;margin-bottom:4px}
+.limit-count{font-family:var(--font-ui);font-size:34px;letter-spacing:1px;color:var(--accent)}
+.limit-count span{opacity:.45;margin:0 4px}
+.limit-note{font-size:13.5px;color:var(--ink-2);font-weight:700;margin:6px 0 14px;line-height:1.45}
+.limit-perks{text-align:left}
+
 /* ========================= reduced motion =========================== */
 /* Two ways to ask for less movement: the switch in the profile (the class
    .reduce-motion) and the setting of the system (the media query). Both
@@ -744,6 +992,37 @@ body.modal-open .scroll{overflow:hidden}
     animation-duration:.001ms !important;animation-iteration-count:1 !important;
     animation-delay:0ms !important;transition-duration:.001ms !important}
   .side-nav,.nav-scrim{transition-duration:.22s !important}
+}
+
+/* The moments that carry a meaning must be seen even without movement.
+   A frozen animation stops at its last keyframe, and the last keyframe of
+   a fade-out is "nothing" — so the crystal, the parry and the opened case
+   have to be put back on screen by hand. The owl stays in its corner,
+   alive but still. */
+.reduce-motion .think-owl,
+.reduce-motion .think-owl *{animation:none !important}
+.reduce-motion .think-owl{transform:none !important;opacity:.5}
+.reduce-motion .parry-fx.on{animation:none !important;opacity:1}
+.reduce-motion .parry-fx.on .parry-word{animation:none !important;opacity:1;transform:none}
+.reduce-motion .parry-fx.on .parry-ring{animation:none !important;opacity:.9;transform:scale(2)}
+.reduce-motion .crystal-fx.on{animation:none !important;opacity:1}
+.reduce-motion .crystal-fx.on .crystal-img{animation:none !important;opacity:1;transform:none}
+.reduce-motion .crystal-fx.on .crystal-word{animation:none !important;opacity:1;transform:none}
+.reduce-motion .crystal-fx.shatter .crystal-img{animation:none !important;opacity:1;transform:none}
+.reduce-motion .case-stage.burst .case-box{animation:none !important;opacity:0}
+.reduce-motion .case-stage.reveal .case-item{animation:none !important;opacity:1;transform:none}
+@media (prefers-reduced-motion: reduce){
+  .think-owl,.think-owl *{animation:none !important}
+  .think-owl{transform:none !important;opacity:.5}
+  .parry-fx.on{animation:none !important;opacity:1}
+  .parry-fx.on .parry-word{animation:none !important;opacity:1;transform:none}
+  .parry-fx.on .parry-ring{animation:none !important;opacity:.9;transform:scale(2)}
+  .crystal-fx.on{animation:none !important;opacity:1}
+  .crystal-fx.on .crystal-img{animation:none !important;opacity:1;transform:none}
+  .crystal-fx.on .crystal-word{animation:none !important;opacity:1;transform:none}
+  .crystal-fx.shatter .crystal-img{animation:none !important;opacity:1;transform:none}
+  .case-stage.burst .case-box{animation:none !important;opacity:0}
+  .case-stage.reveal .case-item{animation:none !important;opacity:1;transform:none}
 }
 
 /* ====================== new: exam, week, groups ==================== */
@@ -2020,7 +2299,8 @@ picture.urn-mark-pic img{display:block;width:100%;height:100%;object-fit:contain
    people who keep it are - one tap away, instead of three menus deep.
    ================================================================== */
 .app-foot{
-  margin-top:22px;padding:16px 2px 10px;
+  margin-top:22px;
+  padding:16px 2px calc(10px + env(safe-area-inset-bottom));
   border-top:1px solid var(--line);
 }
 .app-foot-top{

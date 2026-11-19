@@ -211,6 +211,9 @@
     xp: 0, streak: 0, lastDay: null, dailyDay: null, mastery: {}, right: 0, wrong: 0,
     lessons: 0, unitsDone: {}, unlocked: {}, seen: {}, onboarded: false, tourStep: 0, paused: null,
     display: '', avatar: '', todayCount: 0, todayDay: null, history: {},
+    // the questions of the day that count against the limit of the day —
+    // the lessons and the run of the day, and nothing else
+    dayQuestions: 0,
     // the questions that were missed in the daily run: they may be repeated,
     // but a repeat pays nothing
     dailyMiss: [],
@@ -223,13 +226,17 @@
     todayLessons: 0, lessonDay: null,
     // the day the last exam paid — an exam pays once a day
     examDay: null,
-    // how deep the learner wants to go: newcomer, shopoholic, shopkeeper
-    track: 'shopkeeper',
+    // how deep the learner wants to go: newcomer, shopoholic, shopkeeper.
+    // A new player starts at the door: what the item does and what it
+    // gives. The other two paths are opened from the path screen.
+    track: 'newcomer',
     // the path the statistics screen shows — it only shows, it does not walk
     statsTrack: '',
     // the name on the leaderboard is opt-in
     board: false,
     souls: 0, soulsEarned: 0, soulsLedger: [], cosmetics: [], equipped: {},
+    // the things that came out of the cases: id of the thing, how many of it
+    collection: {},
     gate: null,
     bughunt: { reports: [], inbox: [], grants: [] },
     // the vault is the look of the game: the dark theme is the default now
@@ -273,14 +280,15 @@
            track keeps its own: a newcomer must not be marked as knowing what
            only the shopkeeper was asked about. The old record goes to the
            shopkeeper track — the one the app was asking before. */
-        d.mastery = migrateMastery(p.mastery || {});
-        d.unitsDone = migrateUnits(p.unitsDone);
+        d.mastery = migrateMastery(p.mastery || {}, p.track);
+        d.unitsDone = migrateUnits(p.unitsDone, p.track);
         d.unlocked = objField(p.unlocked);
         d.seen = objField(p.seen);
         d.history = objField(p.history);
         d.equipped = objField(p.equipped);
         d.soulsLedger = arrField(p.soulsLedger);
         d.cosmetics = arrField(p.cosmetics);
+        d.collection = objField(p.collection);
         d.dailyMiss = arrField(p.dailyMiss);
         d.paused = (p.paused && typeof p.paused === 'object') ? p.paused : null;
         var bh = objField(p.bughunt);
@@ -294,6 +302,7 @@
         d.wrong = counterField(d.wrong, 0);
         d.lessons = counterField(d.lessons, 0);
         d.todayCount = counterField(d.todayCount, 0);
+        d.dayQuestions = counterField(d.dayQuestions, 0);
         d.todayLessons = counterField(d.todayLessons, 0);
         d.souls = counterField(d.souls, 0);
         d.soulsEarned = counterField(d.soulsEarned, 0);
@@ -313,9 +322,18 @@
     migrateUnlocked(d);
     return d;
   }
-  function migrateMastery(old) {
+  /* The keys that would touch the prototype of an object instead of being
+     a key of it: a file that is imported can carry them, and a mastery
+     bucket would then read the values of somebody else's object as if
+     they were earned progress. */
+  function dangerousKey(k) {
+    return k === '__proto__' || k === 'constructor' || k === 'prototype';
+  }
+  function migrateMastery(old, target) {
     var out = {};
-    TRACK_ORDER.forEach(function (t) { out[t] = {}; });
+    /* the buckets are made without a prototype: a key of a file can then
+       not reach anything but itself */
+    TRACK_ORDER.forEach(function (t) { out[t] = Object.create(null); });
     if (!old || typeof old !== 'object') return out;
     var looksNew = TRACK_ORDER.some(function (t) {
       return old[t] && typeof old[t] === 'object';
@@ -324,25 +342,35 @@
       TRACK_ORDER.forEach(function (t) {
         var m = old[t] || {};
         Object.keys(m).forEach(function (slug) {
+          if (dangerousKey(slug)) return;
           if (m[slug] && typeof m[slug] === 'object') out[t][slug] = m[slug];
         });
       });
       return out;
     }
+    /* The old record was one record for the whole shop, made before the
+       tracks existed. It belongs to the path of the player who carries it:
+       a file of progress that lands on a newcomer has to show its mastery
+       and not an empty screen. */
+    var t = TRACKS[target] ? target : 'shopkeeper';
+    if (!out[t]) out[t] = Object.create(null);
     Object.keys(old).forEach(function (slug) {
+      if (dangerousKey(slug)) return;
       var m = old[slug];
       if (m && typeof m === 'object' && typeof m.box !== 'undefined') {
-        out.shopkeeper[slug] = m;
+        out[t][slug] = m;
       }
     });
     return out;
   }
-  function migrateUnits(old) {
+  function migrateUnits(old, target) {
     var out = {};
     TRACK_ORDER.forEach(function (t) { out[t] = []; });
     if (!old) return out;
     if (Array.isArray(old)) {
-      out.shopkeeper = old.filter(function (id) { return !!UNIT_IDS[id]; });
+      /* an old list is a list of the path of the player who carries it */
+      var t = TRACKS[target] ? target : 'shopkeeper';
+      out[t] = old.filter(function (id) { return !!UNIT_IDS[id]; });
       return out;
     }
     Object.keys(old).forEach(function (t) {
@@ -365,7 +393,11 @@
      ask different questions, so what the learner knows on one of them says
      nothing about the other two. */
   function trackMap(track) {
-    var t = TRACKS[track] ? track : 'shopkeeper';
+    /* The track of the player is the track that is meant when nobody says
+       which one: the old default was the shopkeeper, and the review of the
+       mistakes kept looking into that empty map while the newcomer track
+       was the one being played. */
+    var t = TRACKS[track] ? track : trackKey();
     if (!S.mastery[t] || typeof S.mastery[t] !== 'object') S.mastery[t] = {};
     return S.mastery[t];
   }
@@ -625,9 +657,30 @@
     return S.todayLessons || 0;
   }
 
+  /* The limit of the day is counted in questions: twenty of them. The
+     lessons of the day are the questions of the day — a lesson of fifteen
+     and the run of the day make the twenty together.
+
+     A run of practice is free: the drill, the review of the mistakes and
+     the exam do not eat the questions of the day and are never cut off in
+     the middle. A player who wants to learn more after the wall is exactly
+     the player who has to be let through. */
+  var DAILY_QUESTIONS = 20;
+  function freeRun(kind) {
+    return kind === 'drill' || kind === 'exam' || kind === 'fix' ||
+           kind === 'review' || kind === 'daily-retry';
+  }
+  function questionsToday() {
+    if (S.todayDay !== today()) return 0;
+    return Math.max(0, Number(S.dayQuestions) || 0);
+  }
   function limitLeft() {
     if (cloud.sub) return 999;          // a subscriber is not stopped
-    return Math.max(0, cloud.limit - lessonsToday());
+    return Math.max(0, DAILY_QUESTIONS - questionsToday());
+  }
+  function limitHit() {
+    if (cloud.sub) return false;
+    return questionsToday() >= DAILY_QUESTIONS;
   }
 
   function countLocalLesson() {
@@ -645,8 +698,10 @@
      open the gate, and the path stayed shut for the rest of the day. */
   function gateLesson(kind, go) {
     renderLimitChip();
-    if (kind === 'drill') { go(); return; }
+    if (freeRun(kind)) { go(); return; }
     if (cloud.sub) { go(); return; }
+    /* the questions of the day are gone: the door does not open */
+    if (limitHit()) { showLimitScreen(); return; }
     if (DSCLOUD.available && DSCLOUD.getToken()) {
       /* The answer of the server may come a moment later. If the player
          walked away in the meantime, the lesson must not open behind their
@@ -661,18 +716,36 @@
       });
       return;
     }
-    if (lessonsToday() >= cloud.limit) { showLimitScreen({ used: lessonsToday(), limit: cloud.limit }); return; }
+    if (limitHit()) { showLimitScreen(); return; }
     countLocalLesson();
     go();
   }
 
+  /* The moment the limit is reached: first the parry — the clash and its
+     sound — and only then the screen. The player is stopped by a hit, not
+     by a form. */
   function showLimitScreen(info) {
-    setText('#limit-used', String(info && info.used ? info.used : lessonsToday()));
-    setText('#limit-cap', String(info && info.limit ? info.limit : cloud.limit));
     var m = $('#limit-modal');
-    if (m) m.classList.add('on');
-    renderSub();
-    renderLimitChip();
+    if (!m) return;
+    setText('#limit-used', String(questionsToday()));
+    setText('#limit-cap', String(DAILY_QUESTIONS));
+    /* the clash comes first */
+    var parry = $('#parry-fx');
+    if (parry) {
+      parry.classList.remove('on');
+      void parry.offsetWidth;
+      parry.classList.add('on');
+      sfxParry();
+      setTimeout(function () {
+        m.classList.add('on');
+        renderSub();
+        renderLimitChip();
+      }, 1100);
+    } else {
+      m.classList.add('on');
+      renderSub();
+      renderLimitChip();
+    }
   }
 
   /* The number of lessons that are left today, written where the player can
@@ -690,7 +763,7 @@
     } else {
       chip.hidden = false;
       setText('#limit-left', String(left));
-      chip.title = left + ' of ' + cloud.limit + ' lessons left today';
+      chip.title = left + ' of ' + DAILY_QUESTIONS + ' questions left today';
       chip.classList.remove('sub');
     }
   }
@@ -899,8 +972,12 @@
   }
 
   function cloudDone(r, message) {
+    var hadSub = cloud.sub;
     cloud.serverUser = r.user;
     cloud.sub = !!(r.user.subscription && r.user.subscription.active);
+    /* the crystal of the pit comes out when the account has the
+       Rejuvenator — and only then, not at every sign-in */
+    if (cloud.sub && !hadSub) setTimeout(crystalAppear, 500);
     cloud.subUntil = (r.user.subscription && r.user.subscription.until) || 0;
     /* The name of the account belongs to the account; the name of this
        browser belongs to the profile of this browser. The name of the
@@ -1748,6 +1825,101 @@
       if (p && p.catch) p.catch(function () { sfxDoneFallback(); });
     } catch (e) { sfxDoneFallback(); }
   };
+  /* the parry: the clash that stops the player at the limit of the day.
+     Two blades, a ring of light and the sound of metal on metal. */
+  var sfxParry = function () {
+    var c = audio(); if (!c) return;
+    var t = c.currentTime;
+    /* the swing */
+    hiss(t, 0.18, 0.055, 2600, 1.2);
+    /* the clash */
+    ping(2100, t + 0.05, 0.55, 0.075, 'square', 0.28);
+    ping(3150, t + 0.05, 0.40, 0.045, 'triangle', 0.24);
+    ping(1480, t + 0.06, 0.65, 0.055, 'sine', 0.34);
+    /* the weight behind it */
+    ping(70, t + 0.04, 0.45, 0.11, 'sine', 0.55);
+    hiss(t + 0.05, 0.5, 0.035, 5200, 0.9);
+  };
+  /* the heavy blow: the sound of something big hitting something else */
+  var sfxHeavyHit = function () {
+    var c = audio(); if (!c) return;
+    var t = c.currentTime;
+    hiss(t, 0.26, 0.075, 1500, 1.5);          /* the swing of the blow */
+    ping(58, t + 0.04, 0.60, 0.17, 'sine', 0.62); /* the weight of it */
+    ping(116, t + 0.05, 0.38, 0.085, 'triangle', 0.5);
+    ping(1750, t + 0.06, 0.45, 0.05, 'square', 0.26); /* the metal of the arms */
+  };
+  /* the crystal breaks */
+  var sfxCrystalBreak = function () {
+    var c = audio(); if (!c) return;
+    var t = c.currentTime;
+    hiss(t, 0.55, 0.085, 6200, 0.85);          /* the glass */
+    for (var i = 0; i < 8; i++) {
+      ping(1350 + i * 380, t + 0.03 + i * 0.045, 0.20, 0.032, 'triangle', 0.3);
+    }
+    ping(72, t, 0.55, 0.10, 'sine', 0.6);        /* the ground under it */
+    ping(2400, t + 0.02, 0.7, 0.028, 'sine', 0.5);
+  };
+
+  /* The crystal of the pit: it comes out of the dark, it hangs in the light
+     and it breaks. The sound of the heavy blow comes first, then the sound
+     of the glass. */
+  function crystalAppear() {
+    var fx = $('#crystal-fx');
+    if (!fx) return;
+    fx.classList.remove('on', 'shatter');
+    void fx.offsetWidth;
+    fx.classList.add('on');
+    sfxHeavyHit();
+    setTimeout(function () {
+      fx.classList.add('shatter');
+      sfxCrystalBreak();
+    }, 760);
+    setTimeout(function () { fx.classList.remove('on', 'shatter'); }, 2800);
+  }
+
+  /* the case of the shop: it is shaken, it is opened, and what comes out of
+     it has its own voice — the rarer it is, the bigger the sound */
+  var sfxCaseRattle = function () {
+    var c = audio(); if (!c) return;
+    var t = c.currentTime;
+    /* the rattle: short bursts of noise, faster and faster */
+    for (var i = 0; i < 14; i++) {
+      hiss(t + i * 0.09, 0.05, 0.030 + i * 0.001, 900 + i * 130, 2.4);
+    }
+    ping(70, t, 0.5, 0.05, 'sine');
+  };
+  var sfxCaseOpen = function () {
+    var c = audio(); if (!c) return;
+    var t = c.currentTime;
+    hiss(t, 0.45, 0.075, 3200, 0.7);          /* the lid goes off */
+    ping(120, t, 0.45, 0.10, 'triangle', 0.45); /* the box drops open */
+    ping(240, t + 0.02, 0.35, 0.05, 'sine', 0.5);
+  };
+  /* the voice of a find: a chord, and the rarer the thing, the more voices
+     are in it */
+  var sfxReveal = function (rarity) {
+    var c = audio(); if (!c) return;
+    var t = c.currentTime;
+    var sets = {
+      common: [392],
+      uncommon: [392, 523],
+      rare: [392, 523, 659],
+      veryrare: [392, 523, 659, 784],
+      legendary: [523, 659, 784, 1046, 1318],
+      contraband: [523, 784, 1046, 1318, 1568, 2093]
+    };
+    var notes = sets[rarity] || sets.common;
+    notes.forEach(function (f, i) {
+      ping(f, t + i * 0.06, 0.55 - i * 0.03, 0.075, 'triangle');
+      ping(f * 2, t + i * 0.06, 0.22, 0.020, 'sine');
+    });
+    if (rarity === 'legendary' || rarity === 'contraband') {
+      hiss(t, 0.7, 0.05, 5200, 0.8);
+      ping(80, t, 0.6, 0.09, 'sine');
+    }
+  };
+
   /* a door opening: a clank and a rising ring */
   var sfxUnlock = function () {
     var c = audio(); if (!c) return;
@@ -1854,7 +2026,7 @@
   // ------------------------------------------------------------- support
   /* Everything a tester might want to tell us, in one block they can copy.
      This is the only place that knows where feedback goes. */
-  var APP_VERSION = '0.35.0';
+  var APP_VERSION = '0.36.0';
   var BUILD_DATE = '2026-11-17';
   // Where "report a problem" goes. Two options, both need no server:
   //   ISSUES_URL  a GitHub issue with the diagnostics already filled in
@@ -2026,6 +2198,13 @@
     var h = vv ? vv.height : window.innerHeight;
     if (!h) return;
     document.documentElement.style.setProperty('--app-h', Math.round(h) + 'px');
+    /* The window is taller than the part of it that is seen: the browser bar
+       of the phone takes the rest. The strip under the app is painted in the
+       colour of the app, so the page shows no black band under the content.
+       (A phone that says so in the bottom of the screen: a strange black
+       stripe that covers what is on the site.) */
+    var gap = Math.max(0, Math.round((window.innerHeight || h) - h));
+    document.documentElement.style.setProperty('--app-gap', gap + 'px');
   }
   function wireViewport() {
     fitViewport();
@@ -2225,6 +2404,7 @@
     if (name === 'updates') renderUpdates();
     if (name === 'bughunt') renderBughunt();
     if (name === 'friends') renderFriends();
+    if (name === 'vault') renderVault();
     if (name === 'sub') renderSub();
     var lm = $('#limit-modal');
     if (lm) lm.classList.remove('on');
@@ -2236,9 +2416,9 @@
        tour.moving says. */
     if (tour.on && !tour.moving) tourEnd();
   }
-  var lastXp = null, lastStreak = null, lastLeague = null;
+  var lastXp = null, lastStreak = null, lastLevel = null;
   function renderCounters() {
-    var xp = S.xp, st = S.streak, lg = league();
+    var xp = S.xp, st = S.streak;
     setText('#nav-xp', xp);
     setText('#nav-streak', st);
     // the number is written in one place only: a tween that is still running
@@ -2252,23 +2432,22 @@
       bump($('#streak-val').parentNode);
       if (st > lastStreak) toast('<img class="toast-flame" src="assets/flame.svg" alt=""> ' + st + ' day streak', true);
     }
-    setText('#league-val', lg);
-    if (lastLeague && lg !== lastLeague) {
-      toast('⬆ ' + lg);
-      sfxDone();
-    }
     // the level badge: the number in the plate, the ring around it
     var info = leagueInfo();
     var badge = $('#level-badge');
     if (badge) badge.innerHTML = levelBadge(info);
+    if (lastLevel !== null && info.level !== lastLevel) {
+      toast('⬆ Level ' + info.level);
+      sfxDone();
+    }
     var chip = $('#level-chip');
     if (chip) {
-      chip.title = 'Level ' + info.level + ' — ' + info.xp + ' XP' +
-        (info.nextName ? '. ' + (info.next - info.xp) + ' XP to ' + info.nextName : '. Top league');
+      chip.title = 'Level ' + info.level + ' — ' + info.xp + ' XP. ' +
+        (info.next - info.xp) + ' XP to level ' + (info.level + 1);
     }
     var chip = $('#streak-chip');
     if (chip) chip.classList.toggle('hot', st >= 3);
-    lastXp = xp; lastStreak = st; lastLeague = lg;
+    lastXp = xp; lastStreak = st; lastLevel = leagueInfo().level;
     renderSouls();
   }
   function renderAll() {
@@ -2323,6 +2502,7 @@
     counters: function () { setActiveTab('path'); show('counters'); },
     stats: function () { setActiveTab('stats'); show('stats'); },
     profile: function () { show('profile'); },
+    vault: function () { show('vault'); },
     updates: function () { show('updates'); },
     bughunt: function () { show('bughunt'); },
     friends: function () { show('friends'); },
@@ -2680,36 +2860,26 @@
     save();
   }
 
-  /* The league. The star used to stand for XP, but XP only ever decided
-     the league — so the top bar now shows the level itself, in a badge that
-     looks like the one in the game, and the XP number sits with the league
-     name where it means something. */
-  var LEAGUES = [
-    { name: 'Item Cadet', color: '#9FB0B8' },
-    { name: 'Shop Apprentice', color: '#7ED957' },
-    { name: 'Item Scholar', color: '#6EC8FF' },
-    { name: 'Shop Regular', color: '#B79BFF' },
-    { name: 'Item Master', color: '#FFC24A' },
-    { name: 'Curiosity Shop Veteran', color: '#FF8A5B' }
-  ];
+  /* The level. The named ladder of the shop — "Item Cadet", "Shop
+     Apprentice", "Curiosity Shop Veteran" — is gone: a title in the top
+     bar says nothing about what the player knows, and the owner asked for
+     it to go. What stays is the level itself and the ring that fills up
+     with the XP: the number of the level, and how far to the next one. */
   var LEAGUE_STEP = 300;
   function leagueInfo() {
-    /* The level is clamped at both ends: a profile that carries a negative
-       XP (an imported file can) must not point at a league that is not
-       there — the boot died on it and no screen was shown at all. */
+    /* The XP is clamped at zero: a profile that carries a negative XP (an
+       imported file can) must not point at a level that is not there. */
     var xp = Math.max(0, Number(S.xp) || 0);
-    var lvl = Math.max(1, Math.min(LEAGUES.length, Math.floor(xp / LEAGUE_STEP) + 1));
-    var cur = LEAGUES[lvl - 1];
+    var lvl = Math.max(1, Math.floor(xp / LEAGUE_STEP) + 1);
     var base = (lvl - 1) * LEAGUE_STEP;
-    var next = lvl < LEAGUES.length ? lvl * LEAGUE_STEP : null;
-    var pct = next ? Math.max(0, Math.min(1, (xp - base) / (next - base))) : 1;
+    var next = lvl * LEAGUE_STEP;
+    var pct = Math.max(0, Math.min(1, (xp - base) / (next - base)));
     return {
-      level: lvl, name: cur.name, color: cur.color,
-      next: next, nextName: lvl < LEAGUES.length ? LEAGUES[lvl].name : null,
+      level: lvl, name: 'Level ' + lvl, color: '#3DDCC8',
+      next: next, nextName: null,
       pct: pct, xp: xp
     };
   }
-  function league() { return leagueInfo().name; }
 
   /* the level badge: a chamfered plate in the league colour, with a ring
      around it that fills up as the XP runs to the next league */
@@ -3442,8 +3612,13 @@
   }
   function startDaily() {
     // the run of the day is done: only the missed questions can be repeated,
-    // and a repeat never pays XP again
-    if (S.dailyDay === today()) { startDailyRetry(); return; }
+    /* The run of the day is run once. There used to be a second go for the
+       questions that were missed — the owner asked for it to go: the run
+       gives its numbers and that is the end of it. */
+    if (S.dailyDay === today()) {
+      toast('The run of the day is done — come back tomorrow');
+      return;
+    }
     gateLesson('daily', startDailyNow);
   }
 
@@ -3473,7 +3648,10 @@
       picked.length + ' questions · the same for everyone today', 'daily');
   }
 
-  /* the second go: only what was missed, and it pays nothing */
+  /* The second go: only what was missed, and it pays nothing.
+     It is not offered any more — the run of the day gives its numbers and
+     that is the end of it. The function stays for a run that was left half
+     way in an older build: such a run can still be resumed. */
   function startDailyRetry() {
     var ids = (S.dailyMiss || []);
     var pool = [];
@@ -3869,10 +4047,28 @@
     return DSC.decorateStat(raw);
   }
 
+  /* The owl of the background does something different every time: she flies
+     across, beats her wings, sits and looks about, fills with air and bursts
+     or walks away. A player who waits for the answer watches her instead of
+     an empty screen. */
+  var OWL_MOODS = ['owl-fly', 'owl-flap', 'owl-sit', 'owl-pop', 'owl-walk'];
+  function owlMood() {
+    var box = $('#think-owl');
+    if (!box) return;
+    var mood = OWL_MOODS[Math.floor(Math.random() * OWL_MOODS.length)];
+    box.className = 'think-owl';
+    // a small pause before she starts, so that two questions in a row do not
+    // look like the same bird twice
+    box.style.animationDelay = (0.2 + Math.random() * 0.8).toFixed(2) + 's';
+    void box.offsetWidth;
+    box.classList.add(mood);
+  }
+
   function renderQ() {
     var q = L.qs[L.i];
     var item = DS.items[q.item];
     var card = $('#q-card');
+    owlMood();
     // The card is rebuilt from scratch and appears at once. There is no
     // entrance animation on purpose: a hidden-then-revealed card was the
     // reason a question sometimes only showed up after a tap.
@@ -4190,8 +4386,11 @@
     }
     S.seen[q.id] = Date.now();
     // how much of today's goal is done
-    if (S.todayDay !== today()) { S.todayDay = today(); S.todayCount = 0; }
+    if (S.todayDay !== today()) { S.todayDay = today(); S.todayCount = 0; S.dayQuestions = 0; }
     S.todayCount = (S.todayCount || 0) + 1;
+    /* The limit of the day counts the lessons and the run of the day. The
+       drills, the review of the mistakes and the exam are free. */
+    if (!freeRun(L.kind)) S.dayQuestions = (S.dayQuestions || 0) + 1;
     L.runCount = (L.runCount || 0) + 1;
     // and how much was done on every other day
     if (!S.history) S.history = {};
@@ -4265,6 +4464,20 @@
       recap += '</div>';
       body.innerHTML += recap;
     }
+    /* The order of a comparison is a list, not a line of text: the names of
+       the cards become pictures, and a line of pictures and numbers wraps
+       into a ragged row that nobody can read. */
+    if (q.type === 'compare' && q.cmpOrder && q.cmpOrder.length) {
+      var cmpBox = el('div', 'cmp-list');
+      q.cmpOrder.forEach(function (r) {
+        var row = el('div', 'cmp-row' + (r.winner ? ' win' : ''));
+        row.appendChild(iconEl(r.item, ''));
+        row.appendChild(el('span', 'cmp-name', r.name));
+        row.appendChild(el('span', 'cmp-val', r.value));
+        cmpBox.appendChild(row);
+      });
+      body.appendChild(cmpBox);
+    }
     fb.setAttribute('aria-hidden', 'false');
     $('#action-bar').style.display = 'none';
     setText('#continue-btn', L.i >= L.qs.length - 1 ? 'FINISH' : 'CONTINUE');
@@ -4275,6 +4488,13 @@
     $('#feedback').classList.remove('on');
     $('#action-bar').style.display = '';
     L.i++;
+    /* The last question of the day was answered: the player is stopped
+       here, in the middle of the lesson — with the clash of the parry and
+       not with a form. */
+    if (L.i < L.qs.length && limitHit() && !freeRun(L.kind)) {
+      showLimitScreen();
+      return;
+    }
     if (L.i >= L.qs.length) finish();
     else renderQ();
   }
@@ -4455,12 +4675,23 @@
       }
     }
     save();
-    setText('#r-xp', '+' + L.xp);
-    setText('#r-acc', acc + '%');
-    setText('#r-streak', S.streak);
-    setText('#r-lbl-xp', 'XP');
-    setText('#r-lbl-acc', 'accuracy');
-    setText('#r-lbl-streak', 'day streak');
+    if (L.kind === 'daily') {
+      /* the run of the day gives its numbers: what was right with a plus,
+         what was wrong with a minus */
+      setText('#r-xp', '+' + L.right);
+      setText('#r-acc', '-' + L.wrong);
+      setText('#r-streak', acc + '%');
+      setText('#r-lbl-xp', 'right');
+      setText('#r-lbl-acc', 'wrong');
+      setText('#r-lbl-streak', 'score');
+    } else {
+      setText('#r-xp', '+' + L.xp);
+      setText('#r-acc', acc + '%');
+      setText('#r-streak', S.streak);
+      setText('#r-lbl-xp', 'XP');
+      setText('#r-lbl-acc', 'accuracy');
+      setText('#r-lbl-streak', 'day streak');
+    }
     setText('#r-lbl-souls', 'souls');
     // the shop pays you back: a lesson is worth souls, a flawless one more
     var soulPay = 0, soulWhy = '';
@@ -4481,8 +4712,7 @@
       setText('#result-title', acc >= 90 ? 'Flawless!' : acc >= 60 ? 'Nice work!' : 'Keep grinding');
     }
     setText('#result-note', L.kind === 'daily'
-      ? 'The run of the day is done. The same questions come back tomorrow - ' +
-        'a second go is only possible for what you missed, and it pays nothing.'
+      ? 'The run of the day is done. The same questions come back tomorrow.'
       : (nextUnit && mistakes.length
         ? 'The next lesson stays locked until you get the ' + mistakes.length +
           (mistakes.length === 1 ? ' item' : ' items') + ' you missed right.'
@@ -4507,12 +4737,7 @@
     // offer the next lesson straight away when the path has one — but only
     // when there is nothing left to fix
     var nextBtn = $('#result-next');
-    if (L.kind === 'daily' && (L.wrongQs || []).length) {
-      nextBtn.hidden = false;
-      nextBtn.textContent = 'TAKE THE ' + L.wrongQs.length + ' YOU MISSED';
-      nextBtn.className = 'btn btn-red btn-block';
-      nextBtn.onclick = function () { nextBtn.hidden = true; startDailyRetry(); };
-    } else if (L.kind === 'daily') {
+    if (L.kind === 'daily') {
       nextBtn.hidden = false;
       nextBtn.className = 'btn btn-green btn-block';
       nextBtn.textContent = 'BACK TO THE PATH';
@@ -4834,8 +5059,22 @@
     profileFrom = (current === 'profile') ? 'path' : current;
     show('profile');
   }
+  /* The avatar of a profile is a picture, never a piece of markup: the file
+     that is imported can carry anything, and an address like
+     "x\" onerror=alert(1) x=\"" would have been put into the page as
+     code. Only the pictures that the shop knows are allowed. */
+  function avatarOk(slug) {
+    if (!slug || slug === 'owl') return true;
+    if (heroBySlug(slug)) return true;
+    if (caseItemById(slug)) return true;
+    return false;
+  }
   function avatarUrl(slug) {
     if (!slug || slug === 'owl') return 'assets/owl.svg';
+    /* a thing that came out of a case wears its own art: the portrait of the
+       hero or the icon of the stat of the game */
+    var item = caseItemById(slug);
+    if (item) return itemArt(item);
     if (heroBySlug(slug)) return 'assets/heroes/' + slug + '.png';
     return 'assets/icons/' + slug + '.png';
   }
@@ -4859,13 +5098,23 @@
     if (!pick) return;
     pick.innerHTML = '';
     var list = ['owl'].concat(HEROES.map(function (h) { return h.slug; }));
+    /* the things that came out of the cases can be worn as well */
+    var col = collection();
+    Object.keys(col).forEach(function (id) { list.push(id); });
     list.forEach(function (slug) {
       var b = el('button', 'ava' + ((S.avatar || 'owl') === slug ? ' on' : ''));
       b.type = 'button';
       var h = heroBySlug(slug);
-      b.title = h ? h.name : 'Guided Owl';
-      b.innerHTML = '<img src="' + avatarUrl(slug) + '" alt="' +
-        (h ? h.name : 'Guided Owl') + '" loading="lazy" decoding="async" width="72" height="120">';
+      var item = caseItemById(slug);
+      b.title = item ? item.name : (h ? h.name : 'Guided Owl');
+      var ava = document.createElement('img');
+      ava.src = avatarUrl(slug);
+      ava.alt = item ? item.name : (h ? h.name : 'Guided Owl');
+      ava.loading = 'lazy';
+      ava.decoding = 'async';
+      ava.width = 72;
+      ava.height = 120;
+      b.appendChild(ava);
       b.addEventListener('click', function () {
         S.avatar = slug; save(); renderProfile(); renderAvatarPicker();
       });
@@ -4880,7 +5129,13 @@
     var av = $('#profile-avatar');
     var mood = heroMood();
     av.className = 'avatar avatar-hero ' + mood.id;
-    av.innerHTML = '<img src="' + avatarUrl(S.avatar) + '" alt="" width="54" height="54">';
+    av.innerHTML = '';
+    var avImg = document.createElement('img');
+    avImg.src = avatarUrl(avatarOk(S.avatar) ? S.avatar : 'owl');
+    avImg.alt = '';
+    avImg.width = 54;
+    avImg.height = 54;
+    av.appendChild(avImg);
     var moodEl = $('#profile-mood');
     if (moodEl) {
       var h = heroBySlug(S.avatar);
@@ -4888,7 +5143,7 @@
       moodEl.className = 'pc-mood ' + mood.id;
     }
     setText('#profile-meta', (name ? label + ' · ' : '') + 'Level ' + leagueInfo().level +
-      ' · ' + league() + ' · ' + S.xp + ' XP · ' +
+      ' · ' + S.xp + ' XP · ' +
       lessons + (lessons === 1 ? ' lesson' : ' lessons'));
 
     // account details
@@ -5016,17 +5271,25 @@
   function mergeProfile(p) {
     var merged = JSON.parse(JSON.stringify(DEFAULTS));
     var taken = 0;
+    /* the path of the file comes first: the old records of the mastery and
+       of the lessons are moved into it */
+    if (p.track && TRACKS[p.track]) merged.track = p.track;
     Object.keys(merged).forEach(function (k) {
         if (p[k] === undefined || p[k] === null) return;
         if (k === 'settings') return;
         if (k === 'xp' || k === 'streak' || k === 'right' || k === 'wrong' ||
             k === 'lessons' || k === 'todayCount' || k === 'souls' || k === 'soulsEarned' ||
-            k === 'todayLessons') {
+            k === 'todayLessons' || k === 'dayQuestions') {
           if (typeof p[k] === 'number' && isFinite(p[k])) { merged[k] = p[k]; taken++; }
           return;
         }
+        if (k === 'avatar') {
+          /* the avatar of a file is a picture of ours and nothing else */
+          if (typeof p[k] === 'string' && avatarOk(p[k])) { merged[k] = p[k]; taken++; }
+          return;
+        }
         if (k === 'mastery' || k === 'unlocked' || k === 'seen' || k === 'history' ||
-            k === 'equipped' || k === 'bughunt') {
+            k === 'equipped' || k === 'bughunt' || k === 'collection') {
           if (typeof p[k] === 'object' && !Array.isArray(p[k])) { merged[k] = p[k]; taken++; }
           return;
         }
@@ -5067,7 +5330,7 @@
         }
         if (k === 'unitsDone') {
           // one list per track; an old file keeps its list for the shopkeeper
-          merged.unitsDone = migrateUnits(p[k]);
+          merged.unitsDone = migrateUnits(p[k], merged.track);
           taken++;
           return;
         }
@@ -5077,15 +5340,17 @@
          sound and the daily goal of this browser are not the progress, and
          an import must not take them away. */
       merged.settings = Object.assign({}, DEFAULTS.settings, (S && S.settings) || {});
-      merged.mastery = migrateMastery(merged.mastery || {});
-      merged.unitsDone = migrateUnits(merged.unitsDone || {});
+      /* the path of the player is known before the mastery is moved: an old
+         file keeps its record in the path the player is walking now */
+      if (p.track && TRACKS[p.track]) merged.track = p.track;
+      merged.mastery = migrateMastery(merged.mastery || {}, merged.track);
+      merged.unitsDone = migrateUnits(merged.unitsDone || {}, merged.track);
       /* the board of the player, the first run and the theme were dropped as
          well — they are part of the profile too */
       if (typeof p.board === 'boolean') merged.board = p.board;
       if (typeof p.onboarded === 'boolean') merged.onboarded = p.onboarded;
       if (typeof p.tourStep === 'number') merged.tourStep = p.tourStep;
       if (typeof p.themeV === 'number') merged.themeV = p.themeV;
-      if (p.track && TRACKS[p.track]) merged.track = p.track;
       if (p.statsTrack && TRACKS[p.statsTrack]) merged.statsTrack = p.statsTrack;
     return { profile: merged, taken: taken };
   }
@@ -5289,6 +5554,205 @@
       wrap.appendChild(grid);
       box.appendChild(wrap);
     });
+  }
+
+  // ==================================================================
+  // THE CASES
+  // Five cases, five collections. The case is bought with souls, it opens
+  // in front of the player, and what comes out of it stays in the
+  // collection of that case for good.
+  // ==================================================================
+  function caseData() {
+    return window.DSCASES || { rarities: [], cases: [] };
+  }
+  function caseRarity(id) {
+    var rs = caseData().rarities || [];
+    for (var i = 0; i < rs.length; i++) if (rs[i].id === id) return rs[i];
+    return null;
+  }
+  function caseById(id) {
+    var cs = caseData().cases || [];
+    for (var i = 0; i < cs.length; i++) if (cs[i].id === id) return cs[i];
+    return null;
+  }
+  function caseItemById(id) {
+    var cs = caseData().cases || [];
+    for (var i = 0; i < cs.length; i++) {
+      var items = cs[i].items || [];
+      for (var j = 0; j < items.length; j++) if (items[j].id === id) return items[j];
+    }
+    return null;
+  }
+  function collection() {
+    return (S.collection && typeof S.collection === 'object') ? S.collection : {};
+  }
+  function itemArt(item) {
+    if (!item) return '';
+    if (item.art === 'hero') return 'assets/heroes/' + item.hero + '.png';
+    return 'assets/stat/' + (item.icon || 'souls') + '.png';
+  }
+  /* the case decides what is inside it: first the rarity, then one of the
+     things of that rarity */
+  function drawFromCase(c) {
+    var rs = caseData().rarities || [];
+    var total = 0;
+    rs.forEach(function (r) { total += r.odds || 0; });
+    if (!total) return null;
+    var roll = Math.random() * total, acc = 0, rar = rs[0];
+    for (var i = 0; i < rs.length; i++) {
+      acc += rs[i].odds || 0;
+      if (roll <= acc) { rar = rs[i]; break; }
+    }
+    var pool = (c.items || []).filter(function (it) { return it.rarity === rar.id; });
+    if (!pool.length) {
+      /* the case has nothing of that rarity: the next common one it has */
+      for (var j = 0; j < rs.length; j++) {
+        pool = (c.items || []).filter(function (it) { return it.rarity === rs[j].id; });
+        if (pool.length) { rar = rs[j]; break; }
+      }
+    }
+    if (!pool.length) return null;
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  function renderVault() {
+    var box = $('#case-grid');
+    if (box) {
+      box.innerHTML = '';
+      var col = collection();
+      (caseData().cases || []).forEach(function (c) {
+        var card = el('div', 'case-card');
+        var head = el('div', 'case-head');
+        var pic = el('div', 'case-pic');
+        var img = document.createElement('img');
+        img.src = 'assets/heroes/' + c.hero + '.png';
+        img.alt = c.name;
+        img.loading = 'lazy';
+        pic.appendChild(img);
+        head.appendChild(pic);
+        var names = el('div', 'case-head-t');
+        names.appendChild(el('div', 'case-name', c.name));
+        names.appendChild(el('div', 'case-tag', c.tagline));
+        head.appendChild(names);
+        card.appendChild(head);
+        /* the collection of this case: every slot shows what it is, and the
+           ones that are still empty stay dark */
+        var slots = el('div', 'case-slots');
+        (c.items || []).forEach(function (it) {
+          var rar = caseRarity(it.rarity);
+          var have = !!col[it.id];
+          var slot = el('div', 'case-slot' + (have ? ' have' : '') +
+            (it.rarity === 'contraband' ? ' top' : ''));
+          slot.style.setProperty('--rar', rar ? rar.color : '#888');
+          var pic2 = document.createElement('img');
+          pic2.src = itemArt(it);
+          pic2.alt = '';
+          pic2.loading = 'lazy';
+          slot.appendChild(pic2);
+          slot.title = (have ? it.name : '???') + ' · ' + (rar ? rar.name : '');
+          slots.appendChild(slot);
+        });
+        card.appendChild(slots);
+        var foot = el('div', 'case-foot');
+        var found = (c.items || []).filter(function (it) { return !!col[it.id]; }).length;
+        foot.appendChild(el('div', 'case-found', found + ' / ' + (c.items || []).length + ' found'));
+        var btn = el('button', 'btn btn-green btn-sm case-open', 'OPEN · ' + c.cost);
+        btn.type = 'button';
+        if (souls() < c.cost) btn.setAttribute('disabled', 'disabled');
+        btn.addEventListener('click', function () { openCase(c.id); });
+        foot.appendChild(btn);
+        card.appendChild(foot);
+        box.appendChild(card);
+      });
+    }
+    setText('#vault-souls', souls());
+    renderCosmetics();
+  }
+
+  /* the opening: the case is shaken, it is torn open, and the thing inside
+     stands in the light of its rarity */
+  function openCase(id) {
+    var c = caseById(id);
+    if (!c) return;
+    if (souls() < c.cost) {
+      toast('Not enough souls for the ' + c.name + ' case');
+      return;
+    }
+    spendSouls(c.cost, 'case: ' + c.name);
+    var m = $('#case-modal');
+    if (!m) return;
+    var stage = $('#case-stage');
+    var box = $('#case-box');
+    var item = $('#case-item');
+    var beam = $('#case-beam');
+    var hero = $('#case-hero');
+    var name = $('#case-box-name');
+    hero.src = 'assets/heroes/' + c.hero + '.png';
+    hero.alt = c.name;
+    name.textContent = c.name;
+    stage.className = 'case-stage';
+    item.innerHTML = '';
+    beam.style.setProperty('--rar', '#3DDCC8');
+    setText('#case-modal-title', 'Opening…');
+    setText('#case-modal-sub', 'The ' + c.name + ' case');
+    var okBtn = $('#case-ok');
+    okBtn.disabled = true;
+    okBtn.className = 'btn btn-green btn-block';
+    m.classList.add('on');
+    renderVault();
+    /* the rattle */
+    stage.classList.add('rattle');
+    sfxCaseRattle();
+    setTimeout(function () {
+      stage.classList.remove('rattle');
+      stage.classList.add('burst');
+      sfxCaseOpen();
+    }, 1500);
+    /* what is inside */
+    setTimeout(function () {
+      var it = drawFromCase(c);
+      if (!it) {
+        setText('#case-modal-title', 'Empty');
+        setText('#case-modal-sub', 'This case has nothing inside. Try another one.');
+        okBtn.disabled = false;
+        okBtn.textContent = 'CLOSE';
+        return;
+      }
+      var rar = caseRarity(it.rarity) || { id: 'common', name: 'Common', color: '#9FB0B8' };
+      var col = collection();
+      var dup = !!col[it.id];
+      col[it.id] = (col[it.id] || 0) + 1;
+      S.collection = col;
+      if (dup) awardSouls(3, 'duplicate: ' + it.name);
+      save();
+      /* the box stays open: it was torn apart and does not come back */
+      stage.classList.add('reveal');
+      stage.style.setProperty('--rar', rar.color);
+      beam.style.setProperty('--rar', rar.color);
+      var art = document.createElement('img');
+      art.src = itemArt(it);
+      art.alt = it.name;
+      item.innerHTML = '';
+      item.appendChild(art);
+      item.appendChild(el('div', 'case-item-name', it.name));
+      item.appendChild(el('div', 'case-item-rar', rar.name));
+      item.appendChild(el('div', 'case-item-desc', it.desc || ''));
+      if (dup) item.appendChild(el('div', 'case-item-dup', 'Already in the collection · +3 souls'));
+      else item.appendChild(el('div', 'case-item-new', 'NEW'));
+      setText('#case-modal-title', dup ? 'Already yours' : 'Found: ' + it.name);
+      setText('#case-modal-sub', rar.name + ' · the ' + c.name + ' collection');
+      sfxReveal(rar.id);
+      okBtn.disabled = false;
+      okBtn.textContent = 'CONTINUE';
+      renderVault();
+      renderProfile();
+      renderAvatarPicker();
+    }, 2000);
+  }
+
+  function closeCase() {
+    var m = $('#case-modal');
+    if (m) m.classList.remove('on');
   }
 
   // ==================================================================
@@ -6135,8 +6599,19 @@
     mergeCloudState: mergeCloudState,
     bhApplyGrant: bhApplyGrant,
     startExam: startExam,
+    startMixed: startMixed,
     loadProfile: function () { return load(storageKey()); },
     startLesson: startLesson,
+    /* the cases of the vault */
+    openCase: openCase,
+    /* the two moments of the Rejuvenator */
+    crystalAppear: crystalAppear,
+    showLimitScreen: showLimitScreen,
+    limitHit: limitHit,
+    questionsToday: questionsToday,
+    renderVault: renderVault,
+    caseData: caseData,
+    caseItemById: caseItemById,
     /* the run of the day — the harness has to be able to start it, to prove
        that it is used from the moment it starts */
     startDaily: startDaily,
@@ -6260,6 +6735,10 @@
     $('#updates-back').addEventListener('click', function () { setActiveTab('path'); show('path'); });
     $('#bughunt-back').addEventListener('click', function () { setActiveTab('path'); show('path'); });
     $('#friends-back').addEventListener('click', function () { setActiveTab('path'); show('path'); });
+    $('#vault-back').addEventListener('click', function () { setActiveTab('path'); show('path'); });
+    $('#vault-profile').addEventListener('click', function () { openProfile(); });
+    var caseOk = $('#case-ok');
+    if (caseOk) caseOk.addEventListener('click', function () { closeCase(); });
     $('#sub-back').addEventListener('click', function () { setActiveTab('path'); show('path'); });
     $('#friends-profile').addEventListener('click', function () { openProfile(); });
     $('#sub-profile').addEventListener('click', function () { openProfile(); });

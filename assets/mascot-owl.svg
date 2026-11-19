@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 230" width="220" height="230" role="img" aria-label="The owl of the shop">
+  <!-- The mascot of the shop: the owl of Deadlock, drawn in flat shapes so
+       that the browser can move the parts of it — the head turns, the wings
+       beat, the whole bird flies, walks or bursts. Every animation of the
+       background is a different set of moves of these parts. -->
+  <defs>
+    <linearGradient id="mw-body" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9BE86E"/>
+      <stop offset=".55" stop-color="#63BE3E"/>
+      <stop offset="1" stop-color="#2E7A16"/>
+    </linearGradient>
+    <linearGradient id="mw-head" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#B6F07C"/>
+      <stop offset="1" stop-color="#6FC648"/>
+    </linearGradient>
+    <linearGradient id="mw-wing" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7FD156"/>
+      <stop offset="1" stop-color="#357F1B"/>
+    </linearGradient>
+    <radialGradient id="mw-eye" cx="40%" cy="35%" r="70%">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#DCE7DE"/>
+    </radialGradient>
+  </defs>
+
+  <!-- the feet and the tail stand on the ground -->
+  <g id="m-feet">
+    <path fill="#F5A524" d="M84 196c-6 0-10 5-10 10 0 6 5 10 12 10h10c4 0 6-3 6-7v-6c0-4-4-7-8-7z"/>
+    <path fill="#F5A524" d="M136 196c-6 0-10 5-10 10 0 6 5 10 12 10h10c4 0 6-3 6-7v-6c0-4-4-7-8-7z"/>
+    <path fill="#3C8F12" d="M96 188h28l6 18H90z"/>
+  </g>
+
+  <!-- the body -->
+  <g id="m-body">
+    <ellipse cx="110" cy="138" rx="60" ry="70" fill="url(#mw-body)"/>
+    <ellipse cx="110" cy="152" rx="40" ry="50" fill="#DCF3C2" opacity=".92"/>
+    <!-- the chest of the owl: three little feathers -->
+    <path fill="#B6E08E" d="M92 150c4 0 7 3 7 6s-3 6-7 6-7-3-7-6 3-6 7-6zM128 150c4 0 7 3 7 6s-3 6-7 6-7-3-7-6 3-6 7-6zM110 168c4 0 7 3 7 6s-3 6-7 6-7-3-7-6 3-6 7-6z"/>
+  </g>
+
+  <!-- the wings: they beat for the flight and for the shaking of the wings -->
+  <g id="m-wing-l">
+    <ellipse cx="52" cy="140" rx="19" ry="44" fill="url(#mw-wing)" transform="rotate(-8 52 140)"/>
+  </g>
+  <g id="m-wing-r">
+    <ellipse cx="168" cy="140" rx="19" ry="44" fill="url(#mw-wing)" transform="rotate(8 168 140)"/>
+  </g>
+
+  <!-- the head turns on its own -->
+  <g id="m-head">
+    <!-- the tufts of the ears -->
+    <path fill="#5FBB3C" d="M62 44l14-26 20 20z"/>
+    <path fill="#5FBB3C" d="M158 44l-14-26-20 20z"/>
+    <ellipse cx="110" cy="72" rx="58" ry="52" fill="url(#mw-head)"/>
+    <!-- the eyes -->
+    <circle cx="88" cy="68" r="23" fill="url(#mw-eye)"/>
+    <circle cx="132" cy="68" r="23" fill="url(#mw-eye)"/>
+    <circle cx="90" cy="70" r="11" fill="#1B2A20"/>
+    <circle cx="134" cy="70" r="11" fill="#1B2A20"/>
+    <circle cx="85" cy="65" r="4" fill="#FFFFFF" opacity=".9"/>
+    <circle cx="129" cy="65" r="4" fill="#FFFFFF" opacity=".9"/>
+    <!-- the brows give the bird a face -->
+    <path stroke="#3C8F12" stroke-width="6" stroke-linecap="round" fill="none" d="M70 40c6-6 16-7 23-3"/>
+    <path stroke="#3C8F12" stroke-width="6" stroke-linecap="round" fill="none" d="M150 40c-6-6-16-7-23-3"/>
+    <!-- the beak -->
+    <path fill="#F5A524" d="M110 84l11 12-11 12-11-12z"/>
+    <path fill="#D98C12" d="M110 96l11 0-11 12z"/>
+  </g>
+</svg>
