@@ -2115,7 +2115,7 @@
   // ------------------------------------------------------------- support
   /* Everything a tester might want to tell us, in one block they can copy.
      This is the only place that knows where feedback goes. */
-  var APP_VERSION = '0.38.2';
+  var APP_VERSION = '0.38.3';
   var BUILD_DATE = '2026-11-17';
   // Where "report a problem" goes. Two options, both need no server:
   //   ISSUES_URL  a GitHub issue with the diagnostics already filled in
@@ -2135,6 +2135,9 @@
     : 'api/shop';
 
   var WHATS_NEW = [
+    ['The shop gives every account three hundred souls', 'There is no server yet — the site lives on GitHub Pages, and the account of a player is the profile of this browser. So the gift of the shop is written into your own profile: 300 souls, once, the next time you open the site. The number of the gift is written down with it, so it is not given twice, and it is not given again on any other day. When the server of the shop is stood up for good, the gift of the server takes the place of this one — nobody gets 600 souls.'],
+    ['A partly right answer is not a mistake', 'A card that carries six numbers, three of them right and three of them wrong, was counted as a wrong answer — and in the drill that fixes the mistakes it locked the next lesson for good: the drill asked for a card that the drill itself did not consider a mistake. A partly right answer is neither right nor a mistake now. The mastery of the card stays where it is, the door of the next lesson opens, and the result of the run carries a third number: how many answers were only partly right.'],
+    ['The card of the item shows only what the question is about', 'The questions about the tab of the shop, about the price and about the shelf of a card hid the whole card — so the player could not even see which card the question was about. The card shows its name and its picture now and hides only the part the question is about: the tab, the tier, the price. The window of the hint ("somewhere between 29 and 35 m") holds more than one possible value too: a window with a single value in it was the answer itself, not a hint.'],
     ['The search survives the filter', 'Type "extra" in the search of the shop and tap the chip of a tab: the list jumped to every card of the tab while the field still read "extra", and the player saw a list that did not answer what they asked. The word of the search now holds through every filter. The words of the chips are words of the search as well — "Survival" found nothing before, although the chip right above said "Survival · 37" — and so is the tier of a card.'],
     ['The card of an item says what is always on', 'One flat table of numbers hid the difference between the numbers a card carries the whole time and the numbers that are there only while the buff is up. The card is split into the two blocks the game writes them in now. And the card can be reached and left with the keyboard: it has a button that closes it, the focus goes into it, and the focus stays there until it is closed.'],
     ['The run of the day is used from the moment it starts', 'The XP is paid for every answer, and the day was written down only when the run was over: a run that was left half way and started again paid twice for the same twelve questions — five times a day for the free plan, and as often as the player liked with a subscription. The day is written down when the run starts now, the run can be put down and taken up again, and what was missed is remembered as it happens.'],
