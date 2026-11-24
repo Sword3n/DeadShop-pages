@@ -17,6 +17,27 @@
  * difference between the cases is the collection, not the price.
  */
 window.DSCASES = {
+  /* What a duplicate is worth.
+   *
+   * Twenty-five souls for every thing that comes out of a case a second
+   * time, and five more for the rarity of it: the rarer the thing, the
+   * better the refund. The ladder of the shop:
+   *
+   *     common 30 · uncommon 35 · rare 40 · very rare 45
+   *     legendary 50 · contraband 55
+   *
+   * The rarity of the thing is the number of its step in the ladder, and
+   * the step is what the five souls follow.
+   */
+  dupSouls: {
+    common: 30, uncommon: 35, rare: 40, veryrare: 45,
+    legendary: 50, contraband: 55
+  },
+  /* The guarantee: after this many cases of the same kind without the
+     rarest thing in it, the next one of that kind gives it for sure.
+     The counter counts the cases that came out of the same case since the
+     last time the rarest thing fell out of it. */
+  pity: 20,
   rarities: [
     { id: 'common', name: 'Common', color: '#9FB0B8', odds: 50 },
     { id: 'uncommon', name: 'Uncommon', color: '#4B9CD3', odds: 25 },

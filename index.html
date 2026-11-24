@@ -17,7 +17,7 @@
 <!-- the build of the page itself. The script reads it and compares it with
      its own version: a page from an older build next to a newer script is
      a site that throws, so the two are put back together. -->
-<meta name="ds-version" content="0.38.5">
+<meta name="ds-version" content="0.39.0">
 <!-- a private test build: it stays out of the search engines, the link is
      the only way in. Remove this line when the site goes public on purpose. -->
 <meta name="robots" content="noindex, nofollow">
@@ -47,7 +47,9 @@
 <link rel="mask-icon" href="assets/icon.svg" color="#3DDCC8">
 <link rel="apple-touch-icon" href="assets/icon-180.png">
 <link rel="preload" href="assets/fonts/saira-var.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="app.css?v=22">
+<link rel="stylesheet" href="app.css?v=23">
+<!-- the colours of the parry in the game, taken from its own icon -->
+<link rel="stylesheet" href="assets/parry-colors.css?v=1">
 </head>
 <body>
 <!-- ========================== THE BOOT SCREEN ==========================
@@ -336,7 +338,7 @@
           <span class="chip-lbl">xp</span>
         </div>
         <div class="chip chip-souls" id="souls-chip" tabindex="0"
-             data-tip="The souls: the currency of the shop. A lesson pays two, a flawless one five, the daily run three.">
+             data-tip="The souls: the currency of the shop. A lesson pays sixty, a flawless one a hundred, the daily run sixty.">
           <span class="soul-ico" aria-hidden="true"></span>
           <span class="chip-num" id="souls-val">0</span>
           <span class="chip-lbl">souls</span>
@@ -621,7 +623,7 @@
     <div class="scroll">
       <div class="vault-wallet">
         <span class="vault-souls"><img src="assets/souls.png" alt="" width="18" height="18"> <b id="vault-souls">0</b></span>
-        <span class="vault-note" id="vault-note">A lesson pays two souls, a flawless one five. The cases cost souls too.</span>
+        <span class="vault-note" id="vault-note">A lesson pays sixty souls, a flawless one a hundred. The cases cost souls too.</span>
       </div>
 
       <h3 class="section-h">Cases</h3>
@@ -657,13 +659,20 @@
   <div class="modal" id="case-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="case-modal-title">
     <div class="modal-card case-open-card">
       <div class="case-stage" id="case-stage">
+        <div class="case-charge" id="case-charge"></div>
         <div class="case-beam" id="case-beam"></div>
+        <div class="case-ring" id="case-ring"></div>
+        <div class="case-sparks" id="case-sparks">
+          <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        </div>
+        <div class="case-flash" id="case-flash"></div>
         <div class="case-box" id="case-box">
           <img id="case-hero" src="assets/heroes/shiv.png" alt="">
           <span class="case-box-name" id="case-box-name">Shiv</span>
         </div>
         <div class="case-item" id="case-item"></div>
       </div>
+      <div class="case-pity" id="case-pity"></div>
       <h3 class="case-modal-title" id="case-modal-title">Opening…</h3>
       <p class="case-modal-sub" id="case-modal-sub"></p>
       <div class="case-actions">
@@ -1065,21 +1074,35 @@
 
   <!-- ========================= DAILY LIMIT ========================== -->
   <!-- the parry: the moment the limit is reached, the player is stopped by
-       a clash and not by a form -->
+       a clash and not by a form. The symbol is the one of the game: the gold
+       star of Spellbreaker takes the hit of the red impact. The colours are
+       the colours of that icon (assets/parry-colors.css). -->
   <div class="parry-fx" id="parry-fx" aria-hidden="true">
-    <div class="parry-ring"></div>
-    <div class="parry-ring parry-ring2"></div>
-    <div class="parry-clash"><span></span><span></span></div>
-    <div class="parry-flash"></div>
-    <div class="parry-word">BLOCKED</div>
+    <div class="parry-veil"></div>
+    <div class="parry-core">
+      <div class="parry-halo"></div>
+      <div class="parry-burst"></div>
+      <div class="parry-wave"></div>
+      <div class="parry-wave parry-wave2"></div>
+      <img class="parry-star" src="assets/parry-star.png" alt="">
+      <div class="parry-sparks">
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      </div>
+    </div>
+    <div class="parry-word">PARRY</div>
   </div>
 
-  <!-- the crystal of the pit: it comes out of the dark and it breaks -->
+  <!-- the crystal of the pit: it comes out of the dark, it hangs in the light
+       and it breaks. The shard is drawn the way the game draws it: a dark
+       stone with a green light inside it, over a pool of light. -->
   <div class="crystal-fx" id="crystal-fx" aria-hidden="true">
+    <div class="crystal-pool"></div>
     <div class="crystal-stage">
-      <img class="crystal-img" src="assets/rejuvenator-crystal.png" alt="">
+      <div class="crystal-halo"></div>
+      <img class="crystal-img" src="assets/rejuvenator-crystal.svg" alt="">
       <div class="crystal-shards">
         <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        <i></i><i></i><i></i><i></i>
       </div>
     </div>
     <div class="crystal-word">REJUVENATOR</div>
@@ -1172,7 +1195,7 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 </div>
 <script src="data/data.js?v=14"></script>
-<script src="data/cases.js?v=1"></script>
+<script src="data/cases.js?v=2"></script>
 <script src="data/shop_stats.js?v=2"></script>
 <script src="data/updates.js?v=3"></script>
 <script src="data/heroes.js?v=1"></script>
@@ -1184,6 +1207,6 @@
 <script src="core.js?v=16"></script>
 <script src="auth.js?v=9"></script>
 <script src="api.js?v=2"></script>
-<script src="app.js?v=34"></script>
+<script src="app.js?v=35"></script>
 </body>
 </html>

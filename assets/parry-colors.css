@@ -1,0 +1,8 @@
+/* the colours of the parry in the game: the gold of the star and the
+   red of the impact, taken from the icon of Spellbreaker */
+:root{
+  --parry-gold:#FFD94E;
+  --parry-gold-soft:#FFF39B;
+  --parry-impact:#EA5B47;
+  --parry-ground:#101616;
+}

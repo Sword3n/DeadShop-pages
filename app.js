@@ -240,6 +240,9 @@
     grantTaken: '', giftTaken: '',
     // the things that came out of the cases: id of the thing, how many of it
     collection: {},
+    // the counter of the guarantee of every case: how many cases of that
+    // kind came out without the rarest thing in them
+    casePity: {},
     gate: null,
     bughunt: { reports: [], inbox: [], grants: [] },
     // the vault is the look of the game: the dark theme is the default now
@@ -292,6 +295,7 @@
         d.soulsLedger = arrField(p.soulsLedger);
         d.cosmetics = arrField(p.cosmetics);
         d.collection = objField(p.collection);
+        d.casePity = objField(p.casePity);
         d.dailyMiss = arrField(p.dailyMiss);
         d.paused = (p.paused && typeof p.paused === 'object') ? p.paused : null;
         var bh = objField(p.bughunt);
@@ -747,7 +751,7 @@
         m.classList.add('on');
         renderSub();
         renderLimitChip();
-      }, 1100);
+      }, 1250);
     } else {
       m.classList.add('on');
       renderSub();
@@ -1914,9 +1918,39 @@
       if (p && p.catch) p.catch(function () { sfxDoneFallback(); });
     } catch (e) { sfxDoneFallback(); }
   };
+  /* The sounds of the game are files, not synth voices: the clash of the
+     parry, the shatter of the crystal, the chime of the urn. They play
+     through an <audio> element, which works over file:// as well, where a
+     fetch of a local file is blocked. */
+  var sfxEls = {};
+  function sfxFile(path) {
+    if (!S.settings.sound) return null;
+    if (!(path in sfxEls)) {
+      try {
+        var el = new Audio(path);
+        el.preload = 'auto';
+        el.setAttribute('playsinline', '');
+        el.volume = SFX_FILE_LEVEL;
+        sfxEls[path] = el;
+      } catch (e) { sfxEls[path] = false; }
+    }
+    return sfxEls[path] || null;
+  }
+  /* play a sound of the game; the old pipes take over if the file cannot
+     be played at all */
+  function playSfxFile(path, fallback) {
+    var el = sfxFile(path);
+    if (!el) { if (fallback) fallback(); return; }
+    try {
+      el.currentTime = 0;
+      var p = el.play();
+      if (p && p.catch) p.catch(function () { if (fallback) fallback(); });
+    } catch (e) { if (fallback) fallback(); }
+  }
   /* the parry: the clash that stops the player at the limit of the day.
-     Two blades, a ring of light and the sound of metal on metal. */
-  var sfxParry = function () {
+     The sound is the sound of the game: the parry of the melee and the gold
+     of the star of Spellbreaker over it (assets/sfx/parry.mp3). */
+  var sfxParryFallback = function () {
     var c = audio(); if (!c) return;
     var t = c.currentTime;
     /* the swing */
@@ -1929,17 +1963,12 @@
     ping(70, t + 0.04, 0.45, 0.11, 'sine', 0.55);
     hiss(t + 0.05, 0.5, 0.035, 5200, 0.9);
   };
-  /* the heavy blow: the sound of something big hitting something else */
-  var sfxHeavyHit = function () {
-    var c = audio(); if (!c) return;
-    var t = c.currentTime;
-    hiss(t, 0.26, 0.075, 1500, 1.5);          /* the swing of the blow */
-    ping(58, t + 0.04, 0.60, 0.17, 'sine', 0.62); /* the weight of it */
-    ping(116, t + 0.05, 0.38, 0.085, 'triangle', 0.5);
-    ping(1750, t + 0.06, 0.45, 0.05, 'square', 0.26); /* the metal of the arms */
+  var sfxParry = function () {
+    playSfxFile('assets/sfx/parry.mp3', sfxParryFallback);
   };
-  /* the crystal breaks */
-  var sfxCrystalBreak = function () {
+  /* the crystal breaks: the sound of the game (sounds/gameplay/rejuv_shatter,
+     the event of the game is Rejuv.Pickup) */
+  var sfxCrystalBreakFallback = function () {
     var c = audio(); if (!c) return;
     var t = c.currentTime;
     hiss(t, 0.55, 0.085, 6200, 0.85);          /* the glass */
@@ -1949,22 +1978,38 @@
     ping(72, t, 0.55, 0.10, 'sine', 0.6);        /* the ground under it */
     ping(2400, t + 0.02, 0.7, 0.028, 'sine', 0.5);
   };
+  var sfxCrystalBreak = function () {
+    playSfxFile('assets/sfx/rejuvenator-shatter.mp3', sfxCrystalBreakFallback);
+  };
+  /* the crystal falls out of the dark: the sound of the game as well
+     (sounds/gameplay/rejuv/rejuv_respawn_start_01, the event is
+     Rejuv.Rebirth.Start) */
+  var sfxCrystalDropFallback = function () {
+    var c = audio(); if (!c) return;
+    var t = c.currentTime;
+    hiss(t, 0.26, 0.075, 1500, 1.5);
+    ping(58, t + 0.04, 0.60, 0.17, 'sine', 0.62);
+    ping(116, t + 0.05, 0.38, 0.085, 'triangle', 0.5);
+  };
+  var sfxCrystalDrop = function () {
+    playSfxFile('assets/sfx/rejuvenator-drop.mp3', sfxCrystalDropFallback);
+  };
 
   /* The crystal of the pit: it comes out of the dark, it hangs in the light
-     and it breaks. The sound of the heavy blow comes first, then the sound
-     of the glass. */
+     and it breaks. The sounds are the sounds of the game: the drop of the
+     crystal, and then the glass of it breaking. */
   function crystalAppear() {
     var fx = $('#crystal-fx');
     if (!fx) return;
     fx.classList.remove('on', 'shatter');
     void fx.offsetWidth;
     fx.classList.add('on');
-    sfxHeavyHit();
+    sfxCrystalDrop();
     setTimeout(function () {
       fx.classList.add('shatter');
       sfxCrystalBreak();
-    }, 760);
-    setTimeout(function () { fx.classList.remove('on', 'shatter'); }, 2800);
+    }, 1900);
+    setTimeout(function () { fx.classList.remove('on', 'shatter'); }, 3100);
   }
 
   /* the case of the shop: it is shaken, it is opened, and what comes out of
@@ -1978,18 +2023,26 @@
     }
     ping(70, t, 0.5, 0.05, 'sine');
   };
-  var sfxCaseOpen = function () {
+  var sfxCaseOpenFallback = function () {
     var c = audio(); if (!c) return;
     var t = c.currentTime;
     hiss(t, 0.45, 0.075, 3200, 0.7);          /* the lid goes off */
     ping(120, t, 0.45, 0.10, 'triangle', 0.45); /* the box drops open */
     ping(240, t + 0.02, 0.35, 0.05, 'sine', 0.5);
   };
+  /* the tear of the case: the sound of the game (the crate that gives way,
+     sounds/world/breakables/tough_crate/tough_crate_break_01) */
+  var sfxCaseOpen = function () {
+    playSfxFile('assets/sfx/case-break.mp3', sfxCaseOpenFallback);
+  };
   /* the voice of a find: a chord, and the rarer the thing, the more voices
      are in it */
   var sfxReveal = function (rarity) {
+    /* the chime of the game: the urn of the souls is cashed in and the
+       souls are paid (sounds/world/urn/soul_urn_cashin_complete_01) */
+    playSfxFile('assets/sfx/case-open.mp3', null);
     var c = audio(); if (!c) return;
-    var t = c.currentTime;
+    var t = c.currentTime + 0.14;
     var sets = {
       common: [392],
       uncommon: [392, 523],
@@ -2115,7 +2168,7 @@
   // ------------------------------------------------------------- support
   /* Everything a tester might want to tell us, in one block they can copy.
      This is the only place that knows where feedback goes. */
-  var APP_VERSION = '0.38.5';
+  var APP_VERSION = '0.39.0';
   var BUILD_DATE = '2026-11-17';
   // Where "report a problem" goes. Two options, both need no server:
   //   ISSUES_URL  a GitHub issue with the diagnostics already filled in
@@ -5873,8 +5926,15 @@
   }
   /* the case decides what is inside it: first the rarity, then one of the
      things of that rarity */
-  function drawFromCase(c) {
+  function drawFromCase(c, guarantee) {
     var rs = caseData().rarities || [];
+    if (guarantee) {
+      /* the guarantee: the rarest thing of the case, for sure */
+      for (var k = rs.length - 1; k >= 0; k--) {
+        var top = (c.items || []).filter(function (it) { return it.rarity === rs[k].id; });
+        if (top.length) return top[Math.floor(Math.random() * top.length)];
+      }
+    }
     var total = 0;
     rs.forEach(function (r) { total += r.odds || 0; });
     if (!total) return null;
@@ -5893,6 +5953,53 @@
     }
     if (!pool.length) return null;
     return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  /* ================= the guarantee of the cases =====================
+   * The owner asked for it: after twenty cases of Shiv without the rarest
+   * thing in it, the next case of Shiv gives the rarest thing for sure.
+   * The counter counts the cases of every kind since the last time the
+   * rarest thing fell out of that kind. */
+  function casePityLimit() {
+    var d = caseData();
+    return (d && typeof d.pity === 'number' && d.pity > 0) ? d.pity : 20;
+  }
+  function casePity(id) {
+    if (!S.casePity || typeof S.casePity !== 'object') S.casePity = {};
+    var n = S.casePity[id];
+    return (typeof n === 'number' && n > 0) ? n : 0;
+  }
+  function caseTopRarity(c) {
+    var rs = caseData().rarities || [];
+    if (!rs.length) return '';
+    return rs[rs.length - 1].id;
+  }
+  /* the case is guaranteed when the counter has reached the limit */
+  function caseGuaranteed(id) {
+    return casePity(id) >= casePityLimit();
+  }
+  /* the counter moves after every case: down to zero when the rarest thing
+     falls out, up by one otherwise */
+  function casePityStep(id, item, c) {
+    if (!S.casePity || typeof S.casePity !== 'object') S.casePity = {};
+    var top = caseTopRarity(c);
+    if (item && item.rarity === top) S.casePity[id] = 0;
+    else S.casePity[id] = casePity(id) + 1;
+  }
+  /* the counter of the guarantee, written where the player can see it */
+  function casePityLabel(c) {
+    var limit = casePityLimit();
+    var n = casePity(c.id);
+    if (n >= limit) return 'Guaranteed · the next one gives the rarest thing';
+    return (limit - n) + ' more to the guarantee of the rarest thing';
+  }
+  /* what a duplicate is worth: the table of the cases says it */
+  function caseDupSouls(rarityId) {
+    var d = caseData();
+    var table = (d && d.dupSouls) || {};
+    var n = table[rarityId];
+    if (typeof n === 'number' && n > 0) return n;
+    return 25;
   }
 
   function renderVault() {
@@ -5921,6 +6028,8 @@
         var foot = el('div', 'case-foot');
         var found = (c.items || []).filter(function (it) { return !!col[it.id]; }).length;
         foot.appendChild(el('div', 'case-found', found + ' / ' + (c.items || []).length + ' found'));
+        foot.appendChild(el('div', 'case-pity-line' + (caseGuaranteed(c.id) ? ' armed' : ''),
+          casePityLabel(c)));
         var look = el('button', 'btn btn-ghost btn-sm case-collect', 'COLLECTION');
         look.type = 'button';
         look.addEventListener('click', function () { openCaseDetail(c.id); });
@@ -6009,6 +6118,9 @@
       return;
     }
     spendSouls(c.cost, 'case: ' + c.name);
+    /* the guarantee: this case may be the one that has to give the rarest
+       thing of the case */
+    var guaranteed = caseGuaranteed(c.id);
     var m = $('#case-modal');
     if (!m) return;
     var stage = $('#case-stage');
@@ -6017,30 +6129,33 @@
     var beam = $('#case-beam');
     var hero = $('#case-hero');
     var name = $('#case-box-name');
+    var ring = $('#case-ring');
     hero.src = 'assets/heroes/' + c.hero + '.png';
     hero.alt = c.name;
     name.textContent = c.name;
     stage.className = 'case-stage';
     item.innerHTML = '';
     beam.style.setProperty('--rar', '#3DDCC8');
-    setText('#case-modal-title', 'Opening…');
+    ring.style.setProperty('--rar', '#3DDCC8');
+    setText('#case-modal-title', guaranteed ? 'Guaranteed…' : 'Opening…');
     setText('#case-modal-sub', 'The ' + c.name + ' case');
+    setText('#case-pity', casePityLabel(c));
     var okBtn = $('#case-ok');
     okBtn.disabled = true;
     okBtn.className = 'btn btn-green btn-block';
     m.classList.add('on');
     renderVault();
-    /* the rattle */
-    stage.classList.add('rattle');
+    /* the rattle: the case trembles and the light gathers in it */
+    stage.classList.add('rattle', 'charge');
     sfxCaseRattle();
     setTimeout(function () {
-      stage.classList.remove('rattle');
+      stage.classList.remove('rattle', 'charge');
       stage.classList.add('burst');
       sfxCaseOpen();
-    }, 1500);
+    }, 1800);
     /* what is inside */
     setTimeout(function () {
-      var it = drawFromCase(c);
+      var it = drawFromCase(c, guaranteed);
       if (!it) {
         setText('#case-modal-title', 'Empty');
         setText('#case-modal-sub', 'This case has nothing inside. Try another one.');
@@ -6053,7 +6168,15 @@
       var dup = !!col[it.id];
       col[it.id] = (col[it.id] || 0) + 1;
       S.collection = col;
-      if (dup) awardSouls(3, 'duplicate: ' + it.name);
+      /* a duplicate is not nothing: it is worth souls, and the rarer it is,
+         the more of them */
+      var dupSouls = 0;
+      if (dup) {
+        dupSouls = caseDupSouls(it.rarity);
+        awardSouls(dupSouls, 'duplicate: ' + it.name);
+      }
+      /* the counter of the guarantee moves with every case */
+      casePityStep(c.id, it, c);
       save();
       /* the box stays open: it was torn apart and does not come back */
       stage.classList.add('reveal');
@@ -6067,10 +6190,17 @@
       item.appendChild(el('div', 'case-item-name', it.name));
       item.appendChild(el('div', 'case-item-rar', rar.name));
       item.appendChild(el('div', 'case-item-desc', it.desc || ''));
-      if (dup) item.appendChild(el('div', 'case-item-dup', 'Already in the collection · +3 souls'));
-      else item.appendChild(el('div', 'case-item-new', 'NEW'));
+      if (dup) {
+        item.appendChild(el('div', 'case-item-dup',
+          'Already in the collection · +' + dupSouls + ' souls'));
+      } else {
+        item.appendChild(el('div', 'case-item-new', 'NEW'));
+      }
       setText('#case-modal-title', dup ? 'Already yours' : 'Found: ' + it.name);
       setText('#case-modal-sub', rar.name + ' · the ' + c.name + ' collection');
+      setText('#case-pity', casePityLabel(c));
+      /* the rarest thing of the case gets the gold of the game */
+      if (it.rarity === caseTopRarity(c)) stage.classList.add('top');
       sfxReveal(rar.id);
       okBtn.disabled = false;
       okBtn.textContent = 'CONTINUE';
@@ -6766,7 +6896,7 @@
       text: 'Newcomer, Shopoholic, Shopkeeper. Choose how deep you want to go — the choice can be changed later.' },
     { screen: 'path', sel: '#souls-chip',
       title: 'The souls',
-      text: 'The currency of the shop. A lesson pays two, a flawless one five, the daily run three.' },
+      text: 'The currency of the shop. A lesson pays sixty, a flawless one a hundred, the daily run sixty.' },
     { screen: 'items', sel: '#item-search',
       title: 'The shop',
       text: 'All the items of the game, every number checked against the game files. The categories live here and nowhere else.' }
@@ -6934,6 +7064,16 @@
     startLesson: startLesson,
     /* the cases of the vault */
     openCase: openCase,
+    /* the guarantee of the cases and the refund of a duplicate: the
+       harness has to be able to drive them */
+    casePity: casePity,
+    casePityLimit: casePityLimit,
+    caseGuaranteed: caseGuaranteed,
+    casePityStep: casePityStep,
+    casePityLabel: casePityLabel,
+    caseDupSouls: caseDupSouls,
+    caseTopRarity: caseTopRarity,
+    drawFromCase: drawFromCase,
     /* the two moments of the Rejuvenator */
     crystalAppear: crystalAppear,
     showLimitScreen: showLimitScreen,
