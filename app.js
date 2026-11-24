@@ -2168,7 +2168,7 @@
   // ------------------------------------------------------------- support
   /* Everything a tester might want to tell us, in one block they can copy.
      This is the only place that knows where feedback goes. */
-  var APP_VERSION = '0.39.1';
+  var APP_VERSION = '0.40.0';
   var BUILD_DATE = '2026-11-17';
   // Where "report a problem" goes. Two options, both need no server:
   //   ISSUES_URL  a GitHub issue with the diagnostics already filled in
@@ -2188,6 +2188,7 @@
     : 'api/shop';
 
   var WHATS_NEW = [
+    ['The background of the lesson is empty now', 'Five owls lived in the background of every question: a big one that flew across the screen, beat her wings, sat and looked about, filled with air and burst, or walked away, and four small ones along the edges that never stopped moving. The owner asked for them to be gone — while the player is doing the task, there is nothing in the background now but the question itself. The owl of the result is still there: she still comes when the lesson ends, and the owl is still the mark of the shop.'],
     ['A lesson is worth sixty souls', 'A finished lesson paid two souls, and the shop asked fifty for a case: the free player could never open one, and the only way to get the souls was to buy the Rejuvenator. A lesson is worth sixty souls now, a flawless one a hundred, the run of the day sixty, and a self-test that went well sixty — a case of the shop is one lesson away. A run that the limit of the day cut short is paid for by the questions that were answered: the work is never thrown away.'],
     ['The shop gives every account three hundred souls', 'There is no server yet — the site lives on GitHub Pages, and the account of a player is the profile of this browser. So the gift of the shop is written into your own profile: 300 souls, once, the next time you open the site. The number of the gift is written down with it, so it is not given twice, and it is not given again on any other day. When the server of the shop is stood up for good, the gift of the server takes the place of this one — nobody gets 600 souls.'],
     ['A partly right answer is not a mistake', 'A card that carries six numbers, three of them right and three of them wrong, was counted as a wrong answer — and in the drill that fixes the mistakes it locked the next lesson for good: the drill asked for a card that the drill itself did not consider a mistake. A partly right answer is neither right nor a mistake now. The mastery of the card stays where it is, the door of the next lesson opens, and the result of the run carries a third number: how many answers were only partly right.'],
@@ -2553,9 +2554,6 @@
     if (name === 'friends') renderFriends();
     if (name === 'vault') renderVault();
     if (name === 'sub') renderSub();
-    /* the flock sits under the head of the lesson: the head moves with the
-       safe area of the phone and with the width of the screen */
-    owlTop();
     var lm = $('#limit-modal');
     if (lm) lm.classList.remove('on');
     syncNavActive(name);
@@ -4241,61 +4239,15 @@
     return DSC.decorateStat(raw);
   }
 
-  /* The owls of the background do something different every time. The big
-     one in the corner flies across, beats her wings, sits and looks about,
-     fills with air and bursts or walks away; the four small ones along the
-     edges keep moving all the time. A player who waits for the answer
-     watches them instead of an empty screen. */
-  var OWL_MOODS = ['owl-fly', 'owl-flap', 'owl-sit', 'owl-pop', 'owl-walk'];
-  var OWL_SMALL = ['p2', 'p3', 'p4', 'p5'];
-
-  /* The flock is made once, out of the big owl: the four small ones are
-     copies of her, each in her own corner and in her own way of moving. */
-  function setupOwls() {
-    var hero = $('#think-owl');
-    var flock = $('#think-flock');
-    if (!hero || !flock || flock.children.length) return;
-    for (var i = 0; i < OWL_SMALL.length; i++) {
-      var c = hero.cloneNode(true);
-      c.removeAttribute('id');
-      c.className = 'think-owl ' + OWL_SMALL[i];
-      c.style.animationDelay = (i * 0.9).toFixed(2) + 's';
-      flock.appendChild(c);
-    }
-  }
-
-  /* The flock lives under the head of the lesson. The head holds the
-     progress bar, and on a phone with a notch it is pushed down by the safe
-     area — a flock that keeps a fixed distance from the top of the screen
-     ends up sitting on the bar, and the player cannot see the bar of the
-     lesson. The head is measured, and the flock starts under it. */
-  function owlTop() {
-    var flock = $('#think-flock');
-    if (!flock) return;
-    var head = document.querySelector('.lesson-head');
-    var h = head ? Math.round(head.getBoundingClientRect().height) : 0;
-    flock.style.top = h > 0 ? h + 'px' : '';
-  }
-
-  function owlMood() {
-    var box = $('#think-owl');
-    if (!box) return;
-    setupOwls();
-    owlTop();
-    var mood = OWL_MOODS[Math.floor(Math.random() * OWL_MOODS.length)];
-    box.className = 'think-owl hero';
-    // a small pause before she starts, so that two questions in a row do not
-    // look like the same bird twice
-    box.style.animationDelay = (0.2 + Math.random() * 0.8).toFixed(2) + 's';
-    void box.offsetWidth;
-    box.classList.add(mood);
-  }
+  /* The owls of the background are gone: the owner asked for it, and the
+     lesson is a place for work. The owl of the result — the one that
+     swoops in when a lesson ends — is still there, and the owl of the
+     avatar is still the mark of the shop. */
 
   function renderQ() {
     var q = L.qs[L.i];
     var item = DS.items[q.item];
     var card = $('#q-card');
-    owlMood();
     // The card is rebuilt from scratch and appears at once. There is no
     // entrance animation on purpose: a hidden-then-revealed card was the
     // reason a question sometimes only showed up after a tap.
@@ -7529,7 +7481,6 @@
       });
     }
     window.addEventListener('resize', function () {
-      owlTop();
       if (!tour.on) return;
       clearTimeout(tour.raf);
       tour.raf = setTimeout(function () { tourPlace(TOUR_STEPS[tour.i]); }, 160);

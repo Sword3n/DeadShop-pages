@@ -749,92 +749,6 @@ body.modal-open .scroll{overflow:hidden}
 .cmp-row.win{background:rgba(88,204,2,.14);border-color:rgba(88,204,2,.45)}
 .cmp-row.win .cmp-val{color:var(--green-d)}
 
-/* ================== the owls that think with you ==================
-   The background of every question has a flock of owls in it. Five of
-   them: the big one in the corner does something different every time —
-   she flies across, beats her wings, sits and looks about, fills with air
-   and bursts or walks away — and the four small ones along the edges keep
-   moving all the time, so the pause of thinking has something in it. */
-.think-bg{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden}
-.think-flock{position:absolute;inset:0}
-.think-glow{position:absolute;right:-24px;bottom:78px;width:220px;height:220px;border-radius:50%;
-  background:radial-gradient(circle,rgba(61,220,200,.18),transparent 66%)}
-.think-owl{position:absolute;transform-origin:50% 100%;
-  filter:drop-shadow(0 10px 18px rgba(0,0,0,.5));will-change:transform}
-.think-owl svg{display:block;width:100%;height:auto;overflow:visible}
-.think-owl .ow-shadow{opacity:0}
-.think-owl .ow-wing-l{transform-box:fill-box;transform-origin:94% 24%;transform:rotate(-7deg)}
-.think-owl .ow-wing-r{transform-box:fill-box;transform-origin:6% 24%;transform:rotate(7deg)}
-.think-owl .ow-head{transform-box:fill-box;transform-origin:50% 92%}
-
-/* the big one, in the corner */
-/* the big one sits above the button of the answer, not under it */
-.think-owl.hero{width:126px;right:6px;bottom:86px;opacity:.95}
-.think-owl.hero .ow-shadow{opacity:.25}
-/* the four small ones: they keep moving, each in its own way */
-.think-owl.p2{width:92px;left:4px;bottom:80px;opacity:.62}
-.think-owl.p3{width:68px;right:2%;bottom:230px;opacity:.5}
-.think-owl.p4{width:70px;left:8%;top:64px;opacity:.5}
-.think-owl.p5{width:62px;right:10%;top:70px;opacity:.45}
-
-/* one: she flies across the screen */
-.think-owl.hero.owl-fly{animation:owlAcross 11s linear infinite}
-@keyframes owlAcross{
-  0%{transform:translate(-45vw,12vh) scale(.82) rotate(-7deg)}
-  50%{transform:translate(20vw,-6vh) scale(.94) rotate(4deg)}
-  100%{transform:translate(150vw,10vh) scale(.82) rotate(-5deg)}}
-.owl-fly .ow-wing-l{animation:owlBeatL .3s ease-in-out infinite}
-.owl-fly .ow-wing-r{animation:owlBeatR .3s ease-in-out infinite}
-@keyframes owlBeatL{0%,100%{transform:rotate(-7deg)}50%{transform:rotate(-62deg)}}
-@keyframes owlBeatR{0%,100%{transform:rotate(7deg)}50%{transform:rotate(62deg)}}
-
-/* two: she beats her wings where she stands */
-.think-owl.hero.owl-flap{animation:owlHop 2.4s ease-in-out infinite}
-@keyframes owlHop{0%,100%{transform:translateY(0) rotate(0)}45%{transform:translateY(-26px) rotate(-4deg)}}
-.owl-flap .ow-wing-l{animation:owlFlapL .4s ease-in-out infinite}
-.owl-flap .ow-wing-r{animation:owlFlapR .4s ease-in-out infinite}
-@keyframes owlFlapL{0%,100%{transform:rotate(-7deg)}50%{transform:rotate(-52deg)}}
-@keyframes owlFlapR{0%,100%{transform:rotate(7deg)}50%{transform:rotate(52deg)}}
-
-/* three: she sits and looks from side to side */
-.think-owl.hero.owl-sit{animation:owlBreathe 3.4s ease-in-out infinite}
-@keyframes owlBreathe{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(5px) scale(.96)}}
-.owl-sit .ow-head{animation:owlLook 2.2s ease-in-out infinite}
-@keyframes owlLook{0%,100%{transform:rotate(-17deg)}45%{transform:rotate(4deg)}72%{transform:rotate(18deg)}}
-
-/* four: she fills with air and bursts */
-.think-owl.hero.owl-pop{animation:owlInflate 4.4s ease-in-out infinite}
-@keyframes owlInflate{
-  0%,52%{transform:scale(1)}
-  70%{transform:scale(1.22)}
-  80%{transform:scale(1.4)}
-  87%{transform:scale(.12);opacity:0}
-  89%{transform:scale(1);opacity:1}
-  100%{transform:scale(1);opacity:1}}
-
-/* five: she walks from side to side, the way a bird walks */
-.think-owl.hero.owl-walk{animation:owlStroll 4.6s ease-in-out infinite}
-@keyframes owlStroll{0%,100%{transform:translateX(-34px) rotate(-7deg)}50%{transform:translateX(34px) rotate(7deg)}}
-.owl-walk .ow-body{animation:owlBob .5s ease-in-out infinite}
-@keyframes owlBob{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-9px) rotate(5deg)}}
-.owl-walk .ow-head{animation:owlTilt .5s ease-in-out infinite}
-@keyframes owlTilt{0%,100%{transform:rotate(6deg)}50%{transform:rotate(-8deg)}}
-.owl-walk .ow-wing-l{animation:owlFlapL .7s ease-in-out infinite}
-.owl-walk .ow-wing-r{animation:owlFlapR .7s ease-in-out infinite}
-
-/* the small ones: they never stop */
-.think-owl.p2{animation:owlIdleBob 3.8s ease-in-out infinite}
-@keyframes owlIdleBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
-.think-owl.p3{animation:owlIdleSway 4.6s ease-in-out infinite}
-@keyframes owlIdleSway{0%,100%{transform:translateX(-10px) rotate(-4deg)}50%{transform:translateX(10px) rotate(4deg)}}
-.think-owl.p4{animation:owlIdleNod 5.4s ease-in-out infinite}
-@keyframes owlIdleNod{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
-.think-owl.p4 .ow-head{animation:owlIdleTurn 3.1s ease-in-out infinite}
-@keyframes owlIdleTurn{0%,100%{transform:rotate(-10deg)}50%{transform:rotate(10deg)}}
-.think-owl.p5{animation:owlIdleHop 6.2s ease-in-out infinite}
-@keyframes owlIdleHop{0%,72%,100%{transform:translateY(0)}80%{transform:translateY(-14px)}88%{transform:translateY(0)}}
-.think-owl.p5 .ow-wing-l,.think-owl.p5 .ow-wing-r{animation:owlFlapL 1.4s ease-in-out infinite}
-
 /* ================== the vault: cases, collections, cosmetics ======== */
 .vault-wallet{display:flex;align-items:center;gap:12px;flex-wrap:wrap;
   background:var(--card);border:2px solid var(--line);border-radius:16px;padding:12px 14px;margin-bottom:4px}
@@ -1219,14 +1133,7 @@ body.modal-open .scroll{overflow:hidden}
 /* The moments that carry a meaning must be seen even without movement.
    A frozen animation stops at its last keyframe, and the last keyframe of
    a fade-out is "nothing" — so the crystal, the parry and the opened case
-   have to be put back on screen by hand. The owl stays in its corner,
-   alive but still. */
-/* The switch of the player stops the owls: they stand still, with their
-   wings where they belong — not with the wings folded in the middle of a
-   flight. */
-.reduce-motion .think-owl,
-.reduce-motion .think-owl *{animation:none !important}
-.reduce-motion .think-owl{transform:none !important}
+   have to be put back on screen by hand. */
 .reduce-motion .parry-fx.on{animation:none !important;opacity:1}
 .reduce-motion .parry-fx.on .parry-word{animation:none !important;opacity:1;transform:none}
 .reduce-motion .parry-fx.on .parry-star{animation:none !important;opacity:1;transform:none}
@@ -1239,26 +1146,6 @@ body.modal-open .scroll{overflow:hidden}
 .reduce-motion .case-stage.burst .case-box{animation:none !important;opacity:0}
 .reduce-motion .case-stage.reveal .case-item{animation:none !important;opacity:1;transform:none}
 @media (prefers-reduced-motion: reduce){
-  /* The owl is the mascot of the site: she moves nothing of the page, she
-     is decoration — and the player has a switch of his own to stop her
-     (the profile). The setting of the system is about the movement of the
-     page, so the owls keep living: a mascot that stands like a post is
-     worse than a mascot that moves too much. */
-  .think-owl{animation-duration:var(--owl-dur) !important;
-    animation-iteration-count:infinite !important;animation-delay:0s !important}
-  .think-owl.hero.owl-fly{--owl-dur:11s}
-  .think-owl.hero.owl-flap{--owl-dur:2.4s}
-  .think-owl.hero.owl-sit{--owl-dur:3.4s}
-  .think-owl.hero.owl-pop{--owl-dur:4.4s}
-  .think-owl.hero.owl-walk{--owl-dur:4.6s}
-  .think-owl.p2{--owl-dur:3.8s}
-  .think-owl.p3{--owl-dur:4.6s}
-  .think-owl.p4{--owl-dur:5.4s}
-  .think-owl.p5{--owl-dur:6.2s}
-  .think-owl .ow-wing-l,.think-owl .ow-wing-r{animation-duration:.45s !important;
-    animation-iteration-count:infinite !important;animation-delay:0s !important}
-  .think-owl.hero.owl-fly .ow-wing-l,.think-owl.hero.owl-fly .ow-wing-r{animation-duration:.3s !important;
-    animation-iteration-count:infinite !important;animation-delay:0s !important}
   .parry-fx.on{animation:none !important;opacity:1}
   .parry-fx.on .parry-word{animation:none !important;opacity:1;transform:none}
   .parry-fx.on .parry-star{animation:none !important;opacity:1;transform:none}

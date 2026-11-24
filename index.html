@@ -17,7 +17,7 @@
 <!-- the build of the page itself. The script reads it and compares it with
      its own version: a page from an older build next to a newer script is
      a site that throws, so the two are put back together. -->
-<meta name="ds-version" content="0.39.1">
+<meta name="ds-version" content="0.40.0">
 <!-- a private test build: it stays out of the search engines, the link is
      the only way in. Remove this line when the site goes public on purpose. -->
 <meta name="robots" content="noindex, nofollow">
@@ -47,7 +47,7 @@
 <link rel="mask-icon" href="assets/icon.svg" color="#3DDCC8">
 <link rel="apple-touch-icon" href="assets/icon-180.png">
 <link rel="preload" href="assets/fonts/saira-var.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="app.css?v=24">
+<link rel="stylesheet" href="app.css?v=25">
 <!-- the colours of the parry in the game, taken from its own icon -->
 <link rel="stylesheet" href="assets/parry-colors.css?v=1">
 </head>
@@ -736,58 +736,7 @@
       <div class="lesson-count" id="lesson-count">1/1</div>
     </header>
 
-    <!-- the owls that think with the player: a small flock in the
-         background of every question. The big one does something different
-         every time, the four small ones keep moving all the time. -->
-    <div class="think-bg" id="think-bg" aria-hidden="true">
-      <span class="think-glow"></span>
-      <div class="think-flock" id="think-flock"></div>
-      <div class="think-owl hero" id="think-owl">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 240" width="220" height="240" focusable="false">
-          <defs>
-            <linearGradient id="ow-body" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stop-color="#9BE86E"/><stop offset=".55" stop-color="#63BE3E"/><stop offset="1" stop-color="#3E8E2A"/>
-            </linearGradient>
-            <linearGradient id="ow-head" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stop-color="#B6F07C"/><stop offset="1" stop-color="#6FC648"/>
-            </linearGradient>
-            <linearGradient id="ow-wing" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0" stop-color="#7FD156"/><stop offset="1" stop-color="#357F1B"/>
-            </linearGradient>
-            <radialGradient id="ow-eye" cx="40%" cy="35%" r="70%">
-              <stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#DCE7DE"/>
-            </radialGradient>
-          </defs>
-          <ellipse class="ow-shadow" cx="110" cy="229" rx="50" ry="7" fill="#000" opacity=".25"/>
-          <g class="ow-feet">
-            <path fill="#F5A524" d="M86 202c-7 0-12 6-12 12 0 7 6 12 13 12h12c5 0 8-4 8-9v-7c0-5-5-8-9-8z"/>
-            <path fill="#F5A524" d="M134 202c-7 0-12 6-12 12 0 7 6 12 13 12h12c5 0 8-4 8-9v-7c0-5-5-8-9-8z"/>
-            <path fill="#DC8A10" d="M78 222h18v7H78zM126 222h18v7h-18z"/>
-          </g>
-          <g class="ow-body">
-            <ellipse cx="110" cy="146" rx="62" ry="74" fill="url(#ow-body)" stroke="#2F6B1B" stroke-width="3"/>
-            <ellipse cx="110" cy="158" rx="42" ry="54" fill="#E9F8D6" opacity=".95"/>
-            <path fill="#CDEBA4" d="M92 158c4 0 7 3 7 6s-3 6-7 6-7-3-7-6 3-6 7-6zM128 158c4 0 7 3 7 6s-3 6-7 6-7-3-7-6 3-6 7-6zM110 178c4 0 7 3 7 6s-3 6-7 6-7-3-7-6 3-6 7-6z"/>
-          </g>
-          <g class="ow-wing-l"><ellipse cx="44" cy="146" rx="22" ry="50" fill="url(#ow-wing)" stroke="#2F6B1B" stroke-width="3"/></g>
-          <g class="ow-wing-r"><ellipse cx="176" cy="146" rx="22" ry="50" fill="url(#ow-wing)" stroke="#2F6B1B" stroke-width="3"/></g>
-          <g class="ow-head">
-            <path fill="#5FBB3C" stroke="#2F6B1B" stroke-width="2" d="M58 46l16-30 22 22z"/>
-            <path fill="#5FBB3C" stroke="#2F6B1B" stroke-width="2" d="M162 46l-16-30-22 22z"/>
-            <ellipse cx="110" cy="74" rx="62" ry="56" fill="url(#ow-head)" stroke="#2F6B1B" stroke-width="3"/>
-            <ellipse cx="76" cy="94" rx="12" ry="7" fill="#F7A9A0" opacity=".45"/>
-            <ellipse cx="144" cy="94" rx="12" ry="7" fill="#F7A9A0" opacity=".45"/>
-            <circle cx="86" cy="70" r="25" fill="url(#ow-eye)"/>
-            <circle cx="134" cy="70" r="25" fill="url(#ow-eye)"/>
-            <circle cx="89" cy="72" r="12" fill="#1B2A20"/>
-            <circle cx="137" cy="72" r="12" fill="#1B2A20"/>
-            <circle cx="84" cy="66" r="4.5" fill="#FFFFFF" opacity=".95"/>
-            <circle cx="132" cy="66" r="4.5" fill="#FFFFFF" opacity=".95"/>
-            <path fill="#F5A524" stroke="#D98C12" stroke-width="1.5" d="M110 86l12 13-12 13-12-13z"/>
-          </g>
-        </svg>
-      </div>
-    </div>
+
 
     <div class="scroll lesson-scroll">
       <div class="q-card" id="q-card"></div>
@@ -1207,6 +1156,6 @@
 <script src="core.js?v=16"></script>
 <script src="auth.js?v=9"></script>
 <script src="api.js?v=2"></script>
-<script src="app.js?v=36"></script>
+<script src="app.js?v=37"></script>
 </body>
 </html>
