@@ -17,7 +17,7 @@
 <!-- the build of the page itself. The script reads it and compares it with
      its own version: a page from an older build next to a newer script is
      a site that throws, so the two are put back together. -->
-<meta name="ds-version" content="0.40.0">
+<meta name="ds-version" content="0.41.0">
 <!-- a private test build: it stays out of the search engines, the link is
      the only way in. Remove this line when the site goes public on purpose. -->
 <meta name="robots" content="noindex, nofollow">
@@ -47,7 +47,7 @@
 <link rel="mask-icon" href="assets/icon.svg" color="#3DDCC8">
 <link rel="apple-touch-icon" href="assets/icon-180.png">
 <link rel="preload" href="assets/fonts/saira-var.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="app.css?v=25">
+<link rel="stylesheet" href="app.css?v=26">
 <!-- the colours of the parry in the game, taken from its own icon -->
 <link rel="stylesheet" href="assets/parry-colors.css?v=1">
 </head>
@@ -247,6 +247,20 @@
         <h1 class="home-title">DeadShop</h1>
         <p class="home-sub">Learn the shop. Buy with confidence.</p>
       </div>
+
+      <!-- the welcome back: the player was away, and the site says so
+           without a reproach -->
+      <div class="home-welcome" id="home-welcome" hidden></div>
+
+      <!-- the next step: one thing to do, said in words. A learner who is
+           told what to do next keeps going. -->
+      <button class="home-next" id="home-next" type="button" hidden>
+        <span class="home-next-l">
+          <span class="home-next-t" id="home-next-t">START THE DAILY RUN</span>
+          <span class="home-next-s" id="home-next-s">the same questions for everyone today</span>
+        </span>
+        <span class="home-next-go" aria-hidden="true">GO</span>
+      </button>
 
       <button class="home-main urn-run" id="home-daily" type="button">
         <picture class="urn-mark-pic">
@@ -775,6 +789,7 @@
           <div class="rs" id="rs-part" hidden><div class="rs-num" id="r-part">0</div><div class="rs-lbl" id="r-lbl-part">partly</div></div>
           <div class="rs"><div class="rs-num" id="r-souls">+0</div><div class="rs-lbl" id="r-lbl-souls">souls</div></div>
         </div>
+        <div class="result-ms" id="result-ms" hidden></div>
         <div class="result-items" id="result-items"></div>
         <button class="btn btn-green btn-block" id="result-next" hidden>NEXT LESSON</button>
         <button class="btn btn-ghost btn-block btn-plain" id="result-continue">BACK TO PATH</button>
@@ -933,7 +948,19 @@
           <div class="set-label">Answered today</div>
           <div class="set-value" id="set-today">0 / 12</div>
         </div>
+        <div class="set-row">
+          <div class="set-label">Streak shields</div>
+          <div class="set-value" id="set-shields">0 shields</div>
+        </div>
+        <button class="btn btn-ghost btn-block" id="buy-shield">GET A SHIELD · 200 SOULS</button>
+        <div class="footnote">Every seven days in a row earns a shield. A shield
+          keeps the streak alive when a day is missed — so a holiday does not
+          throw the whole chain away. A shield can also be bought for souls:
+          a way back, whenever you want one.</div>
       </div>
+
+      <h3 class="section-h">Milestones <span class="h-note" id="ms-note">0 of 10</span></h3>
+      <div class="ms-grid" id="ms-grid"></div>
 
       <h3 class="section-h">Souls <span class="h-note" id="souls-earned">0 earned</span></h3>
       <div class="souls-card">
@@ -1156,6 +1183,6 @@
 <script src="core.js?v=16"></script>
 <script src="auth.js?v=9"></script>
 <script src="api.js?v=2"></script>
-<script src="app.js?v=37"></script>
+<script src="app.js?v=38"></script>
 </body>
 </html>

@@ -809,6 +809,54 @@ body.modal-open .scroll{overflow:hidden}
   width:100%;align-items:flex-start;color:inherit;font:inherit;display:flex;gap:12px}
 .case-head-btn:hover .case-name{text-decoration:underline}
 
+/* ================== the next step and the welcome back ==============
+   The learner lands on the home screen and must see one thing to do.
+   The button says what it starts — "Commit to My Goal" beat "Continue"
+   in the tests of Duolingo, so the words here are the action itself. */
+.home-welcome{margin:2px 0 10px;padding:11px 14px;border-radius:14px;
+  background:rgba(61,220,200,.08);border:1px solid rgba(61,220,200,.22);
+  font-size:13px;font-weight:700;color:var(--ink-2);line-height:1.45}
+.home-next{width:100%;display:flex;align-items:center;gap:12px;margin:0 0 14px;
+  padding:14px 16px;border-radius:16px;text-align:left;cursor:pointer;
+  background:linear-gradient(180deg,rgba(88,204,2,.20),rgba(88,204,2,.10));
+  border:2px solid rgba(88,204,2,.45);color:var(--ink);
+  transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
+.home-next:active{transform:scale(.985)}
+.home-next:hover{border-color:var(--green-d);
+  box-shadow:0 6px 18px -8px rgba(88,204,2,.6)}
+.home-next-l{flex:1;min-width:0}
+.home-next-t{display:block;font-family:var(--font-ui);font-size:16px;letter-spacing:.6px;color:var(--green-d)}
+.home-next-s{display:block;font-size:12.5px;color:var(--ink-2);font-weight:700;margin-top:2px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.home-next-go{flex:none;font-family:var(--font-ui);font-size:13px;font-weight:800;letter-spacing:1.5px;
+  color:#0b1113;background:var(--green-d);border-radius:10px;padding:7px 12px}
+
+/* the shelf of the milestones: the collection is the reward */
+.ms-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:10px;
+  margin-bottom:18px}
+.ms-card{background:var(--soft);border:2px solid var(--line);border-radius:14px;padding:11px 12px;
+  display:flex;flex-direction:column;gap:5px}
+.ms-card.done{border-color:rgba(255,217,78,.55);background:rgba(255,217,78,.07)}
+.ms-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.ms-name{font-family:var(--font-ui);font-size:14px;line-height:1.2}
+.ms-souls{font-size:11px;font-weight:800;color:var(--amber);white-space:nowrap}
+.ms-note{font-size:11.5px;color:var(--ink-2);font-weight:700;line-height:1.35;min-height:31px}
+.ms-bar{height:6px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden}
+.ms-bar i{display:block;height:100%;background:var(--green-d);border-radius:99px;
+  transition:width .4s cubic-bezier(.2,.9,.3,1)}
+.ms-card.done .ms-bar i{background:var(--amber)}
+.ms-num{font-size:11px;font-weight:800;color:var(--ink-2);letter-spacing:.4px}
+
+/* the milestone that a lesson has just earned: shown on the result screen,
+   so the reward of the collection is not a toast that is gone in a moment */
+.result-ms{display:flex;flex-direction:column;gap:8px;margin:0 0 16px;text-align:left}
+.result-ms-row{background:rgba(255,217,78,.08);border:2px solid rgba(255,217,78,.5);
+  border-radius:14px;padding:10px 13px;
+  animation:pop .45s cubic-bezier(.2,1.6,.4,1)}
+.result-ms-name{font-family:var(--font-ui);font-size:15px;font-weight:800;color:var(--amber);
+  line-height:1.25}
+.result-ms-note{font-size:12px;font-weight:700;color:var(--ink-2);margin-top:3px;line-height:1.4}
+
 /* the opening of a case: the way Counter-Strike opens one and the way the
    shop of Deadlock looks — the case trembles, the light gathers in it, it
    tears open, the beam comes out of it and the thing stands in the light

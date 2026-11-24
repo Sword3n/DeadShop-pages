@@ -130,6 +130,197 @@
   }
   function today() { return dayKey(new Date()); }
   function yesterday() { var d = new Date(); d.setDate(d.getDate() - 1); return dayKey(d); }
+
+  /* ================================================================
+   * THE STREAK, THE SHIELDS, THE MILESTONES AND THE NEXT STEP
+   *
+   * What the research on learning apps says, and what it means here:
+   *
+   *  - The streak must not hang on the score of a lesson. Duolingo
+   *    separated the streak from the daily goal, and the number of
+   *    learners with a week-long streak grew by more than forty per
+   *    cent. Here the streak was broken by any lesson with less than
+   *    half of the answers right — a player who learned and did badly
+   *    lost the thread for nothing.
+   *  - A missed day must not be the end of the road. A shield that is
+   *    earned by the streak itself keeps the chain alive; the research
+   *    on streak repair and on weekend passes shows that a way back
+   *    brings back players who were about to leave.
+   *  - The player must see the next step. A learner who is told what
+   *    to do next keeps going; the copy of the button matters too
+   *    ("Commit to My Goal" beat "Continue" in the tests of Duolingo).
+   *  - The collection is the reward. Players name the progress bar,
+   *    the badges and the immediate feedback most often, and the sense
+   *    of collecting makes the sessions longer.
+   * ================================================================ */
+
+  /* The number of days between two day keys. */
+  function daysBetween(a, b) {
+    var pa = String(a).split('-'), pb = String(b).split('-');
+    var da = new Date(+pa[0], +pa[1] - 1, +pa[2]);
+    var db = new Date(+pb[0], +pb[1] - 1, +pb[2]);
+    return Math.round((db - da) / 86400000);
+  }
+  function shieldsHave() {
+    return Math.max(0, Math.min(3, Number(S.shields) || 0));
+  }
+  /* A shield can also be bought with souls. The research on learning apps
+   * says the same thing twice: a streak that can be repaired brings back
+   * players who were about to leave, and a way back must not feel like a
+   * reproach — it is bought, it costs something, and it is never pushed. */
+  var SHIELD_COST = 200;
+  function buyShield() {
+    if (shieldsHave() >= 3) {
+      toast('Three shields is the most');
+      return false;
+    }
+    if (souls() < SHIELD_COST) {
+      toast('Not enough souls for a shield');
+      return false;
+    }
+    spendSouls(SHIELD_COST, 'streak shield');
+    S.shields = shieldsHave() + 1;
+    save();
+    toast('A shield is yours — a missed day will not break the chain', true);
+    renderProfile();
+    return true;
+  }
+  function renderShieldBuy() {
+    var b = $('#buy-shield');
+    if (!b) return;
+    if (shieldsHave() >= 3) {
+      b.textContent = 'THREE SHIELDS IS THE MOST';
+      b.disabled = true;
+    } else {
+      b.textContent = 'GET A SHIELD · ' + SHIELD_COST + ' SOULS';
+      b.disabled = souls() < SHIELD_COST;
+    }
+  }
+  /* The streak moves once a day, when a lesson of any kind is finished.
+   * A missed day is covered by a shield if there are enough of them; if
+   * there are not, the streak starts again — and the shields are kept for
+   * the next single miss, because a player who was away for a week does
+   * not need to lose the shields as well. */
+  function streakUpdate(day) {
+    var res = { shieldsUsed: 0, earned: 0, reset: false, streak: S.streak || 0 };
+    if (S.lastDay === day) return res;
+    var gap = S.lastDay ? daysBetween(S.lastDay, day) : 99;
+    var missed = gap - 1;
+    var shields = shieldsHave();
+    if (missed > 0 && shields >= missed) {
+      S.shields = shields - missed;
+      S.shieldDay = day;
+      res.shieldsUsed = missed;
+      S.streak = (S.streak || 0) + 1;
+    } else if (missed > 0) {
+      S.streak = 1;
+      res.reset = true;
+    } else {
+      S.streak = (S.streak || 0) + 1;
+    }
+    /* every seventh day in a row earns a shield */
+    if (S.streak > 0 && S.streak % 7 === 0 && shieldsHave() < 3) {
+      S.shields = shieldsHave() + 1;
+      res.earned = 1;
+    }
+    S.lastDay = day;
+    res.streak = S.streak;
+    return res;
+  }
+
+  /* ================================================================
+   * THE MILESTONES — the collection that makes the learner stay.
+   * Every milestone pays once, in souls, and is never paid twice.
+   * ================================================================ */
+  function knownItemsCount() {
+    var n = 0;
+    Object.keys(trackMap()).forEach(function (slug) {
+      var m = trackMap()[slug];
+      if (m && (m.box || 0) > 0) n++;
+    });
+    return n;
+  }
+  function collectedCount() {
+    var col = collection();
+    return Object.keys(col).filter(function (k) { return col[k] > 0; }).length;
+  }
+  function fullCasesCount() {
+    var col = collection();
+    var n = 0;
+    (caseData().cases || []).forEach(function (c) {
+      var all = (c.items || []).length;
+      if (!all) return;
+      var have = (c.items || []).filter(function (it) { return !!col[it.id]; }).length;
+      if (have >= all) n++;
+    });
+    return n;
+  }
+  var MILESTONES = [
+    { id: 'first-lesson', name: 'First lesson', note: 'one lesson of the path is done',
+      goal: 1, souls: 30, value: function () { return S.lessons || 0; } },
+    { id: 'ten-lessons', name: 'Ten lessons', note: 'ten lessons of the path are done',
+      goal: 10, souls: 60, value: function () { return S.lessons || 0; } },
+    { id: 'fifty-lessons', name: 'Fifty lessons', note: 'fifty lessons of the path are done',
+      goal: 50, souls: 150, value: function () { return S.lessons || 0; } },
+    { id: 'hundred-right', name: 'A hundred right', note: 'a hundred answers right',
+      goal: 100, souls: 100, value: function () { return S.right || 0; } },
+    { id: 'streak-7', name: 'Seven in a row', note: 'a week of lessons in a row',
+      goal: 7, souls: 100, value: function () { return S.streak || 0; } },
+    { id: 'streak-30', name: 'Thirty in a row', note: 'a month of lessons in a row',
+      goal: 30, souls: 300, value: function () { return S.streak || 0; } },
+    { id: 'first-case', name: 'The first case', note: 'the first case of the vault is open',
+      goal: 1, souls: 50, value: collectedCount },
+    { id: 'full-case', name: 'A whole case', note: 'every thing of one case is collected',
+      goal: 1, souls: 200, value: fullCasesCount },
+    { id: 'souls-1000', name: 'A thousand souls', note: 'a thousand souls earned',
+      goal: 1000, souls: 150, value: function () { return S.soulsEarned || 0; } },
+    { id: 'know-all', name: 'The whole shop', note: 'every item of the shop is known',
+      goal: 156, souls: 300, value: knownItemsCount }
+  ];
+  function milestoneState() {
+    var done = S.milestones || {};
+    return MILESTONES.map(function (m) {
+      var v = Math.max(0, Math.min(m.goal, Number(m.value()) || 0));
+      return {
+        id: m.id, name: m.name, note: m.note, goal: m.goal, souls: m.souls,
+        value: v, done: !!done[m.id], at: done[m.id] || null
+      };
+    });
+  }
+  /* The milestones that were reached pay once, in souls. */
+  function checkMilestones() {
+    if (!S.milestones || typeof S.milestones !== 'object') S.milestones = {};
+    var got = [];
+    MILESTONES.forEach(function (m) {
+      if (S.milestones[m.id]) return;
+      if ((Number(m.value()) || 0) >= m.goal) {
+        S.milestones[m.id] = today();
+        got.push(m);
+      }
+    });
+    if (!got.length) return got;
+    save();
+    got.forEach(function (m) {
+      awardSouls(m.souls, 'milestone: ' + m.name);
+      toast('Milestone · ' + m.name + ' · +' + m.souls + ' souls', true);
+    });
+    return got;
+  }
+  /* The strip of the milestones on the result screen: the name of the
+     milestone, what it was for, and what it paid. */
+  function renderResultMilestones(list) {
+    var box = $('#result-ms');
+    if (!box) return;
+    box.innerHTML = '';
+    if (!list || !list.length) { box.hidden = true; return; }
+    list.forEach(function (m) {
+      var row = el('div', 'result-ms-row');
+      row.appendChild(el('div', 'result-ms-name', 'Milestone · ' + m.name));
+      row.appendChild(el('div', 'result-ms-note', m.note + ' · +' + m.souls + ' souls'));
+      box.appendChild(row);
+    });
+    box.hidden = false;
+  }
   function esc(s) {
     return String(s).replace(/[&<>"]/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
@@ -243,6 +434,13 @@
     // the counter of the guarantee of every case: how many cases of that
     // kind came out without the rarest thing in them
     casePity: {},
+    // The shields of the streak: one is earned every seven days in a row,
+    // and a shield keeps the streak alive when a day is missed.
+    shields: 0,
+    // the day a shield was spent on, so that one day cannot eat two shields
+    shieldDay: null,
+    // the milestones that were taken, with the day they were taken on
+    milestones: {},
     gate: null,
     bughunt: { reports: [], inbox: [], grants: [] },
     // the vault is the look of the game: the dark theme is the default now
@@ -296,6 +494,9 @@
         d.cosmetics = arrField(p.cosmetics);
         d.collection = objField(p.collection);
         d.casePity = objField(p.casePity);
+        d.milestones = objField(p.milestones);
+        d.shields = counterField(d.shields, 0);
+        d.shieldDay = (typeof p.shieldDay === 'string') ? p.shieldDay : null;
         d.dailyMiss = arrField(p.dailyMiss);
         d.paused = (p.paused && typeof p.paused === 'object') ? p.paused : null;
         var bh = objField(p.bughunt);
@@ -393,6 +594,7 @@
   function reloadProfile() {
     S = load(storageKey());
     applySettings();
+    detectAway();
     renderAll();
   }
 
@@ -2168,8 +2370,8 @@
   // ------------------------------------------------------------- support
   /* Everything a tester might want to tell us, in one block they can copy.
      This is the only place that knows where feedback goes. */
-  var APP_VERSION = '0.40.0';
-  var BUILD_DATE = '2026-11-17';
+  var APP_VERSION = '0.41.0';
+  var BUILD_DATE = '2026-11-24';
   // Where "report a problem" goes. Two options, both need no server:
   //   ISSUES_URL  a GitHub issue with the diagnostics already filled in
   //   SUPPORT_EMAIL  a mailbox (mailto:). Leave it empty to skip it.
@@ -2188,6 +2390,11 @@
     : 'api/shop';
 
   var WHATS_NEW = [
+    ['The site tells you what to do next', 'The home screen carries one line and one button that name the next step of the shop — the daily run, the lesson that waits, the mistakes that were left, the case, the shelf. The button says what it starts, not just "go": the tests of Duolingo showed that a button with a promise in it beats a button that only continues. The block stays away when the card of the daily run already says the same thing: two buttons for one thing is noise.'],
+    ['The streak is kept by any lesson', 'Before, a lesson with less than half of the answers right broke the chain of the days — a player who learned and did badly lost the thread for nothing. Duolingo separated the streak from the daily goal, and the number of players with a week-long streak grew by more than forty per cent. Here the streak is kept by any lesson that is finished, of any score: the lesson is the day, not the percentage.'],
+    ['A shield keeps the chain alive', 'A missed day is not the end of the road any more. Every seven days in a row earns a shield, and a shield holds the streak through a day that was missed — a holiday does not throw the whole chain away. A shield can also be bought for two hundred souls, whenever you want one: the research says a way back brings players back, and a way back must never feel like a reproach. The shields are earned by the streak itself, so they are kept when the gap is too wide to cover.'],
+    ['The milestones are a collection', 'Ten milestones stand in the profile, each one with a bar and a price in souls: the first lesson, ten lessons, fifty lessons, a hundred right answers, a week in a row, a month in a row, the first case, a whole case, a thousand souls, the whole shop of the 156 items. A milestone pays once and never twice, and the one a lesson has just earned stands on the result screen — not only in a message that is gone in three seconds. The collection is the reward.'],
+    ['Welcome back', 'A player who was away for a few days is met with a word and a way back — no reproach, no red letter. The chip of the streak says that the chain is alive and that one run keeps it, and the card of the daily run says the same thing in its own line.'],
     ['The background of the lesson is empty now', 'Five owls lived in the background of every question: a big one that flew across the screen, beat her wings, sat and looked about, filled with air and burst, or walked away, and four small ones along the edges that never stopped moving. The owner asked for them to be gone — while the player is doing the task, there is nothing in the background now but the question itself. The owl of the result is still there: she still comes when the lesson ends, and the owl is still the mark of the shop.'],
     ['A lesson is worth sixty souls', 'A finished lesson paid two souls, and the shop asked fifty for a case: the free player could never open one, and the only way to get the souls was to buy the Rejuvenator. A lesson is worth sixty souls now, a flawless one a hundred, the run of the day sixty, and a self-test that went well sixty — a case of the shop is one lesson away. A run that the limit of the day cut short is paid for by the questions that were answered: the work is never thrown away.'],
     ['The shop gives every account three hundred souls', 'There is no server yet — the site lives on GitHub Pages, and the account of a player is the profile of this browser. So the gift of the shop is written into your own profile: 300 souls, once, the next time you open the site. The number of the gift is written down with it, so it is not given twice, and it is not given again on any other day. When the server of the shop is stood up for good, the gift of the server takes the place of this one — nobody gets 600 souls.'],
@@ -2594,7 +2801,15 @@
         (info.next - info.xp) + ' XP to level ' + (info.level + 1);
     }
     var chip = $('#streak-chip');
-    if (chip) chip.classList.toggle('hot', st >= 3);
+    if (chip) {
+      chip.classList.toggle('hot', st >= 3);
+      /* The chip says what the streak means right now. When the day is not
+         done yet the way back is named — a way back, not a reproach. */
+      var alive = st > 0 && S.lastDay !== today();
+      chip.setAttribute('data-tip', alive
+        ? 'Your ' + st + '-day streak is alive — one run keeps it.'
+        : 'The day streak: one lesson or one daily run a day, every day in a row. At eight days the hero starts to glow.');
+    }
     lastXp = xp; lastStreak = st; lastLevel = leagueInfo().level;
     renderSouls();
   }
@@ -2811,6 +3026,9 @@
      else of any weight. */
   function renderHome() {
     renderDailyCard();
+    checkMilestones();
+    renderNextStep();
+    renderWelcome();
     var goal = Number(S.settings.goal) || 12;
     var done = S.todayCount || 0;
     var fill = $('#home-goal-fill');
@@ -2824,10 +3042,154 @@
     var sub = $('#home-daily-sub');
     if (sub) {
       var miss = (S.dailyMiss || []).length;
-      sub.textContent = S.dailyDay === today()
-        ? (miss ? miss + ' to repeat · no XP this time' : 'the run of the day is done')
-        : dailyLength() + ' questions · the same for everyone today';
+      if (S.dailyDay === today()) {
+        sub.textContent = miss ? miss + ' to repeat · no XP this time' : 'the run of the day is done';
+      } else if ((S.streak || 0) > 0 && S.lastDay !== today()) {
+        /* the streak is alive: the card says so, in one line, without a
+           reproach — the nudge the research asks for is a way back, not a
+           demand */
+        sub.textContent = 'your ' + S.streak + '-day streak is alive · one run keeps it';
+      } else {
+        sub.textContent = dailyLength() + ' questions · the same for everyone today';
+      }
     }
+  }
+
+  /* ================================================================
+   * THE NEXT STEP AND THE WELCOME BACK
+   * ================================================================ */
+
+  /* The next step: one thing to do, said in words, right where the player
+     lands. A learner who is told what to do next keeps going — and the
+     words of the button matter: "Commit to My Goal" beat "Continue" in the
+     tests of Duolingo, so the button here says what it starts. */
+  function nextStep() {
+    var goal = Number(S.settings.goal) || 12;
+    var done = S.todayCount || 0;
+    /* the gate: the mistakes of the last lesson shut the next one */
+    if (S.gate && (S.gate.items || []).length) {
+      return {
+        kind: 'drill',
+        label: 'FIX THE ' + (S.gate.items || []).length + ' YOU MISSED',
+        sub: 'the next lesson opens when they are right',
+        go: function () { startFixMistakes(); }
+      };
+    }
+    /* the run of the day: the reason most people open the site */
+    if (S.dailyDay !== today() && done < goal) {
+      return {
+        kind: 'daily',
+        label: 'START THE DAILY RUN',
+        sub: dailyLength() + ' questions · about three minutes',
+        go: function () { startDaily(); }
+      };
+    }
+    /* a lesson that was left half way */
+    if (S.paused && S.paused.qs && S.paused.qs.length) {
+      return {
+        kind: 'resume',
+        label: 'PICK UP THE LESSON',
+        sub: S.paused.title || 'it was not finished',
+        go: function () { resumeLesson(); }
+      };
+    }
+    /* the next lesson of the path */
+    for (var i = 0; i < DS.units.length; i++) {
+      var u = DS.units[i];
+      if (!unitLocked(u, i) && !unitDone(u.id)) {
+        return {
+          kind: 'lesson',
+          label: 'CONTINUE THE PATH',
+          sub: u.title,
+          go: function () { show('path'); }
+        };
+      }
+    }
+    /* the path is done: the vault is waiting */
+    var cases = (caseData().cases || []);
+    var cheap = cases.length ? Math.min.apply(null, cases.map(function (c) { return c.cost || 0; })) : 0;
+    if (cheap && souls() >= cheap) {
+      return {
+        kind: 'case',
+        label: 'OPEN A CASE',
+        sub: 'the vault is waiting · ' + souls() + ' souls',
+        go: function () { show('vault'); }
+      };
+    }
+    return {
+      kind: 'free',
+      label: 'PICK A LESSON',
+      sub: 'the whole shop of the game, item by item',
+      go: function () { show('items'); }
+    };
+  }
+  function renderNextStep() {
+    var btn = $('#home-next');
+    if (!btn) return;
+    var step = nextStep();
+    setText('#home-next-t', step.label);
+    setText('#home-next-s', step.sub);
+    btn.dataset.kind = step.kind;
+    /* The card of the run of the day stands right below this block and
+       carries the same action: two buttons for one thing is not a choice,
+       it is noise. The block appears when the step is something else. */
+    btn.hidden = (step.kind === 'daily');
+    if (btn.dataset.wired !== '1') {
+      btn.dataset.wired = '1';
+      btn.addEventListener('click', function () {
+        var s2 = nextStep();
+        if (s2 && s2.go) s2.go();
+      });
+    }
+  }
+
+  /* How long the player was away. It is read once, when the site opens, and
+     the home screen says it out loud — without guilt, the way the research
+     on habit forming asks: a way back, not a reproach. */
+  var awayDays = 0;
+  function detectAway() {
+    awayDays = 0;
+    if (!S.lastDay) return;
+    var gap = daysBetween(S.lastDay, today());
+    if (gap >= 2) awayDays = gap;
+  }
+  function renderWelcome() {
+    var box = $('#home-welcome');
+    if (!box) return;
+    if (!awayDays) { box.hidden = true; return; }
+    box.hidden = false;
+    var shield = S.shieldDay === today() ? ' A shield held the streak alive.' : '';
+    box.textContent = 'Welcome back — ' + awayDays + ' days away.' + shield +
+      ' The path is where you left it.';
+  }
+
+  /* The milestones on the shelf of the profile. */
+  function renderMilestones() {
+    var box = $('#ms-grid');
+    if (!box) return;
+    var list = milestoneState();
+    var done = list.filter(function (m) { return m.done; }).length;
+    setText('#ms-note', done + ' of ' + list.length);
+    setText('#set-shields', shieldsHave() + (shieldsHave() === 1 ? ' shield' : ' shields'));
+    renderShieldBuy();
+    box.innerHTML = '';
+    list.forEach(function (m) {
+      var card = el('div', 'ms-card' + (m.done ? ' done' : ''));
+      var top = el('div', 'ms-top');
+      top.appendChild(el('div', 'ms-name', m.name));
+      top.appendChild(el('div', 'ms-souls', m.done ? '+' + m.souls : m.souls + ' souls'));
+      card.appendChild(top);
+      card.appendChild(el('div', 'ms-note', m.done
+        ? (m.at ? 'taken on ' + m.at : 'taken')
+        : m.note));
+      var bar = el('div', 'ms-bar');
+      var fill = el('i');
+      fill.style.width = Math.round(m.value / m.goal * 100) + '%';
+      bar.appendChild(fill);
+      card.appendChild(bar);
+      card.appendChild(el('div', 'ms-num', m.done ? '✓' : m.value + ' / ' + m.goal));
+      box.appendChild(card);
+    });
   }
 
   /* The three doors of the path: how deep the learner wants to go. The
@@ -4767,6 +5129,8 @@
   function finish() {
     var acc = Math.round(L.right / L.qs.length * 100);
     var day = today();
+    /* The strip of the milestones belongs to the run that earned it. */
+    renderResultMilestones([]);
 
     // ---- an exam is a measurement, not a lesson ------------------------
     if (L.exam) {
@@ -4911,10 +5275,21 @@
       return;
     }
 
-    if (S.lastDay !== day) {
-      if (acc >= 50) S.streak = (S.lastDay === yesterday()) ? S.streak + 1 : 1;
-      else S.streak = 0;
-      S.lastDay = day;
+    /* The streak is kept by any lesson that is finished. The score of the
+       lesson does not matter: a lesson with half of the answers right is
+       still a day of the streak. Before, a lesson under fifty per cent
+       broke the chain of the days — the learner was punished for the
+       questions he did not know yet, and the research on learning apps
+       says exactly that: a streak tied to the goal teaches the player to
+       avoid the goal. */
+    var streakRes = streakUpdate(day);
+    if (streakRes.shieldsUsed) {
+      toast(streakRes.shieldsUsed > 1
+        ? streakRes.shieldsUsed + ' shields held your streak alive'
+        : 'Your shield held the streak alive', true);
+    }
+    if (streakRes.earned) {
+      toast('Seven days in a row — a shield is earned', true);
     }
     S.lessons++;
     if (L.kind === 'daily' || L.kind === 'daily-retry') {
@@ -4982,6 +5357,11 @@
     }
     awardSouls(soulPay, soulWhy);
     setText('#r-souls', '+' + soulPay);
+    /* The milestone that this very lesson earned is shown on the result
+       screen, not only in a toast that is gone in three seconds: the
+       research on learning apps says the collection and the immediate
+       feedback are what make a session longer. */
+    renderResultMilestones(checkMilestones());
     if (mistakes.length) {
       setText('#result-emoji', '🔧');
       setText('#result-title', mistakes.length === 1 ? 'Almost there' : 'Not quite yet');
@@ -5402,6 +5782,8 @@
   function renderProfile() {
     var name = profileName();
     var lessons = S.lessons;
+    checkMilestones();
+    renderMilestones();
     var label = displayLabel();
     setText('#profile-name', label);
     var av = $('#profile-avatar');
@@ -7016,6 +7398,17 @@
     startLesson: startLesson,
     /* the cases of the vault */
     openCase: openCase,
+    /* the retention of the player: the streak, the shields, the milestones
+       and the next step — the harness has to be able to drive them */
+    streakUpdate: streakUpdate,
+    shieldsHave: shieldsHave,
+    buyShield: buyShield,
+    milestoneState: milestoneState,
+    checkMilestones: checkMilestones,
+    renderResultMilestones: renderResultMilestones,
+    renderCounters: renderCounters,
+    detectAway: detectAway,
+    nextStep: nextStep,
     /* the guarantee of the cases and the refund of a duplicate: the
        harness has to be able to drive them */
     casePity: casePity,
@@ -7160,6 +7553,8 @@
     });
     $('#exam-btn').addEventListener('click', startExam);
     $('#review-btn').addEventListener('click', startReview);
+    var buyShieldBtn = $('#buy-shield');
+    if (buyShieldBtn) buyShieldBtn.addEventListener('click', buyShield);
     $('#items-back').addEventListener('click', function () { setActiveTab('path'); show('path'); });
     $('#counters-back').addEventListener('click', function () { setActiveTab('path'); show('path'); });
     $('#counters-quiz').addEventListener('click', function () { startCounterQuiz(); });
@@ -7487,6 +7882,8 @@
     });
 
     applySettings();
+    /* how long the player was away: the home screen says it out loud */
+    detectAway();
     /* the gift of the shop to every account: 300 souls, once, into the
        profile of this browser — there is no server yet to hand it out */
     takeLocalGift();
