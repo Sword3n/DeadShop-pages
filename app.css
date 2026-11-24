@@ -1123,14 +1123,14 @@ body.modal-open .scroll{overflow:hidden}
 .crystal-fx.on .crystal-pool{animation:crystalPool 3.1s ease-out forwards}
 @keyframes crystalPool{0%{opacity:0;transform:scale(.4)}22%{opacity:.9;transform:scale(1)}
   62%{opacity:.7;transform:scale(1.05)}100%{opacity:0;transform:scale(1.2)}}
-.crystal-stage{position:relative;width:260px;height:300px;display:grid;place-items:center}
+.crystal-stage{position:relative;width:290px;height:350px;display:grid;place-items:center}
 /* the light of the core, around the stone */
 .crystal-halo{position:absolute;width:220px;height:220px;border-radius:50%;opacity:0;
   background:radial-gradient(circle,rgba(183,255,138,.55),rgba(75,210,64,.22) 45%,transparent 72%)}
 .crystal-fx.on .crystal-halo{animation:crystalHalo 3.1s ease-out forwards}
 @keyframes crystalHalo{0%{opacity:0;transform:scale(.4)}24%{opacity:1;transform:scale(1)}
   60%{opacity:.75;transform:scale(1.06)}100%{opacity:0;transform:scale(1.2)}}
-.crystal-img{width:230px;height:270px;object-fit:contain;position:relative;z-index:2;
+.crystal-img{width:250px;height:330px;object-fit:contain;position:relative;z-index:2;
   filter:drop-shadow(0 0 30px rgba(120,255,90,.75))}
 .crystal-fx.on .crystal-img{animation:crystalFall 3.1s cubic-bezier(.2,.9,.25,1) forwards}
 @keyframes crystalFall{
@@ -1182,7 +1182,8 @@ body.modal-open .scroll{overflow:hidden}
 /* the screen of the limit: the crystal above the numbers */
 .limit-card{text-align:center}
 .limit-crystal{position:relative;width:96px;height:96px;margin:0 auto 6px;display:grid;place-items:center}
-.limit-crystal img{position:relative;z-index:2;animation:crystalFloat 3.4s ease-in-out infinite}
+.limit-crystal img{position:relative;z-index:2;object-fit:contain;
+  animation:crystalFloat 3.4s ease-in-out infinite}
 @keyframes crystalFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
 .limit-crystal-glow{position:absolute;inset:-14px;border-radius:50%;
   background:radial-gradient(circle,rgba(61,220,200,.34),transparent 68%);animation:crystalGlow 2.6s ease-in-out infinite}

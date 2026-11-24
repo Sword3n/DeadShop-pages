@@ -35,7 +35,7 @@
       <stop offset="1" stop-color="#1E6B22" stop-opacity="0"/>
     </radialGradient>
     <linearGradient id="coreBar" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#6BEE55" stop-opacity="0.15"/>
+      <stop offset="0" stop-color="#6BEE55" stop-opacity="0"/>
       <stop offset="0.3" stop-color="#8BFF63" stop-opacity="1"/>
       <stop offset="0.8" stop-color="#B6FF8A" stop-opacity="0.95"/>
       <stop offset="1" stop-color="#3FA83A" stop-opacity="0"/>
@@ -54,19 +54,19 @@
 
   <!-- the light of the core, seen through the stone -->
   <g clip-path="url(#shard)">
-    <ellipse cx="100" cy="262" rx="66" ry="98" fill="url(#core)" filter="url(#softer)" opacity="1"/>
-    <path d="M78 150 L122 150 L112 300 L100 344 L88 300 Z" fill="url(#coreBar)" filter="url(#soft)"/>
-    <ellipse cx="100" cy="268" rx="34" ry="54" fill="#E4FFC8" filter="url(#soft)" opacity="1"/>
+    <ellipse cx="100" cy="266" rx="42" ry="66" fill="url(#core)" filter="url(#softer)" opacity="0.75"/>
+    <path d="M84 176 L116 176 L109 296 L100 330 L91 296 Z" fill="url(#coreBar)" filter="url(#soft)"/>
+    <ellipse cx="100" cy="272" rx="20" ry="34" fill="#D8FFB4" filter="url(#soft)" opacity="0.85"/>
 
     <!-- the facets of the stone -->
     <path d="M100 6 L136 62 L118 120 L78 128 L62 62 Z" fill="url(#rock)"/>
-    <path d="M100 6 L118 120 L100 196 L84 118 Z" fill="#7C7E5C" opacity="0.9"/>
+    <path d="M100 6 L118 120 L100 196 L84 118 Z" fill="#8E9070" opacity="0.95"/>
     <path d="M62 62 L78 128 L52 210 L46 130 Z" fill="url(#faceLight)" opacity="0.9"/>
     <path d="M118 120 L152 128 L162 208 L120 196 Z" fill="url(#faceDark)"/>
-    <path d="M78 128 L118 120 L120 196 L84 196 Z" fill="#6E7050"/>
-    <path d="M46 130 L84 196 L74 268 L52 270 L38 210 Z" fill="#55573A"/>
-    <path d="M120 196 L162 208 L150 268 L124 330 L110 268 Z" fill="url(#faceDark)"/>
-    <path d="M84 196 L120 196 L110 268 L92 300 L78 268 Z" fill="#57703A" opacity="0.95"/>
+    <path d="M78 128 L118 120 L120 196 L84 196 Z" fill="#83856A"/>
+    <path d="M46 130 L84 196 L74 268 L52 270 L38 210 Z" fill="#6C6E52"/>
+    <path d="M120 196 L162 208 L150 268 L124 330 L110 268 Z" fill="#4A4C30"/>
+    <path d="M84 196 L120 196 L110 268 L92 300 L78 268 Z" fill="#6B8548" opacity="0.9"/>
     <path d="M52 270 L74 268 L78 332 L100 392 L86 330 Z" fill="#3A3D24"/>
     <path d="M110 268 L150 268 L124 330 L100 392 L104 320 Z" fill="#33361C"/>
 
