@@ -13,9 +13,15 @@ status: живой проект
 > Рабочая карта магазина Deadlock: где что лежит, чем оно сделано, откуда взяты
 > данные и звуки, когда что менялось и как части проекта связаны между собой.
 > Файл лежит рядом с базой предметов (`data/`), потому что всё начинается с неё.
+>
+> **Копия в Obsidian:** vault базы (`~/Documents/DeadShop`) — файл
+> `DeadShop Site — private map.md`. Obsidian не открывает файл вне vault, поэтому
+> карта копируется туда инструментом [[tools/sync_vault_map.py]] (запускается на
+> каждом релизе). Vault базы опубликован на GitHub, поэтому копия лежит вне git:
+> карта приватного репозитория не должна попасть в публичный vault.
 
 **Адрес в мире:** <https://sword3n.github.io/DeadShop-pages/> · репозиторий публикации `Sword3n/DeadShop-pages` · исходники приватно: `Sword3n/DeadShop-site`
-**Текущая версия приложения:** 0.38.5 → готовится **0.39.0** (парирование, кристалл Регенератора, кейсы с гарантом, [[data/DeadShop]] обновляется на каждый релиз)
+**Текущая версия приложения:** **0.41.0** (раунд удержания: стрик, щиты, вехи, следующий шаг) · карта обновляется на каждый релиз
 
 ---
 
@@ -40,7 +46,7 @@ DeadShop-site/
 ├── core.js             ← ядро: хранилище, профиль, шифрование, маршрутизация
 ├── auth.js             ← вход, коды активации, подарок владельца
 ├── api.js              ← разговор с сервером (аккаунты, гранты, таблица лидеров)
-├── sw.js               ← service worker: офлайн-оболочка, кэш «deadshop-v53»
+├── sw.js               ← service worker: офлайн-оболочка, кэш «deadshop-v57»
 ├── manifest.webmanifest, robots.txt, 404.html
 │
 ├── data/               ← ★ БАЗА ПРЕДМЕТОВ И КОНТЕНТ ★ (здесь лежит эта карта)
@@ -135,6 +141,7 @@ tools/make_dist.py → dist/ → tools/publish_pages.py → GitHub Pages
 | [[tools/make_dist.py]] | собрать `dist/` — то, что реально лежит на интернете |
 | [[tools/publish_pages.py]] | выложить `dist/` в публичный репозиторий Pages |
 | [[tools/serve.py]] | локальный сервер (нужен для тестов и съёмки) |
+| [[tools/sync_vault_map.py]] | положить карту проекта в Obsidian-vault (приватной копией, вне git) |
 | [[tools/shot.py]], [[tools/make_shots.py]] | снимки экранов приложения |
 | [[tools/record_video.js]], [[tools/make_video.py]], [[tools/frames_to_gif.py]] | видео и гифки |
 | [[tools/make_icon.py]], [[tools/make_og.py]], [[tools/make_qr.py]], [[tools/icon_sheet.py]], [[tools/render_svg.py]] | графика |
